@@ -1,0 +1,30 @@
+  <div id="hud" aria-hidden="true">
+    <svg id="hudsvg"></svg>
+    <div id="labels"></div>
+    <div id="tokens"></div>
+    <div id="hudrow">
+      <div id="dial" class="hudbox"></div>
+      <div id="grid" class="hudbox"></div>
+      <div id="ledger" class="hudbox"></div>
+      <div id="seesaw" class="hudbox"></div>
+      <div id="moodbar" class="hudbox"></div>
+    </div>
+    <div id="clockico"></div>
+    <div id="daystrip"></div>
+  </div>
+  <div id="inset" hidden></div>
+  <div id="storybar" hidden>
+    <div id="sbprog"><i></i></div>
+    <div class="sbtop"><b id="sbtitle"></b><span id="sbcount" class="mono"></span><button id="sbclose" aria-label="Exit the story">×</button></div>
+    <div id="sbcap" aria-live="polite"></div>
+    <div class="sbctl">
+      <div class="seg" id="sbstate" role="group" aria-label="Brain state"></div>
+      <div class="sbnav">
+        <button id="sbprev" aria-label="Previous scene"><svg viewBox="0 0 20 20"><path d="M5 4v12M16 4l-8 6 8 6z"/></svg></button>
+        <button id="sbreplay" aria-label="Replay this scene"><svg viewBox="0 0 20 20"><path d="M4.5 10a5.5 5.5 0 1 0 1.8-4.1M4 3v4h4" fill="none"/></svg></button>
+        <button id="sbplay" aria-label="Pause autoplay"></button>
+        <button id="sbnext" aria-label="Next scene"><svg viewBox="0 0 20 20"><path d="M15 4v12M4 4l8 6-8 6z"/></svg></button>
+      </div>
+    </div>
+    <div id="sbextra"></div>
+  </div>

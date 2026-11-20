@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brain Network Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Layout: full-bleed 3D canvas; a left instrument panel on desktop that becomes a bottom sheet on phones. */
+  --bg: #0a0f16;
+  --bg-2: #121b27;
+  --panel: rgba(16, 23, 33, 0.95);
+  --ink: #e7edf4;
+  --muted: #8d9bad;
+  --line: rgba(141, 155, 173, 0.18);
+  --accent: #ffb454;
+  --good: #5fd39a;
+  --bad: #ff7b72;
+  --font-display: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --panel-w: 352px;
+  --radius: 10px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: radial-gradient(ellipse at 60% 40%, var(--bg-2) 0%, var(--bg) 70%);
+  background-color: var(--bg); color: var(--ink);
+  font: 14px/1.45 var(--font-body); overflow: hidden; -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+#stage { position: fixed; inset: 0 0 0 var(--panel-w); }
+#c { width: 100%; height: 100%; display: block; touch-action: none; }
+
+#panel {
+  position: fixed; top: 0; left: 0; bottom: 0; width: var(--panel-w);
+  background: var(--panel); border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; z-index: 5; backdrop-filter: blur(10px);
+}
+.brand { padding: 18px 18px 10px; display: flex; flex-direction: column; gap: 2px; }
+.brand h1 { margin: 0; font: 600 24px/1.1 var(--font-display); text-wrap: balance; }
+.brand p { margin: 0; color: var(--muted); font-size: 12px; }
+#handle { display: none; }
+.search { padding: 4px 16px 10px; }
+.search input {
+  width: 100%; padding: 9px 12px 9px 32px; border-radius: 8px; border: 1px solid var(--line);
+  background: rgba(255,255,255,0.04) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238d9bad' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 11px 50%;
+}
+.search input::placeholder { color: var(--muted); }
+.tabs { display: flex; gap: 2px; padding: 0 12px; border-bottom: 1px solid var(--line); }
+.tabs button { flex: 1; background: none; border: 0; padding: 9px 2px 10px; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabbody { flex: 1; overflow-y: auto; padding: 12px 16px 24px; display: none; overscroll-behavior: contain; }
+.tabbody.on { display: flex; flex-direction: column; gap: 14px; }
+.label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: rgba(255,255,255,0.03); border-radius: 999px; padding: 5px 11px; font-size: 13px; }
+.chip:hover { border-color: rgba(255,180,84,0.5); }
+.chip[aria-pressed="true"] { background: rgba(255,180,84,0.14); border-color: var(--accent); color: #ffd9a6; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { background: none; border: 0; padding: 5px 11px; font-size: 13px; color: var(--muted); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: rgba(255,255,255,0.08); color: var(--ink); }
+.rowline { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+
+.group { border-top: 1px solid var(--line); }
+.ghead { display: flex; align-items: center; gap: 6px; padding: 8px 0 6px; }
+.ghead .gtoggle { flex: 1; display: flex; align-items: center; gap: 8px; background: none; border: 0; padding: 0; text-align: left; font-weight: 600; font-size: 13px; }
+.ghead .gtoggle .chev { width: 10px; transition: transform .15s; color: var(--muted); flex: none; }
+.group.closed .chev { transform: rotate(-90deg); }
+.group.closed .rows { display: none; }
+.ghead .count { color: var(--muted); font-weight: 400; font-size: 12px; font-variant-numeric: tabular-nums; }
+.rows { display: flex; flex-direction: column; padding-bottom: 6px; }
+.row { display: grid; grid-template-columns: 18px 1fr auto; align-items: center; gap: 8px; padding: 3px 0 3px 18px; border-radius: 6px; }
+.row.sel { background: rgba(255,180,84,0.10); }
+.row .sw { width: 12px; height: 12px; border-radius: 3px; border: 2px solid currentColor; background: currentColor; padding: 0; }
+.row[data-level="1"] .sw { background: transparent; }
+.row[data-level="0"] .sw { opacity: 0.35; background: transparent; border-style: dashed; }
+.row .nm { background: none; border: 0; padding: 3px 0; text-align: left; font-size: 13.5px; line-height: 1.3; }
+.row[data-level="0"] .nm { color: var(--muted); }
+.lv { display: flex; align-items: center; gap: 4px; }
+.lv button { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--line); background: rgba(255,255,255,0.03); display: grid; place-items: center; font: 500 16px/1 var(--font-mono); padding: 0; }
+.lv button:hover:not(:disabled) { border-color: rgba(255,180,84,0.6); }
+.lv button:disabled { opacity: 0.3; cursor: default; }
+.pips { display: flex; gap: 2px; width: 20px; justify-content: center; }
+.pips i { width: 4px; height: 12px; border-radius: 1px; background: var(--line); }
+.row[data-level="1"] .pips i:nth-child(1), .row[data-level="2"] .pips i, .ghead[data-level="1"] .pips i:nth-child(1), .ghead[data-level="2"] .pips i { background: var(--ink); }
+.row[data-level="1"] .pips i:nth-child(1), .ghead[data-level="1"] .pips i:nth-child(1) { opacity: 0.55; }
+.empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
+
+.net { display: grid; grid-template-columns: 14px 1fr; gap: 4px 10px; text-align: left; width: 100%; border: 1px solid var(--line); background: rgba(255,255,255,0.02); border-radius: var(--radius); padding: 10px 12px; }
+.net[aria-pressed="true"] { border-color: var(--accent); background: rgba(255,180,84,0.08); }
+.net .dot { width: 14px; height: 14px; border-radius: 50%; margin-top: 3px; }
+.net b { font-weight: 600; font-size: 14px; }
+.net span.d { grid-column: 2; color: var(--muted); font-size: 12.5px; }
+.note { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.note b { color: var(--ink); font-weight: 500; }
+
+.views { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.views button, .btn { border: 1px solid var(--line); background: rgba(255,255,255,0.03); border-radius: 8px; padding: 7px 8px; font-size: 13px; }
+.views button:hover, .btn:hover { border-color: rgba(255,180,84,0.5); }
+.btn.primary { background: rgba(255,180,84,0.14); border-color: var(--accent); color: #ffd9a6; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.sources { font-size: 12px; color: var(--muted); line-height: 1.55; }
+.sources a { color: #b9c7d8; }
+.section { display: flex; flex-direction: column; gap: 8px; }
+
+#viewbar { position: absolute; top: 14px; right: 14px; display: flex; gap: 4px; z-index: 3; }
+#viewbar button { border: 1px solid var(--line); background: rgba(16,23,33,0.8); border-radius: 7px; padding: 5px 9px; font-size: 12.5px; }
+#viewbar button:hover { border-color: rgba(255,180,84,0.5); }
+#legend { position: absolute; left: 14px; bottom: 14px; z-index: 3; display: none; gap: 12px; flex-wrap: wrap; align-items: center; background: rgba(16,23,33,0.85); border: 1px solid var(--line); border-radius: 8px; padding: 7px 11px; font-size: 12.5px; max-width: calc(100% - 28px); }
+#legend.on { display: flex; }
+#legend span { display: inline-flex; align-items: center; gap: 6px; }
+#legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+#tip, #flabel { position: absolute; pointer-events: none; z-index: 4; display: none; padding: 4px 8px; border-radius: 6px; background: rgba(10,15,22,0.92); border: 1px solid var(--line); font-size: 12.5px; white-space: nowrap; }
+#flabel { border-color: rgba(255,180,84,0.6); color: #ffe2b8; transform: translate(-50%, -140%); }
+#info {
+  position: absolute; right: 14px; bottom: 14px; width: min(360px, calc(100% - 28px)); z-index: 4; max-height: calc(100% - 80px); overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
+  display: none; flex-direction: column; gap: 10px; box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+}
+#info.on { display: flex; }
+#info header { display: flex; align-items: flex-start; gap: 10px; }
+#info h2 { margin: 0; font: 600 21px/1.15 var(--font-display); flex: 1; text-wrap: balance; }
+#info .sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+#info .x { background: none; border: 0; color: var(--muted); font-size: 20px; line-height: 1; padding: 0 2px; }
+#info p { margin: 0; font-size: 13px; line-height: 1.5; }
+#info .src { color: var(--muted); font-size: 11.5px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 12.5px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+.bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--line); }
+.bar i { display: block; height: 100%; }
+.comp { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
+.comp span { display: inline-flex; gap: 5px; align-items: center; }
+.comp i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.nodechips { display: flex; flex-wrap: wrap; gap: 5px; }
+.nodechips button { border: 1px solid var(--line); background: rgba(255,255,255,0.03); border-radius: 999px; padding: 3px 9px; font-size: 12px; }
+#quiz {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 6; display: none; align-items: center; gap: 12px;
+  background: var(--panel); border: 1px solid var(--accent); border-radius: 12px; padding: 9px 12px 9px 16px; box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+  max-width: calc(100% - 28px);
+}
+#quiz.on { display: flex; }
+#quiz .q { font-size: 14px; } #quiz .q b { font: 600 18px var(--font-display); color: #ffe2b8; }
+#quiz.ok { border-color: var(--good); } #quiz.no { border-color: var(--bad); }
+#quiz .score { font-family: var(--font-mono); color: var(--muted); font-size: 12.5px; }
+.chip.sm { padding: 3px 9px; font-size: 12.5px; }
+.syslabel { font-size: 11.5px; color: var(--muted); margin: 2px 0 -2px; }
+.drug { border: 1px solid var(--line); background: rgba(255,255,255,0.03); border-radius: 8px; padding: 5px 9px; font-size: 13px; text-align: left; }
+.drug[aria-pressed="true"] { background: rgba(255,180,84,0.14); border-color: var(--accent); color: #ffd9a6; }
+.drugs { display: flex; flex-wrap: wrap; gap: 5px; }
+.cbar { width: 120px; height: 8px; border-radius: 4px; display: inline-block; }
+.tgt { display: flex; flex-wrap: wrap; gap: 5px; }
+.tgt > button, .tgt > span { border: 1px solid var(--line); background: rgba(255,255,255,0.03); border-radius: 999px; padding: 3px 9px; font-size: 12px; text-align: left; }
+.tgt button[aria-pressed="true"] { border-color: var(--accent); background: rgba(255,180,84,0.12); }
+.tgt > span { color: var(--muted); }
+.tgt .tier { color: var(--accent); letter-spacing: 1px; margin-left: 5px; border: 0; background: none; padding: 0; }
+.fp { display: grid; grid-template-columns: 62px 1fr 34px; gap: 3px 8px; align-items: center; font-size: 12px; }
+.fp .b { height: 7px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.fp .b i { display: block; height: 100%; }
+.fp .cur { color: #ffd9a6; font-weight: 600; }
+#loading { position: fixed; inset: 0; display: grid; place-items: center; z-index: 20; background: var(--bg); font: 500 15px var(--font-body); color: var(--muted); }
+#loading.err { color: #ffb3a7; padding: 24px; text-align: center; }
+
+@media (max-width: 760px) {
+  #stage { inset: 0; }
+  #panel { top: auto; right: 0; width: auto; height: 54%; border-right: 0; border-top: 1px solid var(--line); border-radius: 16px 16px 0 0; transition: height .22s ease; }
+  #panel.min { height: 132px; }
+  #panel.min .tabbody { display: none; }
+  #handle { display: block; background: none; border: 0; padding: 8px 0 2px; width: 100%; }
+  #handle i { display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--muted); opacity: 0.6; margin: 0 auto; }
+  .brand { display: none; }
+  .search { padding-top: 6px; }
+  .tabs button { font-size: 12.5px; padding-left: 0; padding-right: 0; }
+  #viewbar { top: 10px; right: 10px; }
+  #viewbar [data-v=back], #viewbar [data-v=right] { display: none; }
+  #mbrand { display: block; }
+  #info { top: 50px; bottom: auto; right: 10px; left: 10px; width: auto; padding: 12px 14px; gap: 8px; max-height: 42%; }
+  #info h2 { font-size: 19px; }
+  #info .kv, #info .note, #info p { font-size: 12.5px; }
+  #info .btn { padding: 5px 9px; font-size: 12.5px; }
+  #legend { bottom: auto; top: 50px; left: 10px; }
+  body.circ #info { top: auto; bottom: calc(var(--sheet-h, 132px) + 8px); max-height: 46%; }
+  body.has-info #legend { display: none; }
+  #quiz { top: 50px; gap: 8px; padding: 8px 10px; }
+  #quiz .q b { font-size: 16px; }
+}
+#mbrand { display: none; position: absolute; top: 12px; left: 12px; z-index: 3; font: 600 16px var(--font-display); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+__STORY_CSS__
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="loading">Building the brain…</div>
+<script>
+setTimeout(function () {
+  var l = document.getElementById('loading');
+  if (l) { l.className = 'err'; l.textContent = 'The 3D engine did not start. It loads from cdn.jsdelivr.net and needs WebGL; check your connection and reload.'; }
+}, 15000);
+</script>
+
+<aside id="panel" aria-label="Atlas controls">
+  <button id="handle" aria-label="Expand or collapse the panel"><i></i></button>
+  <div class="brand">
+    <h1>Brain Network Atlas</h1>
+    <p>78 structures · 20 receptor maps · 40 drugs · MNI152</p>
+  </div>
+  <div class="search"><input id="q" type="search" placeholder="Search, e.g. DLPFC, habenula, fornix" autocomplete="off" aria-label="Search regions"></div>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-regions" aria-selected="true" data-tab="regions">Regions</button>
+    <button role="tab" id="tab-networks" aria-selected="false" data-tab="networks">Networks</button>
+    <button role="tab" id="tab-paths" aria-selected="false" data-tab="paths">Pathways</button>
+    <button role="tab" id="tab-drugs" aria-selected="false" data-tab="drugs">Drugs</button>
+    <button role="tab" id="tab-tools" aria-selected="false" data-tab="tools">Tools</button>
+  </div>
+
+  <div class="tabbody on" id="body-regions" role="tabpanel" aria-labelledby="tab-regions">
+    <div class="chips" id="presets" aria-label="Preset views"></div>
+    <div class="rowline">
+      <span class="label">Hemisphere</span>
+      <div class="seg" id="hemi"><button data-h="B" aria-pressed="true">Both</button><button data-h="L" aria-pressed="false">Left</button><button data-h="R" aria-pressed="false">Right</button></div>
+    </div>
+    <div id="list"></div>
+  </div>
+
+  <div class="tabbody" id="body-networks" role="tabpanel" aria-labelledby="tab-networks">
+    <div id="nets" style="display:flex;flex-direction:column;gap:8px"></div>
+    <p class="note">Cortical territories come from the <b>Yeo 2011 seven-network map</b> (liberal mask), sampled at every vertex. The salience network is Yeo's “ventral attention” network and the central executive is the “frontoparietal control” network.</p>
+    <p class="note"><b>Subcortical nodes</b> are lit by convention, not from the Yeo map: salience → amygdala, nucleus accumbens, substantia nigra, ventral tegmental area, hypothalamus, periaqueductal grey (Seeley 2007); default mode → hippocampus (Buckner 2008).</p>
+  </div>
+
+  <div class="tabbody" id="body-paths" role="tabpanel" aria-labelledby="tab-paths">
+    <span class="label">Animated stories</span>
+    <div id="stories" style="display:flex;flex-direction:column;gap:8px"></div>
+    <span class="label" style="margin-top:4px">Pathways</span>
+    <div id="paths" style="display:flex;flex-direction:column;gap:8px"></div>
+    <p class="note">Pathways are <b>schematic</b>: animated lines join the atlas centroids of each relay to show direction of flow. They are not tractography; switch on the White matter tracts group for real fibre bundles.</p>
+  </div>
+
+  <div class="tabbody" id="body-drugs" role="tabpanel" aria-labelledby="tab-drugs">
+    <div class="section">
+      <div class="rowline"><span class="label">Receptor map</span><button class="chip sm" id="recoff">Anatomy colours</button></div>
+      <div id="recs" class="section" style="gap:6px"></div>
+      <label class="check"><input type="checkbox" id="boost"> Boost low densities (square-root scale)</label>
+      <p class="note" id="petnote" style="margin:0">Group-average PET and SPECT maps from healthy adults, compiled by Hansen et al. 2022 (CC BY-NC-SA 4.0). Each map is scaled to its own brain range, so colours compare regions within a map, not receptors with each other.</p>
+    </div>
+    <div class="section">
+      <span class="label">Drugs</span>
+      <div id="druglist" class="section" style="gap:8px"></div>
+      <p class="note" style="margin:0">Picking a drug shows the map of its main mapped target; tap its other targets in the card to switch. Affinity dots (●●● highest) are approximate teaching tiers from standard binding data, not measured values.</p>
+    </div>
+  </div>
+
+  <div class="tabbody" id="body-tools" role="tabpanel" aria-labelledby="tab-tools">
+    <div class="section">
+      <span class="label">Test yourself</span>
+      <div class="actions"><button class="btn primary" id="quizstart">Start “Find it” quiz</button></div>
+      <p class="note" style="margin:0">A structure name appears at the top; tap it on the brain. Either hemisphere counts.</p>
+    </div>
+    <div class="section">
+      <span class="label">Look from</span>
+      <div class="views" id="views"></div>
+    </div>
+    <div class="section">
+      <div class="rowline">
+        <span class="label">Cut plane</span>
+        <div class="seg" id="cut"><button data-c="off" aria-pressed="true">Off</button><button data-c="ax" aria-pressed="false">Axial</button><button data-c="co" aria-pressed="false">Coronal</button><button data-c="sa" aria-pressed="false">Sagittal</button></div>
+      </div>
+      <input type="range" id="cutpos" min="-60" max="80" value="10" step="1" disabled aria-label="Cut plane position">
+      <div class="note mono" id="cutlabel">No cut</div>
+      <label class="check"><input type="checkbox" id="cutflip" disabled> Keep the other side</label>
+      <label class="check"><input type="checkbox" id="mri" checked> MRI slice on the cut (MNI152 template)</label>
+      <label class="check"><input type="checkbox" id="mrilab" checked> Atlas colours on the MRI</label>
+      <p class="note" id="mrinote" style="margin:0"></p>
+    </div>
+    <div class="section">
+      <span class="label">Ghost opacity</span>
+      <input type="range" id="ghost" min="4" max="45" value="14" aria-label="Ghost opacity">
+    </div>
+    <div class="actions"><button class="btn" id="resetall">Reset everything</button></div>
+    <div class="sources">
+      <div class="label" style="margin-bottom:4px">Data</div>
+      Cortex, deep grey matter, ventricles: Hammers 83-region atlas (Hammers 2003; Gousias 2008). Hypothalamus, habenula, mammillary bodies, subthalamic nucleus, ventral pallidum, red nucleus, ventral tegmental area: CIT168 (Pauli 2018). Thalamic nuclei and mammillothalamic tract: THOMAS (Su 2019). Basal forebrain: Julich-Brain 3. Fourth ventricle: CerebrA. Raphe, locus coeruleus, periaqueductal grey: centroids from the Brainstem Navigator, shapes schematic. Tracts: HCP842 tractography atlas (Yeh 2018). Networks: Yeo 2011. MRI: MNI152 (FSL, 1 mm). All in MNI152 6th-generation space; 2009-space atlases moved with the neuroparc ANTs transform. Atlas files via <a href="https://github.com/neurodata/neuroparc">neuroparc</a> and <a href="https://github.com/netstim/leaddbs">Lead-DBS</a>.<br><br>
+      A group-average brain, for learning. It cannot localise anything in an individual patient's scan.
+    </div>
+  </div>
+</aside>
+
+<main id="stage">
+  <canvas id="c" aria-label="Interactive 3D brain. Drag to rotate, pinch or scroll to zoom, tap a structure to identify it."></canvas>
+  <div id="mbrand">Brain Network Atlas</div>
+  <div id="viewbar"></div>
+  <div id="legend" aria-live="polite"></div>
+  <div id="tip"></div>
+  <div id="flabel"></div>
+  <div id="quiz" aria-live="polite"><span class="q" id="quizq"></span><span class="score" id="quizscore"></span><button class="btn" id="quizskip">Skip</button><button class="btn" id="quizstop">Stop</button></div>
+  <section id="info" aria-live="polite"></section>
+__STORY_HTML__
+</main>
+
+<script id="manifest" type="application/json">__MANIFEST__</script>
+<script id="meshdata" type="application/octet-stream">__DATA__</script>
+<script id="voldata" type="application/octet-stream">__VOL__</script>
+<script id="petdata" type="application/octet-stream">__PET__</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+__CONTENT__
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NETS = [null,
+  { id: 1, name: 'Visual', color: '#781286' }, { id: 2, name: 'Somatomotor', color: '#4682b4' }, { id: 3, name: 'Dorsal attention', color: '#00760e' },
+  { id: 4, name: 'Salience / ventral attention', short: 'Salience', color: '#c43afa' }, { id: 5, name: 'Limbic', color: '#dcf8a4' },
+  { id: 6, name: 'Frontoparietal control', short: 'Central executive', color: '#e69422' }, { id: 7, name: 'Default mode', color: '#cd3e4e' }];
+const SUBNODES = { 4: ['Amygdala', 'Nucleus_accumbens', 'Substantia_nigra', 'VTA', 'Hypothalamus', 'PAG'], 7: ['Hippocampus'] };
+const NET_MODES = [
+  { id: 'off', name: 'Anatomy colours', desc: 'Each structure in its own colour.', nets: [] },
+  { id: 'sal', name: 'Salience network', desc: 'Anterior insula and dorsal anterior cingulate: flags what matters and switches between the other two.', nets: [4], dot: '#c43afa' },
+  { id: 'dmn', name: 'Default mode network', desc: 'Medial prefrontal, posterior cingulate and precuneus, angular gyrus, medial temporal lobe: self-referential thought.', nets: [7], dot: '#cd3e4e' },
+  { id: 'cen', name: 'Central executive network', desc: 'Dorsolateral prefrontal and posterior parietal cortex: goal-directed control and working memory.', nets: [6], dot: '#e69422' },
+  { id: 'tri', name: 'Triple network', desc: 'All three at once, for Menon’s triple-network model of psychopathology.', nets: [4, 7, 6], dot: 'conic-gradient(#c43afa 0 33%, #cd3e4e 0 66%, #e69422 0)' },
+  { id: 'all', name: 'All seven Yeo networks', desc: 'The whole cortical parcellation.', nets: [1, 2, 3, 4, 5, 6, 7], dot: 'conic-gradient(#781286 0 14%, #4682b4 0 28%, #00760e 0 42%, #c43afa 0 57%, #dcf8a4 0 71%, #e69422 0 85%, #cd3e4e 0)' },
+];
+
+// ---------------- decode ----------------
+let man, buf;
+try {
+  man = JSON.parse($('#manifest').textContent);
+  const bin = atob($('#meshdata').textContent.trim());
+  const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  buf = u8.buffer;
+} catch (e) {
+  $('#loading').classList.add('err'); $('#loading').textContent = 'The brain data could not be read. Reload the page to try again.'; throw e;
+}
+const structs = new Map(man.structs.map(s => [s.key, s]));
+const byIdx = new Map(man.structs.map(s => [s.idx, s]));
+const CORTEX_GROUPS = new Set(['Frontal lobe', 'Orbitofrontal cortex', 'Cingulate & medial prefrontal', 'Insula', 'Parietal lobe', 'Temporal lobe', 'Occipital lobe']);
+const C = man.center_mni;
+const mni2three = (p) => new THREE.Vector3(-(p[0] - C[0]), p[2] - C[2], p[1] - C[1]);
+const three2mni = (v) => [-v.x + C[0], v.z + C[1], v.y + C[2]];
+
+// ---------------- scene ----------------
+const canvas = $('#c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.localClippingEnabled = true;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 1, 1, 3000);
+const controls = new OrbitControls(camera, canvas);
+Object.assign(controls, { enableDamping: true, dampingFactor: 0.08, minDistance: 40, maxDistance: 1400, rotateSpeed: 0.8 });
+scene.add(new THREE.HemisphereLight(0xe4ecff, 0x2a2233, 1.25));
+const key = new THREE.DirectionalLight(0xffffff, 1.9); key.position.set(0.6, 0.8, 1); camera.add(key);
+const rim = new THREE.DirectionalLight(0x9fc4ff, 0.6); rim.position.set(-1, -0.3, -0.8); camera.add(rim);
+scene.add(camera);
+const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+let clipOn = false;
+
+const meshes = [], byKey = new Map();
+const grey = new THREE.Color('#4a5160'), greyDeep = new THREE.Color('#353b46');
+for (const m of man.meshes) {
+  const q = new Int16Array(buf, m.vo, m.nv * 3), pos = new Float32Array(m.nv * 3);
+  for (let i = 0; i < pos.length; i++) pos[i] = q[i] * man.scale;
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setIndex(new THREE.BufferAttribute(new Uint16Array(buf.slice(m.fo, m.fo + m.nf * 6)), 1));
+  geo.computeVertexNormals();
+  geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(m.nv * 3), 3));
+  geo.computeBoundingSphere();
+  const st = structs.get(m.key);
+  const mat = new THREE.MeshPhysicalMaterial({ color: st.color, roughness: 0.52, metalness: 0, clearcoat: 0.25, clearcoatRoughness: 0.45, emissive: new THREE.Color(0xffe6bf), emissiveIntensity: 0 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.userData = { key: m.key, hemi: m.hemi, net: new Uint8Array(buf, m.no, m.nv), st };
+  scene.add(mesh); meshes.push(mesh);
+  if (!byKey.has(m.key)) byKey.set(m.key, []); byKey.get(m.key).push(mesh);
+}
+
+// ---------------- state ----------------
+const all = man.structs.map(s => s.key);
+const inGroups = (...g) => man.structs.filter(s => g.includes(s.group)).map(s => s.key);
+const cortex = man.structs.filter(s => CORTEX_GROUPS.has(s.group)).map(s => s.key);
+const HIDDEN_BY_DEFAULT = inGroups('Thalamic nuclei', 'White matter tracts');
+const state = { level: new Map(all.map(k => [k, 2])), hemi: 'B', netMode: 'off', sel: null, selHemi: null, ghost: 0.14,
+  cut: 'off', cutPos: 10, cutFlip: false, preset: 'whole', circuit: null, snapshot: null, mri: true, mriLab: true, quiz: null, rec: null, drug: null, gamma: 1 };
+function setLevels(keys, lv) { for (const k of keys) state.level.set(k, lv); }
+
+function applyMaterials() {
+  for (const mesh of meshes) {
+    const { key, hemi } = mesh.userData, lv = state.level.get(key), mat = mesh.material;
+    mesh.visible = lv > 0 && (state.hemi === 'B' || hemi === 'M' || hemi === state.hemi);
+    const ghost = lv === 1;
+    if (mat.transparent !== ghost) { mat.transparent = ghost; mat.needsUpdate = true; }
+    mat.opacity = ghost ? (state.featured && state.featured.has(key) ? Math.max(0.3, state.ghost * 2.2) : state.ghost) : 1; mat.depthWrite = !ghost;
+    const side = clipOn && !ghost ? THREE.DoubleSide : THREE.FrontSide;
+    if (mat.side !== side) { mat.side = side; mat.needsUpdate = true; }
+    mat.clippingPlanes = clipOn ? [clipPlane] : [];
+    mesh.renderOrder = ghost ? 2 : 0;
+  }
+  updateLut();
+}
+let lastNetMode = null;
+const NO_PET = new Set([...man.structs.filter(s => s.group === 'White matter tracts').map(s => s.key), 'Corpus_callosum', 'Lateral_ventricle_no_temporal_horn', 'Lateral_ventricle_temporal_horn', 'Third_ventricle', 'Fourth_ventricle']);
+function applyColours() {
+  const modeKey = `${state.netMode}|${state.rec}|${state.gamma}|${!!pet}`;
+  if (modeKey === lastNetMode) return;
+  lastNetMode = modeKey;
+  if (state.rec && pet) return colourByReceptor();
+  const mode = NET_MODES.find(n => n.id === (state.rec ? 'off' : state.netMode)), active = new Set(mode.nets), c = new THREE.Color();
+  for (const mesh of meshes) {
+    const { key, net, st } = mesh.userData, mat = mesh.material;
+    if (!active.size) { if (mat.vertexColors) { mat.vertexColors = false; mat.needsUpdate = true; } mat.color.set(st.color); continue; }
+    if (!mat.vertexColors) { mat.vertexColors = true; mat.needsUpdate = true; }
+    mat.color.set(0xffffff);
+    const isCortex = CORTEX_GROUPS.has(st.group) || key === 'Parahippocampal_and_ambient_gyri';
+    let nodeNet = 0; for (const n of mode.nets) if ((SUBNODES[n] || []).includes(key)) nodeNet = n;
+    const arr = mesh.geometry.attributes.color.array;
+    for (let i = 0; i < net.length; i++) {
+      if (nodeNet) c.set(NETS[nodeNet].color);
+      else if (isCortex && active.has(net[i])) c.set(NETS[net[i]].color);
+      else c.copy(isCortex ? grey : greyDeep);
+      arr[i * 3] = c.r; arr[i * 3 + 1] = c.g; arr[i * 3 + 2] = c.b;
+    }
+    mesh.geometry.attributes.color.needsUpdate = true;
+  }
+  const lg = $('#legend');
+  if (active.size) { lg.innerHTML = mode.nets.map(n => `<span><i style="background:${NETS[n].color}"></i>${NETS[n].short || NETS[n].name}</span>`).join('') + `<span style="color:var(--muted)">Yeo 2011</span>`; lg.classList.add('on'); }
+  else lg.classList.remove('on');
+}
+
+// ---------------- receptor maps ----------------
+let pet = null;
+const CMAP = [[0, '#1d2747'], [0.22, '#3b3a8f'], [0.45, '#9b3b9a'], [0.68, '#e5574f'], [0.86, '#f9a23c'], [1, '#fdf0a6']].map(([t, h]) => [t, new THREE.Color(h)]);
+function heat(v, out) {
+  for (let i = 1; i < CMAP.length; i++) if (v <= CMAP[i][0]) { const [t0, c0] = CMAP[i - 1], [t1, c1] = CMAP[i]; return out.copy(c0).lerp(c1, (v - t0) / (t1 - t0)); }
+  return out.copy(CMAP[CMAP.length - 1][1]);
+}
+const cmapData = new Uint8Array(256 * 4);
+{ const c = new THREE.Color(); for (let i = 0; i < 256; i++) { heat(i / 255, c); cmapData.set([c.r * 255, c.g * 255, c.b * 255, 255], i * 4); } }
+const cmapTex = new THREE.DataTexture(cmapData, 256, 1, THREE.RGBAFormat); cmapTex.needsUpdate = true; cmapTex.magFilter = cmapTex.minFilter = THREE.LinearFilter;
+const cbarCss = 'linear-gradient(90deg,' + CMAP.map(([t, c]) => `#${c.getHexString()} ${t * 100}%`).join(',') + ')';
+function petSample(ri, mx, my, mz) {
+  const { dims: [nx, ny, nz], origin: o, step: st } = man.pet, a = pet[ri];
+  let fx = (mx - o[0]) / st[0], fy = (my - o[1]) / st[1], fz = (mz - o[2]) / st[2];
+  if (fx < 0 || fy < 0 || fz < 0 || fx > nx - 1 || fy > ny - 1 || fz > nz - 1) return 0;
+  const x0 = Math.min(nx - 2, fx | 0), y0 = Math.min(ny - 2, fy | 0), z0 = Math.min(nz - 2, fz | 0), dx = fx - x0, dy = fy - y0, dz = fz - z0;
+  const I = (x, y, z) => a[x + nx * (y + ny * z)];
+  const c00 = I(x0, y0, z0) * (1 - dx) + I(x0 + 1, y0, z0) * dx, c10 = I(x0, y0 + 1, z0) * (1 - dx) + I(x0 + 1, y0 + 1, z0) * dx;
+  const c01 = I(x0, y0, z0 + 1) * (1 - dx) + I(x0 + 1, y0, z0 + 1) * dx, c11 = I(x0, y0 + 1, z0 + 1) * (1 - dx) + I(x0 + 1, y0 + 1, z0 + 1) * dx;
+  return ((c00 * (1 - dy) + c10 * dy) * (1 - dz) + (c01 * (1 - dy) + c11 * dy) * dz) / 255;
+}
+const vtxCache = new Map();   // receptor id -> array of Float32Array per mesh
+function vertexValues(rid) {
+  if (vtxCache.has(rid)) return vtxCache.get(rid);
+  const ri = man.pet.maps.indexOf(rid);
+  const vals = meshes.map(mesh => {
+    const p = mesh.geometry.attributes.position.array, n = mesh.geometry.attributes.normal.array, out = new Float32Array(p.length / 3);
+    for (let i = 0, j = 0; j < out.length; i += 3, j++) {
+      // strongest value along a short inward probe (2, 4, 6 mm) so smoothed surfaces still read the grey matter under them
+      let best = 0;
+      for (const d of [2, 4, 6]) {
+        const x = p[i] - n[i] * d, y = p[i + 1] - n[i + 1] * d, z = p[i + 2] - n[i + 2] * d;
+        const v = petSample(ri, -x + C[0], z + C[1], y + C[2]); if (v > best) best = v;
+      }
+      out[j] = best;
+    }
+    return out;
+  });
+  vtxCache.set(rid, vals); return vals;
+}
+function structMean(rid, key) {
+  const vals = vertexValues(rid); let s = 0, n = 0;
+  meshes.forEach((m, i) => { if (m.userData.key === key) { const v = vals[i]; for (let j = 0; j < v.length; j++) s += v[j]; n += v.length; } });
+  return n ? s / n : 0;
+}
+function colourByReceptor() {
+  const vals = vertexValues(state.rec), c = new THREE.Color();
+  meshes.forEach((mesh, mi) => {
+    const mat = mesh.material, arr = mesh.geometry.attributes.color.array, v = vals[mi], none = NO_PET.has(mesh.userData.key);
+    if (!mat.vertexColors) { mat.vertexColors = true; mat.needsUpdate = true; }
+    mat.color.set(0xffffff);
+    for (let i = 0; i < v.length; i++) {
+      if (none) c.copy(greyDeep); else heat(Math.pow(v[i], state.gamma), c);
+      arr[i * 3] = c.r; arr[i * 3 + 1] = c.g; arr[i * 3 + 2] = c.b;
+    }
+    mesh.geometry.attributes.color.needsUpdate = true;
+  });
+  const r = RECEPTORS[state.rec], lg = $('#legend');
+  lg.innerHTML = `<span><b style="font-weight:600">${r.label}</b>&nbsp;<span style="color:var(--muted)">${r.tracer}</span></span><span style="color:var(--muted)">low</span><i class="cbar" style="width:110px;height:8px;background:${cbarCss}"></i><span style="color:var(--muted)">high</span>`;
+  lg.classList.add('on');
+}
+function setReceptor(rid, applyView = true) {
+  endCircuit(false);
+  state.rec = rid; state.netMode = 'off';
+  if (rid && applyView) {
+    const deep = RECEPTORS[rid].view === 'deep';
+    setLevels(all, 2); setLevels(HIDDEN_BY_DEFAULT, 0);
+    if (deep) { setLevels(cortex, 1); setLevels(['Cerebellum', 'Brainstem'], 1); }
+    state.hemi = 'B'; state.preset = deep ? 'deep' : 'whole';
+  }
+  if (slice) { slice.material.uniforms.petOn.value = rid ? 1 : 0; if (rid && pet) { petTex.image.data = pet[man.pet.maps.indexOf(rid)]; petTex.needsUpdate = true; } }
+  syncAll(); syncDrugs();
+}
+function selectDrug(id) {
+  const d = DRUGS.find(d => d.id === id);
+  if (state.drug === id) { state.drug = null; setReceptor(null); return; }
+  state.drug = id; state.sel = null;
+  const top = [...d.map].sort((a, b) => b[2] - a[2])[0];
+  setReceptor(top[0], true); setView('iso');
+}
+
+// ---------------- presets ----------------
+const PRESETS = [
+  { id: 'whole', name: 'Whole brain', set: () => { setLevels(all, 2); setLevels(HIDDEN_BY_DEFAULT, 0); }, hemi: 'B', view: 'iso' },
+  { id: 'deep', name: 'Deep structures', set: () => { setLevels(all, 2); setLevels(HIDDEN_BY_DEFAULT, 0); setLevels(cortex, 1); setLevels(['Cerebellum', 'Brainstem'], 1); }, hemi: 'B', view: 'iso' },
+  { id: 'limbic', name: 'Limbic system', set: () => {
+      setLevels(all, 1); setLevels([...HIDDEN_BY_DEFAULT, 'Cerebellum', ...inGroups('White matter & ventricles')], 0);
+      setLevels(['Hippocampus', 'Amygdala', 'Parahippocampal_and_ambient_gyri', 'Cingulate_gyrus_anterior_part', 'Cingulate_gyrus_posterior_part', 'Subgenual_frontal_cortex',
+        'Pre-subgenual_frontal_cortex', 'Subcallosal_area', 'Straight_gyrus', 'Medial_orbital_gyrus', 'Nucleus_accumbens', 'Hypothalamus', 'Mammillary_body', 'Thal_AN',
+        'Fornix', 'MTT', 'Corpus_callosum', 'Bed_nucleus_stria_terminalis', 'Septal_diagonal_band', 'Habenula'], 2);
+    }, hemi: 'L', view: 'medialL' },
+  { id: 'bg', name: 'Basal ganglia', set: () => {
+      setLevels(all, 0); setLevels(cortex, 1); setLevels(['Brainstem'], 1);
+      setLevels(['Caudate_nucleus', 'Putamen', 'Pallidum', 'Nucleus_accumbens', 'Substantia_nigra', 'Subthalamic_nucleus', 'Ventral_pallidum', 'Thalamus', 'VTA', 'Red_nucleus'], 2);
+    }, hemi: 'B', view: 'iso', zoom: 0.75, target: [0, -6, 0] },
+  { id: 'thal', name: 'Thalamic nuclei', set: () => {
+      setLevels(all, 0); setLevels(['Thalamus'], 1); setLevels(inGroups('Thalamic nuclei'), 2); setLevels(['Habenula', 'MTT', 'Mammillary_body'], 2);
+    }, hemi: 'B', view: 'iso', zoom: 0.42, target: [0, -18, 4] },
+  { id: 'stem', name: 'Brainstem & monoamines', set: () => {
+      setLevels(all, 0); setLevels(['Brainstem', 'Thalamus'], 1);
+      setLevels([...inGroups('Brainstem nuclei'), 'Substantia_nigra', 'Hypothalamus', 'Fourth_ventricle', 'Subthalamic_nucleus', 'Mammillary_body'], 2);
+    }, hemi: 'B', view: 'iso', zoom: 0.5, target: [0, -28, -18] },
+  { id: 'vent', name: 'Ventricles', set: () => {
+      setLevels(all, 0); setLevels(cortex, 1); setLevels(['Thalamus', 'Caudate_nucleus', 'Hippocampus'], 1);
+      setLevels(['Lateral_ventricle_no_temporal_horn', 'Lateral_ventricle_temporal_horn', 'Third_ventricle', 'Fourth_ventricle', 'Corpus_callosum'], 2);
+    }, hemi: 'B', view: 'iso' },
+  { id: 'tracts', name: 'White matter tracts', set: () => { setLevels(all, 0); setLevels(cortex, 1); setLevels(inGroups('White matter tracts'), 2); setLevels(['Thalamus', 'Brainstem'], 1); }, hemi: 'B', view: 'iso' },
+];
+function applyPreset(id, animate = true) {
+  endCircuit(false);
+  const p = PRESETS.find(p => p.id === id);
+  p.set(); state.hemi = p.hemi; state.preset = id;
+  syncAll(); setView(p.view, animate, p.target, p.zoom);
+}
+$('#presets').innerHTML = PRESETS.map(p => `<button class="chip" data-p="${p.id}" aria-pressed="false">${p.name}</button>`).join('');
+$('#presets').addEventListener('click', e => { const b = e.target.closest('[data-p]'); if (b) applyPreset(b.dataset.p); });
+
+// ---------------- region list ----------------
+const pips = '<span class="pips" aria-hidden="true"><i></i><i></i></span>';
+const COLLAPSED = new Set(['Thalamic nuclei', 'White matter tracts']);
+$('#list').innerHTML = man.groups.map(g => {
+  const items = man.structs.filter(s => s.group === g);
+  return `<div class="group${COLLAPSED.has(g) ? ' closed' : ''}" data-g="${g}">
+    <div class="ghead">
+      <button class="gtoggle" aria-expanded="${!COLLAPSED.has(g)}"><svg class="chev" viewBox="0 0 10 10"><path d="M1 3l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>${g} <span class="count">${items.length}</span></button>
+      <div class="lv"><button class="gm" aria-label="Fade all of ${g}">−</button>${pips}<button class="gp" aria-label="Make all of ${g} more solid">+</button></div>
+    </div>
+    <div class="rows">${items.map(s => `
+      <div class="row" data-key="${s.key}" data-level="2" style="color:${s.color}">
+        <button class="sw" aria-label="Select ${s.name}"></button>
+        <button class="nm" style="color:var(--ink)">${s.name}</button>
+        <div class="lv"><button class="m" aria-label="Fade ${s.name}">−</button>${pips}<button class="p" aria-label="Make ${s.name} more solid">+</button></div>
+      </div>`).join('')}</div>
+  </div>`;
+}).join('') + '<div class="empty" id="noresults" hidden>No region matches that search.</div>';
+const LEVEL_WORD = ['hidden', 'ghosted', 'solid'];
+function syncList() {
+  for (const row of $$('.row')) {
+    const lv = state.level.get(row.dataset.key);
+    row.dataset.level = lv;
+    row.querySelector('.m').disabled = lv === 0; row.querySelector('.p').disabled = lv === 2;
+    row.querySelector('.nm').style.color = lv === 0 ? '' : 'var(--ink)';
+    row.title = `${structs.get(row.dataset.key).name}: ${LEVEL_WORD[lv]}`;
+    row.classList.toggle('sel', state.sel === row.dataset.key);
+  }
+  for (const g of $$('.group')) {
+    const lvs = $$('.row', g).map(r => +r.dataset.level), mx = Math.max(...lvs), mn = Math.min(...lvs);
+    g.querySelector('.ghead').dataset.level = mn === mx ? mx : '';
+    g.querySelector('.gm').disabled = mx === 0; g.querySelector('.gp').disabled = mn === 2;
+  }
+  $$('#hemi button').forEach(b => b.setAttribute('aria-pressed', b.dataset.h === state.hemi));
+  $$('#presets .chip').forEach(b => b.setAttribute('aria-pressed', b.dataset.p === state.preset));
+}
+function syncAll() { applyMaterials(); applyColours(); syncList(); syncNets(); syncPaths(); renderInfo(); }
+$('#list').addEventListener('click', e => {
+  const row = e.target.closest('.row'), grp = e.target.closest('.group');
+  if (row) {
+    const k = row.dataset.key;
+    if (e.target.closest('.m')) { state.level.set(k, Math.max(0, state.level.get(k) - 1)); state.preset = null; }
+    else if (e.target.closest('.p')) { state.level.set(k, Math.min(2, state.level.get(k) + 1)); state.preset = null; }
+    else if (e.target.closest('.nm, .sw')) { select(state.sel === k ? null : k, true); return; }
+    syncAll(); return;
+  }
+  if (grp) {
+    const keys = $$('.row', grp).map(r => r.dataset.key);
+    if (e.target.closest('.gm')) { setLevels(keys, Math.max(0, Math.max(...keys.map(k => state.level.get(k))) - 1)); state.preset = null; syncAll(); }
+    else if (e.target.closest('.gp')) { setLevels(keys, Math.min(2, Math.min(...keys.map(k => state.level.get(k))) + 1)); state.preset = null; syncAll(); }
+    else if (e.target.closest('.gtoggle')) { grp.classList.toggle('closed'); grp.querySelector('.gtoggle').setAttribute('aria-expanded', !grp.classList.contains('closed')); }
+  }
+});
+$('#hemi').addEventListener('click', e => {
+  const b = e.target.closest('[data-h]'); if (!b) return;
+  state.hemi = b.dataset.h; state.preset = null; syncAll();
+  if (state.hemi === 'L') setView('medialL'); else if (state.hemi === 'R') setView('medialR');
+});
+const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ');
+$('#q').addEventListener('input', () => {
+  const q = norm($('#q').value).trim(); let any = false;
+  for (const g of $$('.group')) {
+    let n = 0;
+    for (const r of $$('.row', g)) {
+      const s = structs.get(r.dataset.key), hay = norm(`${s.name} ${s.aliases} ${s.group}`);
+      const hit = !q || hay.split(' ').some(w => w.startsWith(q)) || hay.includes(q);
+      r.hidden = !hit; if (hit) n++;
+    }
+    g.hidden = n === 0; any ||= n > 0; if (q && n) g.classList.remove('closed');
+  }
+  $('#noresults').hidden = any; if (q) showTab('regions');
+});
+$('#q').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const r = $$('.row').find(r => !r.hidden && !r.closest('.group').hidden);
+  if (r) { select(r.dataset.key, true); $('#q').blur(); }
+});
+function showTab(t) {
+  $$('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
+  $$('.tabbody').forEach(b => b.classList.toggle('on', b.id === 'body-' + t));
+  $('#panel').classList.remove('min');
+}
+$('.tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
+$('#handle').addEventListener('click', () => $('#panel').classList.toggle('min'));
+
+// ---------------- networks ----------------
+$('#nets').innerHTML = NET_MODES.map(n => `<button class="net" data-n="${n.id}" aria-pressed="false"><span class="dot" style="background:${n.dot || 'linear-gradient(135deg,#e8846b,#43c6e8 50%,#ffd34d)'}"></span><b>${n.name}</b><span class="d">${n.desc}</span></button>`).join('');
+$('#nets').addEventListener('click', e => {
+  const b = e.target.closest('[data-n]'); if (!b) return;
+  state.netMode = b.dataset.n;
+  if (state.netMode !== 'off') { for (const k of cortex) if (state.level.get(k) === 0) state.level.set(k, 2); if (state.rec) { state.drug = null; setReceptor(null); } }
+  syncAll();
+});
+function syncNets() { $$('#nets .net').forEach(b => b.setAttribute('aria-pressed', b.dataset.n === state.netMode)); }
+
+// ---------------- pathways ----------------
+const circuitGroup = new THREE.Group(); scene.add(circuitGroup);
+const circuitPts = [];
+const flowMats = [];
+function centroid(key, hemi) {
+  const s = structs.get(key); if (!s) return null;
+  if (s.cent[hemi]) return s.cent[hemi];
+  if (s.cent.M) return s.cent.M;
+  const o = s.cent[hemi === 'L' ? 'R' : 'L']; return o ? [-o[0], o[1], o[2]] : null;
+}
+function flowMaterial(color, len) {
+  const m = new THREE.ShaderMaterial({
+    uniforms: { t: { value: 0 }, col: { value: new THREE.Color(color) }, len: { value: len } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform float t; uniform vec3 col; uniform float len; varying vec2 vUv;
+      void main(){ float x = fract(vUv.x * len / 10.0 - t); float p = smoothstep(0.0, 0.12, x) * (1.0 - smoothstep(0.12, 0.6, x));
+        gl_FragColor = vec4(col * (0.55 + 1.1 * p), 0.45 + 0.55 * p); }`,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  });
+  flowMats.push(m); return m;
+}
+function buildCircuit(c) {
+  const used = new Set(); circuitPts.length = 0;
+  for (const hemi of ['L', 'R']) {
+    for (const path of c.paths) {
+      const pts = [];
+      for (const n of path) {
+        if (typeof n === 'string') { const p = centroid(n, hemi); if (p) { pts.push(mni2three(p)); used.add(n); } }
+        else pts.push(mni2three(hemi === 'L' ? n : [-n[0], n[1], n[2]]));
+      }
+      if (pts.length < 2) continue;
+      const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+      const len = curve.getLength(); circuitPts.push(...curve.getSpacedPoints(24));
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(48, Math.round(len * 1.2)), 0.85, 8, false), flowMaterial(c.color, len));
+      tube.renderOrder = 4; circuitGroup.add(tube);
+      for (const n of path) if (typeof n === 'string') {
+        const p = centroid(n, hemi); if (!p) continue;
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(1.7, 16, 12), new THREE.MeshBasicMaterial({ color: c.color, transparent: true, opacity: 0.9, depthWrite: false }));
+        dot.position.copy(mni2three(p)); dot.renderOrder = 5; circuitGroup.add(dot);
+      }
+    }
+  }
+  if (c.end) {
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(2.6, 18, 14), new THREE.MeshBasicMaterial({ color: c.color }));
+    dot.position.copy(mni2three(c.end.mni)); circuitGroup.add(dot);
+  }
+  return [...used];
+}
+function clearCircuit() {
+  for (const o of [...circuitGroup.children]) { o.geometry.dispose(); o.material.dispose(); circuitGroup.remove(o); }
+  flowMats.length = 0;
+}
+function startCircuit(id) {
+  const c = CIRCUITS.find(c => c.id === id);
+  if (story.def) endStory(true);
+  if (!state.circuit) state.snapshot = { level: new Map(state.level), hemi: state.hemi, preset: state.preset };
+  clearCircuit();
+  const used = buildCircuit(c);
+  // cortical relays stay see-through (a solid gyrus hides the deep loop), drawn a little denser than the rest of the cortex
+  const corticalUsed = used.filter(k => CORTEX_GROUPS.has(structs.get(k).group));
+  setLevels(all, 0); setLevels(cortex, 1); setLevels(used, 2); setLevels(corticalUsed, 1); state.featured = new Set(corticalUsed);
+  if (used.some(k => structs.get(k).group === 'Thalamic nuclei')) state.level.set('Thalamus', 1);
+  if (used.some(k => ['Brainstem nuclei'].includes(structs.get(k).group) || k === 'Substantia_nigra')) state.level.set('Brainstem', 1);
+  state.circuit = id; state.circuitNodes = used; state.infoOpen = false; state.hemi = 'B'; state.netMode = 'off'; state.rec = null; state.drug = null; if (slice) slice.material.uniforms.petOn.value = 0; syncDrugs(); state.preset = null; state.sel = null;
+  if (innerWidth <= 760) $('#panel').classList.add('min');
+  document.body.classList.add('circ');
+  syncAll();
+  // frame once the card and sheet have settled, so the fit uses the real uncovered strip
+  requestAnimationFrame(() => { resize(); const sp = sphereOf(circuitPts, 34, 6); frameSphere(sp.center, sp.radius, c.view || VIEWS.iso); });
+}
+function endCircuit(restore = true) {
+  if (story.def) endStory(restore);
+  if (!state.circuit) return;
+  clearCircuit(); state.circuit = null; state.featured = null; document.body.classList.remove('circ');
+  if (restore && state.snapshot) { state.level = state.snapshot.level; state.hemi = state.snapshot.hemi; state.preset = state.snapshot.preset; }
+  state.snapshot = null; syncAll();
+}
+$('#paths').innerHTML = CIRCUITS.map(c => `<button class="net" data-c="${c.id}" aria-pressed="false"><span class="dot" style="background:${c.color}"></span><b>${c.name}</b><span class="d">${c.desc}</span></button>`).join('');
+$('#paths').addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (!b) return; state.circuit === b.dataset.c ? endCircuit() : startCircuit(b.dataset.c); });
+function syncPaths() { $$('#paths .net').forEach(b => b.setAttribute('aria-pressed', b.dataset.c === state.circuit)); }
+
+// ---------------- drugs tab ----------------
+{
+  const systems = [...new Set(Object.values(RECEPTORS).map(r => r.sys))];
+  $('#recs').innerHTML = systems.map(sy => `<div class="syslabel">${sy}</div><div class="chips">${Object.entries(RECEPTORS).filter(([, r]) => r.sys === sy).map(([id, r]) => `<button class="chip sm" data-rec="${id}" aria-pressed="false">${r.label}</button>`).join('')}</div>`).join('');
+  const groups = [...new Set(DRUGS.map(d => d.g))];
+  $('#druglist').innerHTML = groups.map(g => `<div class="syslabel">${g}</div><div class="drugs">${DRUGS.filter(d => d.g === g).map(d => `<button class="drug" data-drug="${d.id}" aria-pressed="false">${d.name}</button>`).join('')}</div>`).join('');
+  $('#recs').addEventListener('click', e => { const b = e.target.closest('[data-rec]'); if (!b) return; state.drug = null; setReceptor(state.rec === b.dataset.rec ? null : b.dataset.rec, true); });
+  $('#druglist').addEventListener('click', e => { const b = e.target.closest('[data-drug]'); if (b) selectDrug(b.dataset.drug); });
+  $('#recoff').addEventListener('click', () => { state.drug = null; setReceptor(null); });
+  $('#boost').addEventListener('change', e => { state.gamma = e.target.checked ? 0.5 : 1; if (slice) slice.material.uniforms.gam.value = state.gamma; syncAll(); });
+}
+function syncDrugs() {
+  $$('#recs [data-rec]').forEach(b => b.setAttribute('aria-pressed', b.dataset.rec === state.rec));
+  $$('#druglist [data-drug]').forEach(b => b.setAttribute('aria-pressed', b.dataset.drug === state.drug));
+}
+
+// ---------------- camera ----------------
+const VIEWS = { iso: [0.88, 0.32, 0.36], front: [0, 0, 1], back: [0, 0, -1], left: [1, 0, 0], right: [-1, 0, 0], top: [0, 1, -0.001], bottom: [0, -1, 0.001], medialL: [-1, 0.12, 0.05], medialR: [1, 0.12, 0.05] };
+const VIEW_BTNS = [['front', 'Front'], ['back', 'Back'], ['top', 'Top'], ['left', 'Left'], ['right', 'Right'], ['bottom', 'Base']];
+$('#views').innerHTML = VIEW_BTNS.map(([k, n]) => `<button data-v="${k}">${n}</button>`).join('');
+$('#viewbar').innerHTML = VIEW_BTNS.slice(0, 5).map(([k, n]) => `<button data-v="${k}" aria-label="View from the ${n.toLowerCase()}">${n}</button>`).join('') + '<button data-v="iso" aria-label="Three-quarter view">3/4</button>';
+document.addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) setView(b.dataset.v); });
+let tween = null;
+function sheetH() { return innerWidth <= 760 && getComputedStyle($('#panel')).display !== 'none' ? $('#panel').getBoundingClientRect().height : 0; }
+// The uncovered horizontal strip of the stage: overlays wider than half the stage count as obstructions,
+// above the middle they push the top edge down, below it they pull the bottom edge up.
+const OBSTRUCTIONS = ['#panel', '#info', '#storybar', '#inset', '#quiz', '#hudrow'];
+function freeBand() {
+  const r = $('#stage').getBoundingClientRect(), H = Math.max(r.height, 1), W = Math.max(r.width, 1);
+  let top = innerWidth <= 760 ? 44 : 0, bot = H;
+  for (const sel of OBSTRUCTIONS) {
+    const el = $(sel); if (!el) continue;
+    const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+    const b = el.getBoundingClientRect(); if (b.height < 1 || b.width < 1) continue;
+    if (Math.min(b.right, r.right) - Math.max(b.left, r.left) < W * 0.5) continue;
+    const y0 = b.top - r.top, y1 = b.bottom - r.top;
+    if (y1 <= 0 || y0 >= H) continue;
+    if ((y0 + y1) / 2 < H / 2) top = Math.max(top, y1 + 6); else bot = Math.min(bot, y0 - 6);
+  }
+  if (bot - top < H * 0.3) { const mid = (top + bot) / 2; top = Math.max(0, mid - H * 0.15); bot = Math.min(H, top + H * 0.3); }
+  return { top, bot, H, W };
+}
+let _fbc = null, _fbt = 0;
+function freeBandCached() { const n = performance.now(); if (!_fbc || n - _fbt > 250) { _fbc = freeBand(); _fbt = n; } return _fbc; }
+function fitDist(radius) {
+  const fb = freeBand(), f = THREE.MathUtils.degToRad(camera.fov);
+  const visFrac = Math.max(0.3, (fb.bot - fb.top) / fb.H);
+  const vfov = 2 * Math.atan(Math.tan(f / 2) * visFrac), hfov = 2 * Math.atan(Math.tan(f / 2) * fb.W / fb.H);
+  return radius / Math.sin(Math.min(vfov, hfov) / 2);
+}
+function baseDist() { return fitDist(94); }
+// Frame a sphere (three-space centre, radius in mm) from direction dir (camera sits at centre + dir * distance).
+function frameSphere(c, r, dir, animate = true, dur = 800) {
+  const to = new THREE.Vector3(...dir).normalize().multiplyScalar(fitDist(r)).add(c);
+  if (!animate || reduceMotion) { tween = null; camera.position.copy(to); controls.target.copy(c); controls.update(); return; }
+  tween = { from: camera.position.clone(), to, fromT: controls.target.clone(), toT: c.clone(), t0: performance.now(), dur };
+}
+function sphereOf(points, minR = 28, pad = 10) {
+  const s = new THREE.Box3().setFromPoints(points).getBoundingSphere(new THREE.Sphere());
+  s.radius = Math.max(minR, s.radius + pad); return s;
+}
+function setView(name, animate = true, targetMni = null, zoom = 1) {
+  const tgt = targetMni ? mni2three(targetMni) : new THREE.Vector3();
+  const to = new THREE.Vector3(...VIEWS[name]).normalize().multiplyScalar(baseDist() * (zoom || 1)).add(tgt);
+  if (!animate || reduceMotion) { camera.position.copy(to); controls.target.copy(tgt); controls.update(); return; }
+  tween = { from: camera.position.clone(), to, fromT: controls.target.clone(), toT: tgt, t0: performance.now(), dur: 650 };
+}
+
+// ---------------- cut plane + MRI slice ----------------
+const CUT = {
+  ax: { min: -60, max: 80, axis: 'z', name: 'Axial', view: 'top', label: v => `z = ${v} mm (MNI)` },
+  co: { min: -100, max: 70, axis: 'y', name: 'Coronal', view: 'front', label: v => `y = ${v} mm (MNI)` },
+  sa: { min: -70, max: 70, axis: 'x', name: 'Sagittal', view: 'right', label: v => `x = ${v} mm (MNI${v < 0 ? ', left' : v > 0 ? ', right' : ''})` },
+};
+let slice = null, vol = null;
+const petTex = (() => { const [nx, ny, nz] = man.pet.dims; const t = new THREE.Data3DTexture(new Uint8Array(nx * ny * nz), nx, ny, nz); t.format = THREE.RedFormat; t.type = THREE.UnsignedByteType; t.minFilter = t.magFilter = THREE.LinearFilter; t.unpackAlignment = 1; t.needsUpdate = true; return t; })();
+const lutData = new Uint8Array(256 * 2 * 4);
+const lutTex = new THREE.DataTexture(lutData, 256, 2, THREE.RGBAFormat);
+lutTex.magFilter = lutTex.minFilter = THREE.NearestFilter; lutTex.needsUpdate = true;
+function updateLut() {
+  const c = new THREE.Color();
+  for (const s of man.structs) {
+    const i = s.idx * 4; c.set(s.color);
+    const lv = state.level.get(s.key);
+    lutData[i] = Math.round(c.r * 255); lutData[i + 1] = Math.round(c.g * 255); lutData[i + 2] = Math.round(c.b * 255);
+    lutData[i + 3] = lv === 2 ? 255 : lv === 1 ? 128 : 0;
+    lutData[256 * 4 + i] = s.cent.M ? 255 : 0;
+  }
+  lutTex.needsUpdate = true;
+  if (slice) slice.material.uniforms.hemi.value = state.hemi === 'B' ? 0 : state.hemi === 'L' ? -1 : 1;
+}
+function makeSlice(t1, l1, l2) {
+  const [nx, ny, nz] = man.vol.dims;
+  const mk = (data, filter) => { const t = new THREE.Data3DTexture(data, nx, ny, nz); t.format = THREE.RedFormat; t.type = THREE.UnsignedByteType; t.minFilter = t.magFilter = filter; t.unpackAlignment = 1; t.needsUpdate = true; return t; };
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { t1: { value: mk(t1, THREE.LinearFilter) }, l1: { value: mk(l1, THREE.NearestFilter) }, l2: { value: mk(l2, THREE.NearestFilter) }, lut: { value: lutTex },
+      origin: { value: new THREE.Vector3(...man.vol.origin) }, stepv: { value: new THREE.Vector3(...man.vol.step) }, dims: { value: new THREE.Vector3(nx, ny, nz) },
+      center: { value: new THREE.Vector3(...C) }, hemi: { value: 0 }, overlay: { value: 1 }, off1: { value: new THREE.Vector3(1 / nx, 0, 0) }, off2: { value: new THREE.Vector3(0, 1 / ny, 0) },
+      pet: { value: petTex }, cmap: { value: cmapTex }, petOn: { value: 0 }, gam: { value: 1 },
+      pOrigin: { value: new THREE.Vector3(...man.pet.origin) }, pStep: { value: new THREE.Vector3(...man.pet.step) }, pDims: { value: new THREE.Vector3(...man.pet.dims) } },
+    vertexShader: 'varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
+    fragmentShader: `precision highp sampler3D;
+      uniform sampler3D t1; uniform sampler3D l1; uniform sampler3D l2; uniform sampler2D lut;
+      uniform vec3 origin; uniform vec3 stepv; uniform vec3 dims; uniform vec3 center; uniform float hemi; uniform float overlay; uniform vec3 off1; uniform vec3 off2; uniform sampler3D pet; uniform sampler2D cmap; uniform float petOn; uniform float gam; uniform vec3 pOrigin; uniform vec3 pStep; uniform vec3 pDims;
+      varying vec3 vW;
+      vec4 look(float id, float x) {
+        if (id < 0.5) return vec4(0.0);
+        vec4 e = texture2D(lut, vec2((id + 0.5) / 256.0, 0.25));
+        float mid = texture2D(lut, vec2((id + 0.5) / 256.0, 0.75)).r;
+        if (hemi != 0.0 && mid < 0.5 && sign(x) != hemi) return vec4(0.0);
+        return e;
+      }
+      float eff(vec3 p, float x) {
+        float a2 = floor(texture(l2, p).r * 255.0 + 0.5);
+        if (look(a2, x).a > 0.01) return a2;
+        float a1 = floor(texture(l1, p).r * 255.0 + 0.5);
+        return look(a1, x).a > 0.01 ? a1 : 0.0;
+      }
+      void main() {
+        vec3 mni = vec3(-vW.x + center.x, vW.z + center.y, vW.y + center.z);
+        vec3 uvw = ((mni - origin) / stepv + 0.5) / dims;
+        if (any(lessThan(uvw, vec3(0.0))) || any(greaterThan(uvw, vec3(1.0)))) discard;
+        float g = texture(t1, uvw).r;
+        float a1 = floor(texture(l1, uvw).r * 255.0 + 0.5), a2 = floor(texture(l2, uvw).r * 255.0 + 0.5);
+        if (g < 0.04 && a1 < 0.5 && a2 < 0.5) discard;
+        vec3 col = vec3(smoothstep(0.04, 0.92, g));
+        if (petOn > 0.5) {
+          vec3 pu = ((mni - pOrigin) / pStep + 0.5) / pDims;
+          float pv = texture(pet, clamp(pu, 0.0, 1.0)).r;
+          vec3 h = texture2D(cmap, vec2(pow(pv, gam), 0.5)).rgb;
+          col = mix(col, h, smoothstep(0.0, 0.03, pv) * mix(0.18, 0.85, smoothstep(0.04, 0.5, pow(pv, gam))));
+        }
+        if (overlay > 0.5) {
+          float id = eff(uvw, mni.x);
+          if (id > 0.5) {
+            float edge = 0.0;
+            edge += step(0.5, abs(eff(uvw + off1, mni.x) - id)); edge += step(0.5, abs(eff(uvw - off1, mni.x) - id));
+            edge += step(0.5, abs(eff(uvw + off2, mni.x) - id)); edge += step(0.5, abs(eff(uvw - off2, mni.x) - id));
+            vec4 e = look(id, mni.x);
+            bool solid = e.a > 0.75;
+            float al = edge > 0.5 ? (petOn > 0.5 ? 0.4 : (solid ? 0.95 : 0.5)) : (petOn > 0.5 ? 0.0 : (solid ? 0.26 : 0.08));
+            col = mix(col, e.rgb, al);
+          }
+        }
+        gl_FragColor = vec4(col, 1.0);
+      }`,
+    side: THREE.DoubleSide,
+  });
+  slice = new THREE.Mesh(new THREE.PlaneGeometry(260, 260), mat);
+  slice.visible = false; slice.renderOrder = 1; scene.add(slice);
+}
+function applyCut() {
+  clipOn = state.cut !== 'off';
+  $('#cutpos').disabled = $('#cutflip').disabled = !clipOn;
+  if (clipOn) {
+    const c = CUT[state.cut], v = state.cutPos, s = state.cutFlip ? -1 : 1;
+    if (c.axis === 'z') clipPlane.set(new THREE.Vector3(0, -s, 0), s * (v - C[2]));
+    if (c.axis === 'y') clipPlane.set(new THREE.Vector3(0, 0, -s), s * (v - C[1]));
+    if (c.axis === 'x') clipPlane.set(new THREE.Vector3(s, 0, 0), s * (v - C[0]));
+    $('#cutlabel').textContent = `${c.name} cut at ${c.label(v)}`;
+    if (slice) {
+      const [nx, ny, nz] = man.vol.dims, u = slice.material.uniforms;
+      // in-plane neighbour offsets for the outline test
+      if (c.axis === 'x') { u.off1.value.set(0, 1 / ny, 0); u.off2.value.set(0, 0, 1 / nz); }
+      if (c.axis === 'y') { u.off1.value.set(1 / nx, 0, 0); u.off2.value.set(0, 0, 1 / nz); }
+      if (c.axis === 'z') { u.off1.value.set(1 / nx, 0, 0); u.off2.value.set(0, 1 / ny, 0); }
+      slice.rotation.set(0, 0, 0);
+      if (c.axis === 'z') slice.rotation.x = -Math.PI / 2;
+      if (c.axis === 'x') slice.rotation.y = Math.PI / 2;
+      const onPlane = clipPlane.normal.clone().multiplyScalar(-clipPlane.constant);
+      slice.position.copy(onPlane).addScaledVector(clipPlane.normal, -0.25);
+    }
+  } else $('#cutlabel').textContent = 'No cut';
+  if (slice) { slice.visible = clipOn && state.mri; slice.material.uniforms.overlay.value = state.mriLab ? 1 : 0; }
+  $$('#cut button').forEach(b => b.setAttribute('aria-pressed', b.dataset.c === state.cut));
+  applyMaterials();
+}
+$('#cut').addEventListener('click', e => {
+  const b = e.target.closest('[data-c]'); if (!b) return;
+  state.cut = b.dataset.c;
+  if (state.cut !== 'off') {
+    const c = CUT[state.cut], r = $('#cutpos'); r.min = c.min; r.max = c.max;
+    state.cutPos = state.cut === 'ax' ? 6 : state.cut === 'co' ? -4 : -4; r.value = state.cutPos;
+    setView(state.cutFlip ? { top: 'bottom', front: 'back', right: 'left' }[c.view] : c.view);
+  }
+  applyCut();
+});
+$('#cutpos').addEventListener('input', e => { state.cutPos = +e.target.value; applyCut(); });
+$('#cutflip').addEventListener('change', e => {
+  state.cutFlip = e.target.checked; applyCut();
+  const v = CUT[state.cut]?.view; if (v) setView(state.cutFlip ? { top: 'bottom', front: 'back', right: 'left' }[v] : v);
+});
+$('#mri').addEventListener('change', e => { state.mri = e.target.checked; applyCut(); });
+$('#mrilab').addEventListener('change', e => { state.mriLab = e.target.checked; applyCut(); });
+$('#ghost').addEventListener('input', e => { state.ghost = e.target.value / 100; applyMaterials(); });
+$('#resetall').addEventListener('click', () => {
+  stopQuiz(); endCircuit(false);
+  Object.assign(state, { netMode: 'off', cut: 'off', cutFlip: false, ghost: 0.14, rec: null, drug: null }); if (slice) slice.material.uniforms.petOn.value = 0; syncDrugs(); $('#cutflip').checked = false; $('#ghost').value = 14;
+  select(null); applyCut(); applyPreset('whole');
+});
+
+// ---------------- selection + info card ----------------
+function select(k, focus = false, hemi = null) {
+  state.sel = k; state.selHemi = hemi; state.infoOpen = false;
+  if (k && focus) {
+    if (state.level.get(k) === 0) state.level.set(k, 2);
+    const row = $(`.row[data-key="${CSS.escape(k)}"]`);
+    if (row) { const g = row.closest('.group'); g.classList.remove('closed'); row.scrollIntoView({ block: 'nearest' }); }
+  }
+  syncAll();
+}
+const fmtC = c => `(${c.map(v => Math.round(v)).join(', ')})`;
+function renderInfo() {
+  const box = $('#info');
+  document.body.classList.toggle('has-info', !!(state.sel || state.circuit || state.drug || state.rec));
+  if (state.sel) return renderStruct(box);
+  if (typeof story !== 'undefined' && story.def) { box.classList.remove('on'); box.innerHTML = ''; return; }
+  if (state.drug) return renderDrug(box);
+  if (state.rec) return renderReceptor(box);
+  if (state.circuit) return renderCircuit(box);
+  box.classList.remove('on'); box.innerHTML = '';
+}
+const compact = () => innerWidth <= 760 && !state.infoOpen;
+const moreBtn = () => innerWidth <= 760 ? `<button class="btn" id="infomore">${state.infoOpen ? 'Less' : 'Details'}</button>` : '';
+function wireMore() { const b = $('#infomore'); if (b) b.onclick = () => { state.infoOpen = !state.infoOpen; renderInfo(); requestAnimationFrame(resize); }; }
+function renderStruct(box) {
+  const s = structs.get(state.sel), hemis = Object.keys(s.vol), small = innerWidth <= 760;
+  const schematic = s.src.includes('schematic'), tract = s.group === 'White matter tracts';
+  const vol = hemis.map(h => `${h === 'M' ? '' : h + ' '}${s.vol[h].toFixed(s.vol[h] < 1 ? 2 : 1)} cm³`).join(' · ');
+  const cent = hemis.map(h => `${h === 'M' ? '' : h + ' '}${fmtC(s.cent[h])}`).join(small ? ' · ' : '<br>');
+  let netHtml = '';
+  if (s.comp) {
+    const parts = s.comp.map((v, i) => ({ v, n: NETS[i + 1] })).filter(p => p.v > 0.005), top = [...parts].sort((a, b) => b.v - a.v).filter(p => p.v >= 0.05);
+    netHtml = `<div><div class="label" style="margin-bottom:5px">Cortical voxels by network</div>
+      <div class="bar">${parts.map(p => `<i style="width:${p.v * 100}%;background:${p.n.color}" title="${p.n.name} ${Math.round(p.v * 100)}%"></i>`).join('')}</div>
+      <div class="comp" style="margin-top:5px">${top.map(p => `<span><i style="background:${p.n.color}"></i>${p.n.short || p.n.name} <span class="mono">${Math.round(p.v * 100)}%</span></span>`).join('')}</div></div>`;
+  } else {
+    const nodes = Object.entries(SUBNODES).filter(([, ks]) => ks.includes(s.key)).map(([n]) => NETS[n]);
+    if (nodes.length) netHtml = `<div class="note">Conventionally counted as a node of the <b>${nodes.map(n => n.short || n.name).join(', ')}</b> network.</div>`;
+  }
+  const acr = s.aliases.split(' ').filter(w => /^[A-Z][A-Za-z0-9]*[A-Z0-9]$/.test(w) && w.length <= 5).slice(0, 4).join(', ');
+  const lv = state.level.get(s.key), note = NOTES[s.key];
+  box.innerHTML = `
+    <header><div style="flex:1"><h2>${s.name}</h2><div class="sub">${[s.group, acr].filter(Boolean).join(' · ')}</div></div>${moreBtn()}<button class="x" id="infoclose" aria-label="Close">×</button></header>
+    <div class="more" ${compact() ? 'hidden' : ''} style="display:flex;flex-direction:column;gap:10px">
+    ${note ? `<p>${note}</p>` : ''}
+    <dl class="kv">${schematic ? '<dt>Shape</dt><dd>Schematic, placed at the atlas centroid</dd>' : `<dt>${tract ? 'Tract volume' : 'Volume'}</dt><dd class="mono">${vol}</dd>`}<dt>Centre, MNI</dt><dd class="mono">${cent}</dd></dl>
+    ${state.rec && pet && !NO_PET.has(s.key) ? fingerprint(s.key) : netHtml}
+    <div class="actions"><button class="btn" id="isolate">Isolate</button><button class="btn" id="solo">Show only this</button><button class="btn" id="hideit">${lv === 0 ? 'Show' : 'Hide'}</button></div>
+    <div class="src">Source: ${s.src}</div></div>`;
+  box.classList.add('on'); wireMore();
+  $('#infoclose').onclick = () => select(null);
+  $('#isolate').onclick = () => { setLevels(all, 1); setLevels(HIDDEN_BY_DEFAULT, 0); state.level.set(s.key, 2); state.preset = null; syncAll(); };
+  $('#solo').onclick = () => { setLevels(all, 0); state.level.set(s.key, 2); state.preset = null; syncAll(); };
+  $('#hideit').onclick = () => { state.level.set(s.key, lv === 0 ? 2 : 0); state.preset = null; syncAll(); };
+}
+const dots = t => t ? '●'.repeat(t) : '○';
+function fingerprint(key) {
+  const rows = man.pet.maps.map(r => ({ r, v: structMean(r, key) })).sort((a, b) => b.v - a.v);
+  const cur = rows.find(x => x.r === state.rec), top = rows.slice(0, 7);
+  if (!top.includes(cur)) top.push(cur);
+  const c = new THREE.Color();
+  return `<div><div class="label" style="margin-bottom:6px">Receptor fingerprint (relative density)</div><div class="fp">${top.map(x => `
+    <span class="${x.r === state.rec ? 'cur' : ''}">${RECEPTORS[x.r].label}</span><span class="b"><i style="width:${Math.round(x.v * 100)}%;background:#${heat(x.v, c).getHexString()}"></i></span><span class="mono">${x.v.toFixed(2)}</span>`).join('')}</div></div>`;
+}
+function topStructs(rid, n = 6) {
+  return man.structs.filter(s => !NO_PET.has(s.key) && s.group !== 'Thalamic nuclei' && byKey.has(s.key)).map(s => ({ s, v: structMean(rid, s.key) })).sort((a, b) => b.v - a.v).slice(0, n);
+}
+function renderReceptor(box) {
+  const r = RECEPTORS[state.rec];
+  const tops = pet ? topStructs(state.rec) : [];
+  box.innerHTML = `
+    <header><div style="flex:1"><h2>${r.name}</h2><div class="sub">${r.sys} · ${r.tracer} · ${r.n} healthy adults (${r.ref})</div></div>${moreBtn()}<button class="x" id="infoclose" aria-label="Turn the receptor map off">×</button></header>
+    <div class="more" ${compact() ? 'hidden' : ''} style="display:flex;flex-direction:column;gap:10px">
+    <p>${r.note}</p>
+    ${tops.length ? `<div><div class="label" style="margin-bottom:6px">Densest structures</div><div class="nodechips">${tops.map(x => `<button data-k="${x.s.key}">${x.s.name} <span class="mono" style="color:var(--muted)">${x.v.toFixed(2)}</span></button>`).join('')}</div></div>` : '<p class="note">Loading the receptor maps…</p>'}
+    <div class="src">Source: Hansen et al. 2022 receptor atlas; original data ${r.ref}. Values are relative to this map's own range.</div></div>`;
+  box.classList.add('on'); wireMore();
+  $('#infoclose').onclick = () => setReceptor(null);
+  box.querySelector('.nodechips')?.addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b) select(b.dataset.k); });
+}
+function renderDrug(box) {
+  const d = DRUGS.find(d => d.id === state.drug), r = RECEPTORS[state.rec];
+  box.innerHTML = `
+    <header><div style="flex:1"><h2>${d.name}</h2><div class="sub">${d.cls}</div></div>${moreBtn()}<button class="x" id="infoclose" aria-label="Clear the drug">×</button></header>
+    <div class="more" ${compact() ? 'hidden' : ''} style="display:flex;flex-direction:column;gap:10px">
+    <div><div class="label" style="margin-bottom:6px">Targets with a brain map (tap to show)</div>
+      <div class="tgt">${d.map.map(([rid, act, t]) => `<button data-r="${rid}" aria-pressed="${rid === state.rec}">${RECEPTORS[rid].label} · ${act}<span class="tier">${dots(t)}</span></button>`).join('')}</div></div>
+    ${d.off.length ? `<div><div class="label" style="margin-bottom:6px">Other targets (no map in this atlas)</div>
+      <div class="tgt">${d.off.map(([nm, act, t, eff]) => `<span>${nm} · ${act}<span class="tier">${dots(t)}</span>${eff ? ` → ${eff}` : ''}</span>`).join('')}</div></div>` : ''}
+    <p><b style="font-weight:600">Clinical:</b> ${d.clin}</p>
+    <p class="note" style="margin:0">Map showing: ${r.name}, ${r.tracer} (${r.n} adults, ${r.ref}). ${r.note}</p>
+    <div class="src">Affinity tiers approximate (●●● ≈ ≤1 nM, ●● ≈ 1–10 nM, ● ≈ 10–100 nM or weak, ○ = context map); recalled from standard binding data, not measured.</div></div>`;
+  box.classList.add('on'); wireMore();
+  $('#infoclose').onclick = () => { state.drug = null; setReceptor(null); };
+  box.querySelector('.tgt')?.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b) setReceptor(b.dataset.r, true); });
+}
+function renderCircuit(box) {
+  const c = CIRCUITS.find(c => c.id === state.circuit);
+  box.innerHTML = `
+    <header><div style="flex:1"><h2>${c.name}</h2><div class="sub">Schematic pathway</div></div>${moreBtn()}<button class="x" id="infoclose" aria-label="Turn the pathway off">×</button></header>
+    <div class="more" ${compact() ? 'hidden' : ''} style="display:flex;flex-direction:column;gap:10px">
+    <p>${c.desc}</p><p><b style="font-weight:600">Clinical:</b> ${c.clin}</p>
+    <div class="nodechips">${state.circuitNodes.map(k => `<button data-k="${k}">${structs.get(k).name}</button>`).join('')}${c.end ? `<button disabled>${c.end.label}</button>` : ''}</div></div>`;
+  box.classList.add('on'); wireMore();
+  $('#infoclose').onclick = () => endCircuit();
+  box.querySelector('.nodechips').onclick = e => { const b = e.target.closest('[data-k]'); if (b) select(b.dataset.k); };
+}
+
+// ---------------- picking (meshes and MRI slice) ----------------
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function sliceLabel(point) {
+  if (!vol) return null;
+  const m = three2mni(point), [nx, ny, nz] = man.vol.dims, o = man.vol.origin, st = man.vol.step;
+  const i = Math.round((m[0] - o[0]) / st[0]), j = Math.round((m[1] - o[1]) / st[1]), k = Math.round((m[2] - o[2]) / st[2]);
+  if (i < 0 || j < 0 || k < 0 || i >= nx || j >= ny || k >= nz) return null;
+  const at = i + nx * (j + ny * k);
+  const ok = id => { if (!id) return false; const s = byIdx.get(id); if (!s || state.level.get(s.key) === 0) return false; return state.hemi === 'B' || s.cent.M || Math.sign(m[0]) === (state.hemi === 'L' ? -1 : 1); };
+  const id = ok(vol.l2[at]) ? vol.l2[at] : ok(vol.l1[at]) ? vol.l1[at] : 0;
+  if (!id) return { key: null };
+  return { key: byIdx.get(id).key, hemi: byIdx.get(id).cent.M ? 'M' : (m[0] < 0 ? 'L' : 'R') };
+}
+function pick(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  if (slice && slice.visible) {
+    const h = ray.intersectObject(slice, false)[0];
+    if (h) { const lab = sliceLabel(h.point); if (lab) return lab.key ? lab : null; }
+  }
+  const hits = ray.intersectObjects(meshes.filter(m => m.visible), false).filter(h => !clipOn || clipPlane.distanceToPoint(h.point) >= 0);
+  const hit = hits.find(h => state.level.get(h.object.userData.key) === 2) || hits[0];
+  return hit ? { key: hit.object.userData.key, hemi: hit.object.userData.hemi } : null;
+}
+let down = null;
+canvas.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+canvas.addEventListener('pointerup', e => {
+  if (!down) return;
+  if (Math.hypot(e.clientX - down.x, e.clientY - down.y) < 6 && performance.now() - down.t < 500) {
+    const h = pick(e.clientX, e.clientY);
+    if (state.quiz) quizAnswer(h); else select(h ? h.key : null, !!h, h ? h.hemi : null);
+  }
+  down = null;
+});
+let hoverPending = null, lastHover = 0;
+canvas.addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' || e.buttons) { $('#tip').style.display = 'none'; return; } hoverPending = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener('pointerleave', () => { hoverPending = null; $('#tip').style.display = 'none'; });
+function doHover(now) {
+  if (!hoverPending || now - lastHover < 70) return;
+  lastHover = now; const { x, y } = hoverPending; hoverPending = null;
+  const h = state.quiz ? null : pick(x, y), tip = $('#tip');
+  if (!h) { tip.style.display = 'none'; canvas.style.cursor = state.quiz ? 'crosshair' : ''; return; }
+  tip.textContent = `${structs.get(h.key).name}${h.hemi === 'L' ? ' · left' : h.hemi === 'R' ? ' · right' : ''}`;
+  const r = $('#stage').getBoundingClientRect();
+  tip.style.left = `${x - r.left + 14}px`; tip.style.top = `${y - r.top + 12}px`; tip.style.display = 'block'; canvas.style.cursor = 'pointer';
+}
+
+// ---------------- quiz ----------------
+const QUIZ_POOL = man.structs.filter(s => s.group !== 'White matter tracts' && !['Lateral_ventricle_temporal_horn', 'Subcallosal_area'].includes(s.key)).map(s => s.key);
+function quizSetup(k) {
+  const s = structs.get(k);
+  endCircuit(false); state.netMode = 'off'; state.rec = null; state.drug = null; if (slice) slice.material.uniforms.petOn.value = 0; syncDrugs(); state.cut = 'off'; applyCut(); state.hemi = 'B';
+  if (CORTEX_GROUPS.has(s.group)) { setLevels(all, 2); setLevels(HIDDEN_BY_DEFAULT, 0); setView('iso'); }
+  else {
+    setLevels(all, 2); setLevels(HIDDEN_BY_DEFAULT, 0); setLevels(cortex, 1); setLevels(['Cerebellum', 'Brainstem', 'Corpus_callosum'], 1);
+    if (s.group === 'Thalamic nuclei') { setLevels(all, 0); setLevels(cortex, 1); setLevels(['Thalamus'], 1); setLevels(inGroups('Thalamic nuclei'), 2); setView('iso', true, [0, -18, 4], 0.45); }
+    else if (s.group === 'Brainstem nuclei') { setLevels(all, 0); setLevels(['Brainstem', 'Thalamus'], 1); setLevels([...inGroups('Brainstem nuclei'), 'Substantia_nigra', 'Hypothalamus', 'Mammillary_body', 'Subthalamic_nucleus'], 2); setView('iso', true, [0, -26, -14], 0.5); }
+    else setView('iso');
+  }
+  state.preset = null; state.sel = null; syncAll();
+}
+function nextQuestion() {
+  const q = state.quiz; let k;
+  do { k = QUIZ_POOL[Math.floor(Math.random() * QUIZ_POOL.length)]; } while (k === q.target && QUIZ_POOL.length > 1);
+  q.target = k; q.locked = false; quizSetup(k);
+  $('#quiz').className = 'on'; $('#quizq').innerHTML = `Find: <b>${structs.get(k).name}</b>`;
+  $('#quizscore').textContent = `${q.score}/${q.total}`;
+}
+function quizAnswer(h) {
+  const q = state.quiz; if (!q || q.locked || !h) return;
+  q.locked = true; q.total++;
+  const right = h.key === q.target;
+  if (right) { q.score++; $('#quiz').className = 'on ok'; $('#quizq').innerHTML = `Correct: <b>${structs.get(q.target).name}</b>`; }
+  else { $('#quiz').className = 'on no'; $('#quizq').innerHTML = `That was the ${structs.get(h.key).name}. Here is the <b>${structs.get(q.target).name}</b>`; state.sel = q.target; syncAll(); }
+  $('#quizscore').textContent = `${q.score}/${q.total}`;
+  setTimeout(() => { if (state.quiz === q) nextQuestion(); }, right ? 1100 : 2600);
+}
+function stopQuiz() { if (!state.quiz) return; state.quiz = null; $('#quiz').className = ''; applyPreset('whole'); }
+$('#quizstart').addEventListener('click', () => { state.quiz = { score: 0, total: 0 }; if (innerWidth <= 760) $('#panel').classList.add('min'); nextQuestion(); });
+$('#quizskip').addEventListener('click', () => { if (state.quiz) { state.quiz.total++; nextQuestion(); } });
+$('#quizstop').addEventListener('click', stopQuiz);
+
+// ---------------- orientation gizmo ----------------
+const gScene = new THREE.Scene(), gCam = new THREE.OrthographicCamera(-1.5, 1.5, 1.5, -1.5, 0.1, 10);
+function letter(t, col) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d');
+  g.fillStyle = col; g.beginPath(); g.arc(32, 32, 26, 0, 7); g.fill();
+  g.fillStyle = '#0a0f16'; g.font = '600 34px IBM Plex Sans, system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, 32, 34);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthTest: false })); sp.scale.set(0.5, 0.5, 1); return sp;
+}
+[['A', [0, 0, 1], '#e7edf4'], ['P', [0, 0, -1], '#6d7a8b'], ['S', [0, 1, 0], '#e7edf4'], ['I', [0, -1, 0], '#6d7a8b'], ['L', [1, 0, 0], '#ffb454'], ['R', [-1, 0, 0], '#7cc7ff']].forEach(([t, d, col]) => {
+  const v = new THREE.Vector3(...d);
+  gScene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), v.clone().multiplyScalar(0.78)]), new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.7 })));
+  const sp = letter(t, col); sp.position.copy(v.multiplyScalar(1.08)); gScene.add(sp);
+});
+
+// ---------------- render loop ----------------
+let lastSize = '';
+function resize() {
+  const r = $('#stage').getBoundingClientRect(), sz = `${r.width}x${r.height}`;
+  if (sz !== lastSize) { renderer.setSize(r.width, r.height, false); lastSize = sz; }
+  camera.aspect = r.width / Math.max(r.height, 1);
+  // shift the projection centre into the middle of the uncovered strip
+  const fb = freeBand(), d = r.height / 2 - (fb.top + fb.bot) / 2;
+  if (Math.abs(d) > 1) camera.setViewOffset(r.width, r.height, 0, d, r.width, r.height); else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+  document.body.style.setProperty('--sheet-h', `${Math.round(sheetH())}px`);
+}
+addEventListener('resize', resize);
+$('#panel').addEventListener('transitionend', resize);
+if (typeof ResizeObserver !== 'undefined') { const ro = new ResizeObserver(() => resize()); for (const sel of ['#panel', '#info']) ro.observe($(sel)); window.__ro = ro; }
+const tmpV = new THREE.Vector3();
+function placeLabel() {
+  const el = $('#flabel');
+  if (!state.sel) { el.style.display = 'none'; return; }
+  const s = structs.get(state.sel);
+  const h = state.selHemi && s.cent[state.selHemi] ? state.selHemi : (s.cent.M ? 'M' : (state.hemi === 'R' ? 'R' : Object.keys(s.cent)[0]));
+  tmpV.copy(mni2three(s.cent[h])).project(camera);
+  if (tmpV.z > 1) { el.style.display = 'none'; return; }
+  const r = canvas.getBoundingClientRect();
+  el.textContent = s.name; el.style.left = `${(tmpV.x + 1) / 2 * r.width}px`; el.style.top = `${(1 - tmpV.y) / 2 * r.height}px`; el.style.display = 'block';
+}
+function frame(now) {
+  if (tween) {
+    const t = Math.min(1, (now - tween.t0) / tween.dur), e = 1 - Math.pow(1 - t, 3);
+    const fT = tween.fromT, tT = tween.toT;
+    const from = tween.from.clone().sub(fT), to = tween.to.clone().sub(tT);
+    const len = THREE.MathUtils.lerp(from.length(), to.length(), e);
+    const dir = from.normalize().lerp(to.clone().normalize(), e); if (dir.lengthSq() < 1e-6) dir.copy(to).normalize();
+    const tgt = fT.clone().lerp(tT, e);
+    controls.target.copy(tgt); camera.position.copy(tgt).add(dir.normalize().multiplyScalar(len));
+    if (t >= 1) tween = null;
+  }
+  controls.update();
+  const pulse = reduceMotion ? 0.45 : 0.34 + 0.2 * Math.sin(now / 260);
+  for (const m of meshes) m.material.emissiveIntensity = m.userData.key === state.sel ? pulse : 0;
+  if (story.def) storyFrame(now);
+  if (!reduceMotion) for (const fm of flowMats) fm.uniforms.t.value = now / 1000 * 0.9;
+  doHover(now); placeLabel();
+  const w = renderer.domElement.width, h = renderer.domElement.height, pr = renderer.getPixelRatio();
+  renderer.setScissorTest(false); renderer.setViewport(0, 0, w / pr, h / pr); renderer.render(scene, camera);
+  const gs = 104, small = innerWidth <= 760, gx = (w / pr) - gs - 8;
+  const gy = small ? (freeBandCached().H - freeBandCached().bot) + 6 : ((state.sel || state.circuit || state.drug || state.rec || story.def) ? (h / pr) - gs - 50 : 10);
+  const gizmoOn = !(small && story.def);
+  gCam.position.copy(camera.position).sub(controls.target).normalize().multiplyScalar(4); gCam.quaternion.copy(camera.quaternion);
+  renderer.autoClear = false; renderer.clearDepth(); renderer.setScissorTest(true);
+  if (gizmoOn) { renderer.setScissor(gx, gy, gs, gs); renderer.setViewport(gx, gy, gs, gs); renderer.render(gScene, gCam); }
+  renderer.setScissorTest(false); renderer.autoClear = true;
+  requestAnimationFrame(frame);
+}
+
+__STORY_ENGINE__
+
+// ---------------- start ----------------
+if (innerWidth <= 760) $('#panel').classList.add('min');
+resize();
+camera.position.set(...VIEWS.iso).normalize().multiplyScalar(baseDist());
+applyPreset('whole', false);
+applyCut();
+$('#loading').remove();
+requestAnimationFrame(frame);
+
+// MRI volumes arrive gzipped; decompress without blocking the first frame
+(async () => {
+  try {
+    if (typeof DecompressionStream === 'undefined') throw new Error('no DecompressionStream');
+    const b = atob($('#voldata').textContent.trim()), u8 = new Uint8Array(b.length);
+    for (let i = 0; i < b.length; i++) u8[i] = b.charCodeAt(i);
+    const out = new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+    const n = man.vol.dims[0] * man.vol.dims[1] * man.vol.dims[2];
+    vol = { t1: out.subarray(0, n), l1: out.subarray(n, 2 * n), l2: out.subarray(2 * n, 3 * n) };
+    makeSlice(vol.t1, vol.l1, vol.l2); updateLut(); applyCut();
+    const pb = atob($('#petdata').textContent.trim()), pu8 = new Uint8Array(pb.length);
+    for (let i = 0; i < pb.length; i++) pu8[i] = pb.charCodeAt(i);
+    const pout = new Uint8Array(await new Response(new Blob([pu8]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+    const pn = man.pet.dims[0] * man.pet.dims[1] * man.pet.dims[2];
+    pet = man.pet.maps.map((_, i) => pout.subarray(i * pn, (i + 1) * pn));
+    if (state.rec) setReceptor(state.rec, false); else syncAll();
+  } catch (err) {
+    $('#mri').disabled = $('#mrilab').disabled = true;
+    $('#mrinote').textContent = 'This browser cannot unpack the MRI volume, so the cut shows the 3D structures only.';
+    $('#petnote').textContent = 'This browser cannot unpack the receptor maps (it lacks DecompressionStream), so drug mode is unavailable here.';
+  }
+})();
+window.__atlas = { state, select, applyPreset, setView, syncAll, startCircuit, endCircuit, setReceptor, selectDrug, story, STORIES, startStory, endStory, gotoScene, freeBand, camera, structs, centroid, mni2three };
+storyFromHash();
+</script>
+</body>
+</html>

@@ -195,12 +195,117 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
   #info .kv, #info .note, #info p { font-size: 12.5px; }
   #info .btn { padding: 5px 9px; font-size: 12.5px; }
   #legend { bottom: auto; top: 50px; left: 10px; }
+  body.circ #info { top: auto; bottom: calc(var(--sheet-h, 132px) + 8px); max-height: 46%; }
   body.has-info #legend { display: none; }
   #quiz { top: 50px; gap: 8px; padding: 8px 10px; }
   #quiz .q b { font-size: 16px; }
 }
 #mbrand { display: none; position: absolute; top: 12px; left: 12px; z-index: 3; font: 600 16px var(--font-display); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* ---------- animated stories ---------- */
+#hud { position: absolute; inset: 0; pointer-events: none; z-index: 3; display: none; }
+body.story #hud { display: block; }
+#hudsvg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.hudbox { position: absolute; background: rgba(10,15,22,0.74); border: 1px solid var(--line); border-radius: 10px; padding: 6px 9px; font-size: 11.5px; color: var(--ink); display: none; }
+.hudbox.on { display: block; }
+.hudbox .t { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+#hudrow { position: absolute; left: 12px; top: 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+#hudrow > .hudbox { position: static; }
+#dial { width: 124px; text-align: center; padding: 6px 8px 5px; }
+#dial svg { display: block; width: 108px; height: 60px; margin: 0 auto; }
+#ledger { font: 600 17px var(--font-mono); letter-spacing: 0.04em; padding: 5px 10px; }
+#ledger span { opacity: 0.18; transition: opacity .4s, color .4s; }
+#ledger span.on { opacity: 1; }
+#ledger .p { color: #ff9f43; } #ledger .m { color: #4aa8ff; } #ledger .r { color: #ffd34d; }
+#grid { grid-template-columns: repeat(5, 8px); gap: 3px; padding: 7px 8px 5px; }
+#grid.on { display: grid; }
+#grid i { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,211,77,0.14); transition: background .35s, box-shadow .35s; }
+#grid i.lit { background: #ffd34d; box-shadow: 0 0 6px rgba(255,211,77,0.9); }
+#grid .cap { grid-column: 1 / -1; font-size: 9px; color: var(--muted); text-align: center; margin-top: 3px; line-height: 1.15; width: 52px; justify-self: center; }
+.slab { position: absolute; left: 0; top: 0; padding: 2px 7px; pointer-events: none; border-radius: 6px; background: rgba(10,15,22,0.86); border: 1px solid rgba(255,255,255,0.16); font-size: 11.5px; white-space: nowrap; opacity: 0; transition: opacity .35s; will-change: transform; }
+.slab.on { opacity: 1; }
+.slab.tag { border-color: rgba(201,178,122,0.7); color: #ecdcae; font-size: 10.5px; }
+.slab.hot { border-color: rgba(255,180,84,0.8); color: #ffe2b8; }
+.tok { position: absolute; left: 0; top: 0; width: 34px; height: 34px; border-radius: 50%; background: rgba(10,15,22,0.92); border: 2px solid #8d9bad; display: grid; place-items: center; color: #e7edf4; transition: opacity .45s, border-color .3s, box-shadow .3s; will-change: transform; }
+.tok svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tok .bang { position: absolute; right: -9px; top: -11px; width: 18px; height: 18px; border-radius: 50%; background: #ffd34d; color: #1a1300; font: 700 13px/18px var(--font-body); text-align: center; opacity: 0; transition: opacity .3s; }
+.tok.bangon { border-color: #ffd34d; box-shadow: 0 0 16px rgba(255,211,77,0.55); }
+.tok.bangon .bang { opacity: 1; }
+.tok.gold { border-color: #ffd34d; }
+.tok.cool { border-color: #6f8fb3; }
+.ghostring { position: absolute; left: 0; top: 0; width: 34px; height: 34px; border-radius: 50%; border: 1.5px dashed rgba(231,237,244,0.55); opacity: 0; transition: opacity .4s; }
+.ghostring.on { opacity: 1; }
+#moodbar { width: 50px; padding: 6px 4px; text-align: center; }
+#moodbar .track { position: relative; width: 12px; height: 150px; margin: 4px auto; border-radius: 6px; background: linear-gradient(#ffb454, rgba(141,155,173,0.25) 50%, #4aa8ff); }
+#moodbar .zero { position: absolute; left: -5px; right: -5px; top: 50%; height: 1px; background: rgba(231,237,244,0.6); }
+#moodbar .knob { position: absolute; left: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; background: #e7edf4; border: 3px solid #0a0f16; box-shadow: 0 0 10px rgba(255,255,255,0.4); }
+#moodbar .lab { font-size: 9.5px; color: var(--muted); line-height: 1.15; }
+#seesaw { width: 180px; padding: 6px 8px 6px; }
+#seesaw svg { display: block; width: 164px; height: 56px; }
+#seesaw .src { font-size: 9px; color: var(--muted); text-align: center; }
+#clockico { position: absolute; left: 0; top: 0; width: 30px; height: 30px; display: none; will-change: transform; }
+#clockico.on { display: block; }
+#daystrip { position: absolute; height: 16px; display: none; border-radius: 4px; overflow: hidden; border: 1px solid var(--line); background: #0d1520; }
+#daystrip.on { display: block; }
+#daystrip canvas { width: 100%; height: 100%; display: block; }
+#daystrip .lab { position: absolute; left: 6px; top: 0; font-size: 9.5px; line-height: 14px; color: #c9d4e2; text-shadow: 0 0 3px #000; }
+#inset { position: absolute; z-index: 4; right: 14px; top: 56px; width: min(340px, calc(100% - 28px)); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 12.5px; box-shadow: 0 12px 30px rgba(0,0,0,0.35); pointer-events: none; }
+#inset[hidden] { display: none; }
+#inset .t { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+#inset .chips { gap: 5px; }
+#inset .chip { font-size: 12px; padding: 3px 9px; border-color: rgba(255,138,61,0.55); color: #ffd1b0; }
+#inset svg { display: block; width: 100%; height: auto; }
+#inset .foot { font-size: 10.5px; color: var(--muted); margin-top: 4px; line-height: 1.35; }
+#storybar { position: absolute; z-index: 6; left: 50%; transform: translateX(-50%); bottom: 14px; width: min(720px, calc(100% - 28px)); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 9px 12px 10px; display: flex; flex-direction: column; gap: 7px; box-shadow: 0 18px 40px rgba(0,0,0,0.4); }
+#storybar[hidden] { display: none; }
+#sbprog { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; margin: -2px 0 1px; }
+#sbprog i { display: block; height: 100%; width: 0; background: var(--accent); }
+.sbtop { display: flex; align-items: baseline; gap: 8px; }
+.sbtop b { font: 600 16px var(--font-display); flex: 1; min-width: 0; text-wrap: balance; }
+#sbcount { color: var(--muted); font-size: 12px; white-space: nowrap; }
+#sbclose { background: none; border: 0; color: var(--muted); font-size: 21px; line-height: 1; padding: 0 2px; align-self: center; }
+#sbcap { font-size: 14px; line-height: 1.42; min-height: 2.84em; }
+#sbcap .st { color: var(--accent); font-weight: 600; margin-right: 6px; }
+.sbctl { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+#sbstate button { padding: 5px 9px; font-size: 12.5px; }
+.sbnav { display: flex; gap: 4px; margin-left: auto; }
+.sbnav button { width: 38px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255,255,255,0.04); padding: 0; display: grid; place-items: center; }
+.sbnav svg { width: 16px; height: 16px; fill: currentColor; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sbnav button:disabled { opacity: 0.35; cursor: default; }
+.sbnote { font-size: 11px; color: var(--muted); line-height: 1.4; }
+.sbnav button:hover, #sbextra .btn:hover { border-color: rgba(255,180,84,0.5); }
+#sbextra { display: flex; flex-direction: column; gap: 6px; }
+#sbextra:empty { display: none; }
+.sbrow { display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; font-size: 12.5px; }
+.sbrow label { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; }
+.sbrow label span { white-space: nowrap; min-width: 92px; }
+.sbrow input[type=range] { flex: 1; min-width: 90px; }
+.sbrow .btn { padding: 5px 9px; font-size: 12.5px; }
+.sbrow .btn[aria-pressed="true"] { background: rgba(255,180,84,0.14); border-color: var(--accent); color: #ffd9a6; }
+#stories .net .dot { border-radius: 4px; }
+@media (max-width: 760px) {
+  body.story #panel, body.story #viewbar, body.story #mbrand, body.story #legend { display: none; }
+  #storybar { left: 0; right: 0; bottom: 0; transform: none; width: auto; border-radius: 14px 14px 0 0; padding: 7px 10px 10px; gap: 5px; }
+  #sbcap { font-size: 13px; min-height: 2.8em; }
+  .sbtop b { font-size: 15px; }
+  #sbstate button { padding: 5px 7px; font-size: 12px; }
+  .sbnav button { min-width: 34px; height: 30px; }
+  #inset { left: 10px; right: 10px; top: 10px; width: auto; padding: 8px 10px; }
+  #hudrow { left: 8px; right: 8px; top: 8px; flex-direction: row; flex-wrap: wrap; align-items: stretch; gap: 6px; }
+  .hudbox { padding: 5px 7px; }
+  #dial { width: 92px; padding: 4px 6px 3px; } #dial svg { width: 78px; height: 43px; }
+  #grid { padding: 6px 7px 4px; }
+  #ledger { font-size: 15px; display: none; align-items: center; } #ledger.on { display: flex; }
+  #seesaw { width: 150px; } #seesaw svg { width: 136px; height: 47px; }
+  #moodbar { flex: 1 0 100%; width: auto; display: none; align-items: center; gap: 8px; padding: 6px 10px; text-align: left; }
+  #moodbar.on { display: flex; }
+  #moodbar .track { flex: 1; width: auto; height: 10px; margin: 0; background: linear-gradient(90deg, #4aa8ff, rgba(141,155,173,0.25) 50%, #ffb454); }
+  #moodbar .zero { left: 50%; right: auto; top: -4px; bottom: -4px; width: 1px; height: auto; }
+  #moodbar .knob { top: 50% !important; }
+  #moodbar .lab:last-child { max-width: 74px; }
+  body.story #info { top: auto; bottom: calc(var(--sb-h, 150px) + 8px); max-height: 40%; }
+}
+
 </style>
 <script type="importmap">
 { "imports": {
@@ -249,6 +354,9 @@ setTimeout(function () {
   </div>
 
   <div class="tabbody" id="body-paths" role="tabpanel" aria-labelledby="tab-paths">
+    <span class="label">Animated stories</span>
+    <div id="stories" style="display:flex;flex-direction:column;gap:8px"></div>
+    <span class="label" style="margin-top:4px">Pathways</span>
     <div id="paths" style="display:flex;flex-direction:column;gap:8px"></div>
     <p class="note">Pathways are <b>schematic</b>: animated lines join the atlas centroids of each relay to show direction of flow. They are not tractography; switch on the White matter tracts group for real fibre bundles.</p>
   </div>
@@ -311,6 +419,37 @@ setTimeout(function () {
   <div id="flabel"></div>
   <div id="quiz" aria-live="polite"><span class="q" id="quizq"></span><span class="score" id="quizscore"></span><button class="btn" id="quizskip">Skip</button><button class="btn" id="quizstop">Stop</button></div>
   <section id="info" aria-live="polite"></section>
+  <div id="hud" aria-hidden="true">
+    <svg id="hudsvg"></svg>
+    <div id="labels"></div>
+    <div id="tokens"></div>
+    <div id="hudrow">
+      <div id="dial" class="hudbox"></div>
+      <div id="grid" class="hudbox"></div>
+      <div id="ledger" class="hudbox"></div>
+      <div id="seesaw" class="hudbox"></div>
+      <div id="moodbar" class="hudbox"></div>
+    </div>
+    <div id="clockico"></div>
+    <div id="daystrip"></div>
+  </div>
+  <div id="inset" hidden></div>
+  <div id="storybar" hidden>
+    <div id="sbprog"><i></i></div>
+    <div class="sbtop"><b id="sbtitle"></b><span id="sbcount" class="mono"></span><button id="sbclose" aria-label="Exit the story">×</button></div>
+    <div id="sbcap" aria-live="polite"></div>
+    <div class="sbctl">
+      <div class="seg" id="sbstate" role="group" aria-label="Brain state"></div>
+      <div class="sbnav">
+        <button id="sbprev" aria-label="Previous scene"><svg viewBox="0 0 20 20"><path d="M5 4v12M16 4l-8 6 8 6z"/></svg></button>
+        <button id="sbreplay" aria-label="Replay this scene"><svg viewBox="0 0 20 20"><path d="M4.5 10a5.5 5.5 0 1 0 1.8-4.1M4 3v4h4" fill="none"/></svg></button>
+        <button id="sbplay" aria-label="Pause autoplay"></button>
+        <button id="sbnext" aria-label="Next scene"><svg viewBox="0 0 20 20"><path d="M15 4v12M4 4l8 6-8 6z"/></svg></button>
+      </div>
+    </div>
+    <div id="sbextra"></div>
+  </div>
+
 </main>
 
 <script id="manifest" type="application/json">{"meshes":[{"key":"Hippocampus","hemi":"R","nv":340,"nf":676,"vo":0,"fo":2040,"no":6096},{"key":"Hippocampus","hemi":"L","nv":312,"nf":620,"vo":6436,"fo":8308,"no":12028},{"key":"Amygdala","hemi":"R","nv":206,"nf":408,"vo":12340,"fo":13576,"no":16024},{"key":"Amygdala","hemi":"L","nv":213,"nf":422,"vo":16232,"fo":17510,"no":20042},{"key":"Anterior_temporal_lobe_medial_part","hemi":"R","nv":702,"nf":1400,"vo":20256,"fo":24468,"no":32868},{"key":"Anterior_temporal_lobe_medial_part","hemi":"L","nv":677,"nf":1350,"vo":33572,"fo":37634,"no":45734},{"key":"Anterior_temporal_lobe_lateral_part","hemi":"R","nv":470,"nf":936,"vo":46412,"fo":49232,"no":54848},{"key":"Anterior_temporal_lobe_lateral_part","hemi":"L","nv":447,"nf":890,"vo":55320,"fo":58002,"no":63342},{"key":"Parahippocampal_and_ambient_gyri","hemi":"R","nv":573,"nf":1142,"vo":63792,"fo":67230,"no":74082},{"key":"Parahippocampal_and_ambient_gyri","hemi":"L","nv":587,"nf":1170,"vo":74656,"fo":78178,"no":85198},{"key":"Superior_temporal_gyrus_posterior_part","hemi":"R","nv":1251,"nf":2498,"vo":85788,"fo":93294,"no":108282},{"key":"Superior_temporal_gyrus_posterior_part","hemi":"L","nv":1200,"nf":2396,"vo":109536,"fo":116736,"no":131112},{"key":"Middle_and_inferior_temporal_gyrus","hemi":"R","nv":1351,"nf":2698,"vo":132312,"fo":140418,"no":156606},{"key":"Middle_and_inferior_temporal_gyrus","hemi":"L","nv":1316,"nf":2628,"vo":157960,"fo":165856,"no":181624},{"key":"Fusiform_gyrus","hemi":"R","nv":538,"nf":1072,"vo":182940,"fo":186168,"no":192600},{"key":"Fusiform_gyrus","hemi":"L","nv":547,"nf":1090,"vo":193140,"fo":196422,"no":202962},{"key":"Cerebellum","hemi":"R","nv":3036,"nf":6068,"vo":203512,"fo":221728,"no":258136},{"key":"Cerebellum","hemi":"L","nv":3063,"nf":6122,"vo":261172,"fo":279550,"no":316282},{"key":"Brainstem","hemi":"M","nv":1658,"nf":3320,"vo":319348,"fo":329296,"no":349216},{"key":"Insula","hemi":"L","nv":1437,"nf":2870,"vo":350876,"fo":359498,"no":376718},{"key":"Insula","hemi":"R","nv":1405,"nf":2806,"vo":378156,"fo":386586,"no":403422},{"key":"Lateral_remainder_occipital_lobe","hemi":"L","nv":2440,"nf":4876,"vo":404828,"fo":419468,"no":448724},{"key":"Lateral_remainder_occipital_lobe","hemi":"R","nv":2453,"nf":4902,"vo":451164,"fo":465882,"no":495294},{"key":"Cingulate_gyrus_anterior_part","hemi":"L","nv":883,"nf":1762,"vo":497748,"fo":503046,"no":513618},{"key":"Cingulate_gyrus_anterior_part","hemi":"R","nv":877,"nf":1750,"vo":514504,"fo":519766,"no":530266},{"key":"Cingulate_gyrus_posterior_part","hemi":"L","nv":847,"nf":1690,"vo":531144,"fo":536226,"no":546366},{"key":"Cingulate_gyrus_posterior_part","hemi":"R","nv":808,"nf":1612,"vo":547216,"fo":552064,"no":561736},{"key":"Middle_frontal_gyrus","hemi":"L","nv":3124,"nf":6244,"vo":562544,"fo":581288,"no":618752},{"key":"Middle_frontal_gyrus","hemi":"R","nv":3133,"nf":6262,"vo":621876,"fo":640674,"no":678246},{"key":"Posterior_temporal_lobe","hemi":"L","nv":2683,"nf":5362,"vo":681380,"fo":697478,"no":729650},{"key":"Posterior_temporal_lobe","hemi":"R","nv":2715,"nf":5426,"vo":732336,"fo":748626,"no":781182},{"key":"Inferiolateral_remainder_parietal_lobe","hemi":"L","nv":2340,"nf":4676,"vo":783900,"fo":797940,"no":825996},{"key":"Inferiolateral_remainder_parietal_lobe","hemi":"R","nv":2351,"nf":4698,"vo":828336,"fo":842442,"no":870630},{"key":"Caudate_nucleus","hemi":"L","nv":556,"nf":1108,"vo":872984,"fo":876320,"no":882968},{"key":"Caudate_nucleus","hemi":"R","nv":569,"nf":1134,"vo":883524,"fo":886938,"no":893742},{"key":"Nucleus_accumbens","hemi":"L","nv":202,"nf":400,"vo":894312,"fo":895524,"no":897924},{"key":"Nucleus_accumbens","hemi":"R","nv":202,"nf":400,"vo":898128,"fo":899340,"no":901740},{"key":"Putamen","hemi":"L","nv":581,"nf":1158,"vo":901944,"fo":905430,"no":912378},{"key":"Putamen","hemi":"R","nv":571,"nf":1138,"vo":912960,"fo":916386,"no":923214},{"key":"Thalamus","hemi":"L","nv":648,"nf":1292,"vo":923788,"fo":927676,"no":935428},{"key":"Thalamus","hemi":"R","nv":636,"nf":1268,"vo":936076,"fo":939892,"no":947500},{"key":"Pallidum","hemi":"L","nv":202,"nf":400,"vo":948136,"fo":949348,"no":951748},{"key":"Pallidum","hemi":"R","nv":201,"nf":398,"vo":951952,"fo":953158,"no":955546},{"key":"Corpus_callosum","hemi":"M","nv":2375,"nf":4746,"vo":955748,"fo":969998,"no":998474},{"key":"Lateral_ventricle_no_temporal_horn","hemi":"R","nv":1116,"nf":2228,"vo":1000852,"fo":1007548,"no":1020916},{"key":"Lateral_ventricle_no_temporal_horn","hemi":"L","nv":1186,"nf":2368,"vo":1022032,"fo":1029148,"no":1043356},{"key":"Lateral_ventricle_temporal_horn","hemi":"R","nv":191,"nf":400,"vo":1044544,"fo":1045690,"no":1048090},{"key":"Lateral_ventricle_temporal_horn","hemi":"L","nv":196,"nf":398,"vo":1048284,"fo":1049460,"no":1051848},{"key":"Third_ventricle","hemi":"M","nv":204,"nf":404,"vo":1052044,"fo":1053268,"no":1055692},{"key":"Precentral_gyrus","hemi":"L","nv":2585,"nf":5166,"vo":1055896,"fo":1071406,"no":1102402},{"key":"Precentral_gyrus","hemi":"R","nv":2593,"nf":5182,"vo":1104988,"fo":1120546,"no":1151638},{"key":"Straight_gyrus","hemi":"L","nv":469,"nf":934,"vo":1154232,"fo":1157046,"no":1162650},{"key":"Straight_gyrus","hemi":"R","nv":506,"nf":1008,"vo":1163120,"fo":1166156,"no":1172204},{"key":"Anterior_orbital_gyrus","hemi":"L","nv":638,"nf":1272,"vo":1172712,"fo":1176540,"no":1184172},{"key":"Anterior_orbital_gyrus","hemi":"R","nv":659,"nf":1314,"vo":1184812,"fo":1188766,"no":1196650},{"key":"Inferior_frontal_gyrus","hemi":"L","nv":1285,"nf":2566,"vo":1197312,"fo":1205022,"no":1220418},{"key":"Inferior_frontal_gyrus","hemi":"R","nv":1238,"nf":2472,"vo":1221704,"fo":1229132,"no":1243964},{"key":"Superior_frontal_gyrus","hemi":"L","nv":3500,"nf":6996,"vo":1245204,"fo":1266204,"no":1308180},{"key":"Superior_frontal_gyrus","hemi":"R","nv":3547,"nf":7090,"vo":1311680,"fo":1332962,"no":1375502},{"key":"Postcentral_gyrus","hemi":"L","nv":2593,"nf":5182,"vo":1379052,"fo":1394610,"no":1425702},{"key":"Postcentral_gyrus","hemi":"R","nv":2553,"nf":5102,"vo":1428296,"fo":1443614,"no":1474226},{"key":"Superior_parietal_gyrus","hemi":"L","nv":2444,"nf":4884,"vo":1476780,"fo":1491444,"no":1520748},{"key":"Superior_parietal_gyrus","hemi":"R","nv":2552,"nf":5100,"vo":1523192,"fo":1538504,"no":1569104},{"key":"Lingual_gyrus","hemi":"L","nv":1026,"nf":2048,"vo":1571656,"fo":1577812,"no":1590100},{"key":"Lingual_gyrus","hemi":"R","nv":1050,"nf":2096,"vo":1591128,"fo":1597428,"no":1610004},{"key":"Cuneus","hemi":"L","nv":895,"nf":1786,"vo":1611056,"fo":1616426,"no":1627142},{"key":"Cuneus","hemi":"R","nv":894,"nf":1784,"vo":1628040,"fo":1633404,"no":1644108},{"key":"Medial_orbital_gyrus","hemi":"L","nv":786,"nf":1568,"vo":1645004,"fo":1649720,"no":1659128},{"key":"Medial_orbital_gyrus","hemi":"R","nv":764,"nf":1524,"vo":1659916,"fo":1664500,"no":1673644},{"key":"Lateral_orbital_gyrus","hemi":"L","nv":440,"nf":876,"vo":1674408,"fo":1677048,"no":1682304},{"key":"Lateral_orbital_gyrus","hemi":"R","nv":480,"nf":956,"vo":1682744,"fo":1685624,"no":1691360},{"key":"Posterior_orbital_gyrus","hemi":"L","nv":509,"nf":1014,"vo":1691840,"fo":1694894,"no":1700978},{"key":"Posterior_orbital_gyrus","hemi":"R","nv":521,"nf":1038,"vo":1701488,"fo":1704614,"no":1710842},{"key":"Substantia_nigra","hemi":"L","nv":202,"nf":400,"vo":1711364,"fo":1712576,"no":1714976},{"key":"Substantia_nigra","hemi":"R","nv":202,"nf":400,"vo":1715180,"fo":1716392,"no":1718792},{"key":"Subgenual_frontal_cortex","hemi":"L","nv":202,"nf":400,"vo":1718996,"fo":1720208,"no":1722608},{"key":"Subgenual_frontal_cortex","hemi":"R","nv":202,"nf":400,"vo":1722812,"fo":1724024,"no":1726424},{"key":"Subcallosal_area","hemi":"L","nv":202,"nf":400,"vo":1726628,"fo":1727840,"no":1730240},{"key":"Subcallosal_area","hemi":"R","nv":201,"nf":398,"vo":1730444,"fo":1731650,"no":1734038},{"key":"Pre-subgenual_frontal_cortex","hemi":"L","nv":201,"nf":398,"vo":1734240,"fo":1735446,"no":1737834},{"key":"Pre-subgenual_frontal_cortex","hemi":"R","nv":202,"nf":400,"vo":1738036,"fo":1739248,"no":1741648},{"key":"Superior_temporal_gyrus_anterior_part","hemi":"L","nv":522,"nf":1040,"vo":1741852,"fo":1744984,"no":1751224},{"key":"Superior_temporal_gyrus_anterior_part","hemi":"R","nv":522,"nf":1040,"vo":1751748,"fo":1754880,"no":1761120},{"key":"Red_nucleus","hemi":"L","nv":152,"nf":300,"vo":1761644,"fo":1762556,"no":1764356},{"key":"Red_nucleus","hemi":"R","nv":151,"nf":298,"vo":1764508,"fo":1765414,"no":1767202},{"key":"VTA","hemi":"L","nv":154,"nf":300,"vo":1767356,"fo":1768280,"no":1770080},{"key":"VTA","hemi":"R","nv":153,"nf":298,"vo":1770236,"fo":1771154,"no":1772942},{"key":"Ventral_pallidum","hemi":"L","nv":149,"nf":294,"vo":1773096,"fo":1773990,"no":1775754},{"key":"Ventral_pallidum","hemi":"R","nv":152,"nf":300,"vo":1775904,"fo":1776816,"no":1778616},{"key":"Habenula","hemi":"L","nv":87,"nf":170,"vo":1778768,"fo":1779290,"no":1780310},{"key":"Habenula","hemi":"R","nv":94,"nf":184,"vo":1780400,"fo":1780964,"no":1782068},{"key":"Hypothalamus","hemi":"L","nv":233,"nf":466,"vo":1782164,"fo":1783562,"no":1786358},{"key":"Hypothalamus","hemi":"R","nv":230,"nf":460,"vo":1786592,"fo":1787972,"no":1790732},{"key":"Mammillary_body","hemi":"L","nv":147,"nf":290,"vo":1790964,"fo":1791846,"no":1793586},{"key":"Mammillary_body","hemi":"R","nv":116,"nf":228,"vo":1793736,"fo":1794432,"no":1795800},{"key":"Subthalamic_nucleus","hemi":"L","nv":152,"nf":300,"vo":1795916,"fo":1796828,"no":1798628},{"key":"Subthalamic_nucleus","hemi":"R","nv":152,"nf":300,"vo":1798780,"fo":1799692,"no":1801492},{"key":"Bed_nucleus_stria_terminalis","hemi":"L","nv":202,"nf":400,"vo":1801644,"fo":1802856,"no":1805256},{"key":"Bed_nucleus_stria_terminalis","hemi":"R","nv":202,"nf":400,"vo":1805460,"fo":1806672,"no":1809072},{"key":"Nucleus_basalis","hemi":"L","nv":202,"nf":400,"vo":1809276,"fo":1810488,"no":1812888},{"key":"Nucleus_basalis","hemi":"R","nv":202,"nf":400,"vo":1813092,"fo":1814304,"no":1816704},{"key":"Septal_diagonal_band","hemi":"L","nv":202,"nf":400,"vo":1816908,"fo":1818120,"no":1820520},{"key":"Septal_diagonal_band","hemi":"R","nv":202,"nf":400,"vo":1820724,"fo":1821936,"no":1824336},{"key":"Thal_AN","hemi":"L","nv":202,"nf":400,"vo":1824540,"fo":1825752,"no":1828152},{"key":"Thal_AN","hemi":"R","nv":201,"nf":398,"vo":1828356,"fo":1829562,"no":1831950},{"key":"Thal_VA","hemi":"L","nv":202,"nf":400,"vo":1832152,"fo":1833364,"no":1835764},{"key":"Thal_VA","hemi":"R","nv":202,"nf":400,"vo":1835968,"fo":1837180,"no":1839580},{"key":"Thal_VL","hemi":"L","nv":201,"nf":398,"vo":1839784,"fo":1840990,"no":1843378},{"key":"Thal_VL","hemi":"R","nv":202,"nf":400,"vo":1843580,"fo":1844792,"no":1847192},{"key":"Thal_VPL","hemi":"L","nv":202,"nf":400,"vo":1847396,"fo":1848608,"no":1851008},{"key":"Thal_VPL","hemi":"R","nv":202,"nf":400,"vo":1851212,"fo":1852424,"no":1854824},{"key":"Thal_Pul","hemi":"L","nv":232,"nf":460,"vo":1855028,"fo":1856420,"no":1859180},{"key":"Thal_Pul","hemi":"R","nv":218,"nf":432,"vo":1859412,"fo":1860720,"no":1863312},{"key":"Thal_LGN","hemi":"L","nv":202,"nf":400,"vo":1863532,"fo":1864744,"no":1867144},{"key":"Thal_LGN","hemi":"R","nv":190,"nf":376,"vo":1867348,"fo":1868488,"no":1870744},{"key":"Thal_MGN","hemi":"L","nv":152,"nf":300,"vo":1870936,"fo":1871848,"no":1873648},{"key":"Thal_MGN","hemi":"R","nv":142,"nf":280,"vo":1873800,"fo":1874652,"no":1876332},{"key":"Thal_CM","hemi":"L","nv":202,"nf":400,"vo":1876476,"fo":1877688,"no":1880088},{"key":"Thal_CM","hemi":"R","nv":202,"nf":400,"vo":1880292,"fo":1881504,"no":1883904},{"key":"Thal_MD","hemi":"L","nv":202,"nf":400,"vo":1884108,"fo":1885320,"no":1887720},{"key":"Thal_MD","hemi":"R","nv":202,"nf":400,"vo":1887924,"fo":1889136,"no":1891536},{"key":"MTT","hemi":"L","nv":54,"nf":104,"vo":1891740,"fo":1892064,"no":1892688},{"key":"MTT","hemi":"R","nv":62,"nf":120,"vo":1892744,"fo":1893116,"no":1893836},{"key":"Fourth_ventricle","hemi":"M","nv":201,"nf":398,"vo":1893900,"fo":1895106,"no":1897494},{"key":"Locus_coeruleus","hemi":"L","nv":642,"nf":1280,"vo":1897696,"fo":1901548,"no":1909228},{"key":"Locus_coeruleus","hemi":"R","nv":642,"nf":1280,"vo":1909872,"fo":1913724,"no":1921404},{"key":"Dorsal_raphe","hemi":"M","nv":642,"nf":1280,"vo":1922048,"fo":1925900,"no":1933580},{"key":"Median_raphe","hemi":"M","nv":642,"nf":1280,"vo":1934224,"fo":1938076,"no":1945756},{"key":"PAG","hemi":"M","nv":642,"nf":1280,"vo":1946400,"fo":1950252,"no":1957932},{"key":"Fornix","hemi":"L","nv":201,"nf":398,"vo":1958576,"fo":1959782,"no":1962170},{"key":"Fornix","hemi":"R","nv":202,"nf":400,"vo":1962372,"fo":1963584,"no":1965984},{"key":"Cingulum","hemi":"L","nv":1261,"nf":2518,"vo":1966188,"fo":1973754,"no":1988862},{"key":"Cingulum","hemi":"R","nv":1205,"nf":2406,"vo":1990124,"fo":1997354,"no":2011790},{"key":"Uncinate","hemi":"L","nv":556,"nf":1108,"vo":2012996,"fo":2016332,"no":2022980},{"key":"Uncinate","hemi":"R","nv":554,"nf":1108,"vo":2023536,"fo":2026860,"no":2033508},{"key":"SLF","hemi":"L","nv":1679,"nf":3356,"vo":2034064,"fo":2044138,"no":2064274},{"key":"SLF","hemi":"R","nv":1535,"nf":3074,"vo":2065956,"fo":2075166,"no":2093610},{"key":"Arcuate","hemi":"L","nv":1692,"nf":3384,"vo":2095148,"fo":2105300,"no":2125604},{"key":"Arcuate","hemi":"R","nv":844,"nf":1700,"vo":2127296,"fo":2132360,"no":2142560},{"key":"IFOF","hemi":"L","nv":1330,"nf":2666,"vo":2143404,"fo":2151384,"no":2167380},{"key":"IFOF","hemi":"R","nv":1446,"nf":2904,"vo":2168712,"fo":2177388,"no":2194812},{"key":"ILF","hemi":"L","nv":1173,"nf":2348,"vo":2196260,"fo":2203298,"no":2217386},{"key":"ILF","hemi":"R","nv":673,"nf":1340,"vo":2218560,"fo":2222598,"no":2230638},{"key":"CST","hemi":"L","nv":1795,"nf":3616,"vo":2231312,"fo":2242082,"no":2263778},{"key":"CST","hemi":"R","nv":1750,"nf":3532,"vo":2265576,"fo":2276076,"no":2297268},{"key":"Optic_radiation","hemi":"L","nv":368,"nf":734,"vo":2299020,"fo":2301228,"no":2305632},{"key":"Optic_radiation","hemi":"R","nv":294,"nf":584,"vo":2306000,"fo":2307764,"no":2311268},{"key":"Anterior_commissure","hemi":"M","nv":1418,"nf":2832,"vo":2311564,"fo":2320072,"no":2337064}],"structs":[{"key":"Superior_frontal_gyrus","name":"Superior frontal gyrus","group":"Frontal lobe","aliases":"SFG dorsomedial prefrontal supplementary motor SMA","color":"#e8846b","src":"Hammers 83-region atlas","vol":{"L":72.61,"R":73.54},"cent":{"L":[-11.8,30.0,36.9],"R":[12.8,30.6,36.5]},"comp":[0.0,0.081,0.059,0.137,0.023,0.133,0.567],"idx":1},{"key":"Middle_frontal_gyrus","name":"Middle frontal gyrus","group":"Frontal lobe","aliases":"MFG dorsolateral prefrontal DLPFC","color":"#f2a07b","src":"Hammers 83-region atlas","vol":{"L":69.72,"R":71.16},"cent":{"L":[-32.0,28.0,25.9],"R":[33.1,30.9,24.6]},"comp":[0.0,0.002,0.067,0.091,0.001,0.689,0.151],"idx":2},{"key":"Inferior_frontal_gyrus","name":"Inferior frontal gyrus","group":"Frontal lobe","aliases":"IFG Broca ventrolateral prefrontal VLPFC","color":"#d96c5f","src":"Hammers 83-region atlas","vol":{"L":24.83,"R":23.88},"cent":{"L":[-45.6,22.2,7.8],"R":[47.6,23.0,8.1]},"comp":[0.0,0.001,0.043,0.286,0.0,0.316,0.354],"idx":3},{"key":"Precentral_gyrus","name":"Precentral gyrus","group":"Frontal lobe","aliases":"primary motor cortex M1","color":"#f5b98f","src":"Hammers 83-region atlas","vol":{"L":45.98,"R":46.55},"cent":{"L":[-32.4,-10.6,43.0],"R":[33.9,-8.6,43.1]},"comp":[0.0,0.659,0.173,0.159,0.0,0.009,0.0],"idx":4},{"key":"Straight_gyrus","name":"Gyrus rectus","group":"Orbitofrontal cortex","aliases":"straight gyrus ventromedial prefrontal vmPFC OFC","color":"#b9773e","src":"Hammers 83-region atlas","vol":{"L":4.72,"R":5.29},"cent":{"L":[-5.0,27.9,-21.2],"R":[4.9,29.0,-20.9]},"comp":[0.0,0.0,0.0,0.0,0.977,0.0,0.023],"idx":5},{"key":"Medial_orbital_gyrus","name":"Medial orbital gyrus","group":"Orbitofrontal cortex","aliases":"OFC orbitofrontal vmPFC","color":"#c98a4b","src":"Hammers 83-region atlas","vol":{"L":8.46,"R":8.13},"cent":{"L":[-10.9,39.9,-19.8],"R":[10.9,41.0,-19.9]},"comp":[0.0,0.0,0.0,0.0,0.864,0.0,0.136],"idx":6},{"key":"Anterior_orbital_gyrus","name":"Anterior orbital gyrus","group":"Orbitofrontal cortex","aliases":"OFC orbitofrontal","color":"#a8692f","src":"Hammers 83-region atlas","vol":{"L":8.48,"R":8.64},"cent":{"L":[-24.4,48.8,-13.7],"R":[24.5,49.5,-14.1]},"comp":[0.0,0.0,0.0,0.01,0.422,0.507,0.062],"idx":7},{"key":"Lateral_orbital_gyrus","name":"Lateral orbital gyrus","group":"Orbitofrontal cortex","aliases":"OFC orbitofrontal","color":"#d69a5c","src":"Hammers 83-region atlas","vol":{"L":4.84,"R":5.49},"cent":{"L":[-40.1,38.0,-13.9],"R":[41.2,40.7,-13.4]},"comp":[0.0,0.0,0.0,0.003,0.0,0.258,0.739],"idx":8},{"key":"Posterior_orbital_gyrus","name":"Posterior orbital gyrus","group":"Orbitofrontal cortex","aliases":"OFC orbitofrontal","color":"#9a5e2a","src":"Hammers 83-region atlas","vol":{"L":6.37,"R":6.46},"cent":{"L":[-26.4,21.6,-17.7],"R":[27.0,23.2,-17.2]},"comp":[0.0,0.0,0.0,0.007,0.609,0.079,0.305],"idx":9},{"key":"Cingulate_gyrus_anterior_part","name":"Anterior cingulate gyrus","group":"Cingulate & medial prefrontal","aliases":"ACC dACC dorsal anterior cingulate","color":"#e0699c","src":"Hammers 83-region atlas","vol":{"L":10.81,"R":10.69},"cent":{"L":[-5.0,24.3,23.0],"R":[5.9,22.9,24.2]},"comp":[0.0,0.026,0.0,0.439,0.0,0.161,0.373],"idx":10},{"key":"Cingulate_gyrus_posterior_part","name":"Posterior cingulate gyrus","group":"Cingulate & medial prefrontal","aliases":"PCC posterior cingulate","color":"#c95b8c","src":"Hammers 83-region atlas","vol":{"L":10.71,"R":10.31},"cent":{"L":[-4.9,-29.6,33.9],"R":[5.9,-27.7,34.7]},"comp":[0.0,0.115,0.0,0.193,0.0,0.175,0.516],"idx":11},{"key":"Pre-subgenual_frontal_cortex","name":"Pre-subgenual frontal cortex","group":"Cingulate & medial prefrontal","aliases":"pregenual cingulate pgACC medial prefrontal mPFC","color":"#ef8fb7","src":"Hammers 83-region atlas","vol":{"L":1.24,"R":0.83},"cent":{"L":[-4.7,37.6,-6.5],"R":[4.7,36.0,-6.1]},"comp":[0.0,0.0,0.0,0.0,0.011,0.0,0.989],"idx":12},{"key":"Subgenual_frontal_cortex","name":"Subgenual frontal cortex","group":"Cingulate & medial prefrontal","aliases":"subgenual cingulate sgACC Cg25 Brodmann 25","color":"#ff6fa8","src":"Hammers 83-region atlas","vol":{"L":1.89,"R":1.71},"cent":{"L":[-6.0,24.4,-9.5],"R":[5.6,24.6,-8.9]},"comp":[0.0,0.0,0.0,0.0,0.631,0.0,0.369],"idx":13},{"key":"Subcallosal_area","name":"Subcallosal area","group":"Cingulate & medial prefrontal","aliases":"subcallosal cingulate septal","color":"#f7a6c8","src":"Hammers 83-region atlas","vol":{"L":0.36,"R":0.31},"cent":{"L":[-3.4,12.7,-8.4],"R":[3.4,12.7,-7.8]},"comp":[0.0,0.0,0.0,0.0,1.0,0.0,0.0],"idx":14},{"key":"Insula","name":"Insula","group":"Insula","aliases":"insular cortex anterior insula interoception","color":"#4fc4b5","src":"Hammers 83-region atlas","vol":{"L":19.44,"R":19.5},"cent":{"L":[-32.5,-2.4,0.8],"R":[33.8,0.0,0.2]},"comp":[0.0,0.208,0.0,0.649,0.0,0.106,0.036],"idx":15},{"key":"Postcentral_gyrus","name":"Postcentral gyrus","group":"Parietal lobe","aliases":"primary somatosensory cortex S1","color":"#8cc6f0","src":"Hammers 83-region atlas","vol":{"L":40.26,"R":37.79},"cent":{"L":[-36.8,-23.1,41.5],"R":[37.0,-21.1,42.3]},"comp":[0.0,0.875,0.055,0.071,0.0,0.0,0.0],"idx":16},{"key":"Superior_parietal_gyrus","name":"Superior parietal lobule","group":"Parietal lobe","aliases":"superior parietal gyrus SPL precuneus","color":"#6aaee6","src":"Hammers 83-region atlas","vol":{"L":56.16,"R":58.77},"cent":{"L":[-16.5,-54.2,44.2],"R":[18.0,-52.6,44.7]},"comp":[0.056,0.117,0.43,0.063,0.0,0.087,0.247],"idx":17},{"key":"Inferiolateral_remainder_parietal_lobe","name":"Inferolateral parietal lobe","group":"Parietal lobe","aliases":"inferior parietal lobule IPL supramarginal angular gyrus TPJ temporoparietal junction","color":"#5a96d6","src":"Hammers 83-region atlas","vol":{"L":57.47,"R":57.45},"cent":{"L":[-46.5,-45.9,33.0],"R":[48.6,-41.8,34.1]},"comp":[0.0,0.08,0.147,0.224,0.0,0.239,0.311],"idx":18},{"key":"Superior_temporal_gyrus_anterior_part","name":"Superior temporal gyrus, anterior","group":"Temporal lobe","aliases":"STG","color":"#9fd98a","src":"Hammers 83-region atlas","vol":{"L":6.24,"R":6.32},"cent":{"L":[-48.3,10.7,-19.2],"R":[49.2,12.4,-18.8]},"comp":[0.0,0.189,0.0,0.046,0.347,0.0,0.418],"idx":19},{"key":"Superior_temporal_gyrus_posterior_part","name":"Superior temporal gyrus, posterior","group":"Temporal lobe","aliases":"STG Wernicke auditory","color":"#7fc96f","src":"Hammers 83-region atlas","vol":{"R":19.07,"L":18.27},"cent":{"R":[52.6,-14.5,-1.9],"L":[-51.1,-17.1,-1.8]},"comp":[0.0,0.669,0.0,0.065,0.001,0.0,0.266],"idx":20},{"key":"Middle_and_inferior_temporal_gyrus","name":"Middle & inferior temporal gyri","group":"Temporal lobe","aliases":"MTG ITG","color":"#6db562","src":"Hammers 83-region atlas","vol":{"R":24.6,"L":23.64},"cent":{"R":[54.2,-15.1,-23.3],"L":[-53.7,-17.2,-22.6]},"comp":[0.0,0.002,0.001,0.0,0.348,0.039,0.61],"idx":21},{"key":"Anterior_temporal_lobe_lateral_part","name":"Anterior temporal lobe, lateral","group":"Temporal lobe","aliases":"temporal pole","color":"#b5e39c","src":"Hammers 83-region atlas","vol":{"R":5.35,"L":5.01},"cent":{"R":[48.8,8.3,-34.3],"L":[-49.2,5.6,-33.8]},"comp":[0.0,0.0,0.0,0.0,0.323,0.0,0.677],"idx":22},{"key":"Anterior_temporal_lobe_medial_part","name":"Anterior temporal lobe, medial","group":"Temporal lobe","aliases":"temporal pole","color":"#a3d48d","src":"Hammers 83-region atlas","vol":{"R":9.97,"L":9.45},"cent":{"R":[30.3,8.8,-36.4],"L":[-30.6,7.4,-36.2]},"comp":[0.0,0.0,0.0,0.011,0.989,0.0,0.0],"idx":23},{"key":"Posterior_temporal_lobe","name":"Posterior temporal lobe","group":"Temporal lobe","aliases":"","color":"#5ea457","src":"Hammers 83-region atlas","vol":{"L":61.43,"R":63.57},"cent":{"L":[-44.3,-48.4,-2.9],"R":[45.9,-45.6,-2.7]},"comp":[0.27,0.083,0.291,0.068,0.007,0.113,0.169],"idx":24},{"key":"Fusiform_gyrus","name":"Fusiform gyrus","group":"Temporal lobe","aliases":"fusiform face area FFA occipitotemporal","color":"#8fc77a","src":"Hammers 83-region atlas","vol":{"R":5.79,"L":5.77},"cent":{"R":[34.4,-15.3,-32.2],"L":[-34.5,-17.1,-30.7]},"comp":[0.098,0.0,0.021,0.0,0.879,0.0,0.002],"idx":25},{"key":"Hippocampus","name":"Hippocampus","group":"Medial temporal lobe","aliases":"hippocampal formation memory","color":"#ffd34d","src":"Hammers 83-region atlas","vol":{"R":2.99,"L":2.67},"cent":{"R":[27.1,-16.8,-18.2],"L":[-26.2,-18.5,-17.8]},"comp":null,"idx":26},{"key":"Amygdala","name":"Amygdala","group":"Medial temporal lobe","aliases":"amygdaloid fear threat","color":"#ff8a3d","src":"Hammers 83-region atlas","vol":{"R":1.79,"L":1.92},"cent":{"R":[22.6,-3.7,-20.9],"L":[-22.3,-5.3,-20.8]},"comp":null,"idx":27},{"key":"Parahippocampal_and_ambient_gyri","name":"Parahippocampal & ambient gyri","group":"Medial temporal lobe","aliases":"parahippocampal gyrus entorhinal","color":"#e6c36a","src":"Hammers 83-region atlas","vol":{"R":5.83,"L":5.87},"cent":{"R":[23.9,-16.5,-26.0],"L":[-23.8,-18.0,-25.6]},"comp":[0.131,0.0,0.013,0.0,0.672,0.0,0.185],"idx":28},{"key":"Lateral_remainder_occipital_lobe","name":"Lateral occipital cortex","group":"Occipital lobe","aliases":"lateral occipital visual","color":"#a98be0","src":"Hammers 83-region atlas","vol":{"L":57.14,"R":58.2},"cent":{"L":[-29.3,-81.2,7.8],"R":[31.5,-78.5,9.2]},"comp":[0.865,0.0,0.106,0.0,0.0,0.012,0.017],"idx":29},{"key":"Lingual_gyrus","name":"Lingual gyrus","group":"Occipital lobe","aliases":"visual cortex calcarine","color":"#9479d4","src":"Hammers 83-region atlas","vol":{"L":15.97,"R":16.7},"cent":{"L":[-12.5,-71.4,-4.7],"R":[13.4,-69.4,-2.9]},"comp":[1.0,0.0,0.0,0.0,0.0,0.0,0.0],"idx":30},{"key":"Cuneus","name":"Cuneus","group":"Occipital lobe","aliases":"visual cortex calcarine V1","color":"#bba2ec","src":"Hammers 83-region atlas","vol":{"L":12.44,"R":12.35},"cent":{"L":[-6.9,-81.4,16.8],"R":[10.0,-77.9,18.9]},"comp":[0.989,0.0,0.0,0.0,0.0,0.005,0.006],"idx":31},{"key":"Caudate_nucleus","name":"Caudate nucleus","group":"Basal ganglia","aliases":"striatum dorsal striatum","color":"#43c6e8","src":"Hammers 83-region atlas","vol":{"L":5.47,"R":5.6},"cent":{"L":[-13.0,8.9,9.1],"R":[13.8,10.0,9.5]},"comp":null,"idx":32},{"key":"Putamen","name":"Putamen","group":"Basal ganglia","aliases":"striatum dorsal striatum lentiform","color":"#3f8fe0","src":"Hammers 83-region atlas","vol":{"L":6.25,"R":6.09},"cent":{"L":[-24.6,1.2,-0.0],"R":[25.3,2.8,-0.3]},"comp":null,"idx":33},{"key":"Pallidum","name":"Globus pallidus","group":"Basal ganglia","aliases":"pallidum GPe GPi lentiform","color":"#9ad7ff","src":"Hammers 83-region atlas","vol":{"L":1.65,"R":1.67},"cent":{"L":[-18.3,-3.1,-1.6],"R":[19.4,-2.2,-1.6]},"comp":null,"idx":34},{"key":"Nucleus_accumbens","name":"Nucleus accumbens","group":"Basal ganglia","aliases":"ventral striatum NAc reward mesolimbic","color":"#9be15d","src":"Hammers 83-region atlas","vol":{"L":0.47,"R":0.38},"cent":{"L":[-8.3,8.3,-9.6],"R":[8.0,8.9,-9.1]},"comp":null,"idx":35},{"key":"Substantia_nigra","name":"Substantia nigra","group":"Basal ganglia","aliases":"SN dopamine nigrostriatal midbrain","color":"#3b3550","src":"Hammers 83-region atlas","vol":{"L":0.41,"R":0.41},"cent":{"L":[-7.9,-17.6,-13.5],"R":[8.7,-17.4,-13.5]},"comp":null,"idx":36},{"key":"Subthalamic_nucleus","name":"Subthalamic nucleus","group":"Basal ganglia","aliases":"STN deep brain stimulation DBS indirect pathway","color":"#ffb347","src":"CIT168 subcortical atlas (Pauli 2018)","vol":{"L":0.19,"R":0.17},"cent":{"L":[-10.3,-12.2,-7.1],"R":[10.0,-11.8,-6.8]},"comp":null,"idx":37},{"key":"Ventral_pallidum","name":"Ventral pallidum","group":"Basal ganglia","aliases":"VP hedonic reward","color":"#7fe0d0","src":"CIT168 subcortical atlas (Pauli 2018)","vol":{"L":0.1,"R":0.1},"cent":{"L":[-11.6,2.7,-8.5],"R":[11.0,3.6,-7.7]},"comp":null,"idx":38},{"key":"Bed_nucleus_stria_terminalis","name":"Bed nucleus of the stria terminalis","group":"Basal forebrain","aliases":"BNST BST extended amygdala anxiety","color":"#ff7a7a","src":"Julich-Brain 3 cytoarchitectonic atlas","vol":{"L":0.18,"R":0.19},"cent":{"L":[-5.3,1.2,-2.9],"R":[5.7,2.1,-2.4]},"comp":null,"idx":39},{"key":"Nucleus_basalis","name":"Nucleus basalis of Meynert","group":"Basal forebrain","aliases":"Ch4 cholinergic acetylcholine basal forebrain","color":"#e58fff","src":"Julich-Brain 3 cytoarchitectonic atlas","vol":{"L":0.54,"R":0.15},"cent":{"L":[-20.2,-4.1,-10.2],"R":[19.3,-1.2,-10.5]},"comp":null,"idx":40},{"key":"Septal_diagonal_band","name":"Medial septum & diagonal band","group":"Basal forebrain","aliases":"Ch1 Ch2 Ch3 septal nuclei cholinergic","color":"#f7c5ff","src":"Julich-Brain 3 cytoarchitectonic atlas","vol":{"L":0.17,"R":0.2},"cent":{"L":[-3.5,3.8,-9.3],"R":[3.9,4.6,-9.2]},"comp":null,"idx":41},{"key":"Thalamus","name":"Thalamus","group":"Diencephalon","aliases":"thalamic","color":"#b9a5f0","src":"Hammers 83-region atlas","vol":{"L":9.43,"R":9.24},"cent":{"L":[-11.1,-20.0,5.6],"R":[12.0,-18.9,5.8]},"comp":null,"idx":42},{"key":"Hypothalamus","name":"Hypothalamus","group":"Diencephalon","aliases":"HPA axis hypothalamic arcuate tuberoinfundibular","color":"#ff8fab","src":"CIT168 subcortical atlas (Pauli 2018)","vol":{"L":0.81,"R":0.81},"cent":{"L":[-4.3,-3.2,-9.8],"R":[4.0,-2.7,-9.5]},"comp":null,"idx":43},{"key":"Habenula","name":"Habenula","group":"Diencephalon","aliases":"habenular nucleus lateral habenula epithalamus anti-reward","color":"#7af0ff","src":"CIT168 subcortical atlas (Pauli 2018)","vol":{"L":0.04,"R":0.04},"cent":{"L":[-3.6,-23.2,2.1],"R":[3.0,-23.0,1.7]},"comp":null,"idx":44},{"key":"Mammillary_body","name":"Mammillary body","group":"Diencephalon","aliases":"mammillary nucleus Papez Korsakoff","color":"#ffe08a","src":"CIT168 subcortical atlas (Pauli 2018)","vol":{"L":0.09,"R":0.07},"cent":{"L":[-2.5,-7.8,-13.1],"R":[2.5,-7.6,-13.2]},"comp":null,"idx":45},{"key":"Thal_AN","name":"Anterior nucleus","group":"Thalamic nuclei","aliases":"anteroventral AV anterior thalamus Papez","color":"#ffc6ff","src":"THOMAS thalamic nuclei atlas (Su 2019)","vol":{"L":0.23,"R":0.22},"cent":{"L":[-4.7,-8.4,11.9],"R":[5.6,-7.1,11.8]},"comp":null,"idx":46},{"key":"Thal_MD","name":"Mediodorsal nucleus","group":"Thalamic nuclei","aliases":"MD dorsomedial thalamus","color":"#b388ff","src":"THOMAS thalamic nuclei atlas (Su 2019)","vol":{"L":0.86,"R":0.92},"cent":{"L":[-4.5,-17.9,6.8],"R":[5.7,-17.0,7.0]},"comp":null,"idx":47},{"key":"Thal_Pul","name":"Pulvinar","group":"Thalamic nuclei","aliases":"pulvinar thalamus attention","color":"#8c9eff","src":"THOMAS thalamic nuclei atlas (Su 2019)","vol":{"L":2.16,"R":1.97},"cent":{"L":[-14.6,-28.1,6.4],"R":[15.4,-26.9,6.6]},"comp":null,"idx":48},{"key":"Thal_CM","name":"Centromedian nucleus","group":"Thalamic nuclei","aliases":"CM intralaminar thalamus","color":"#ea80fc","src":"THOMAS thalamic nuclei atlas (Su 2019)","vol":{"L":0.19,"R":0.18},"cent":{"L":[-8.4,-20.9,2.8],"R":[9.5,-19.8,2.7]},"comp":null,"idx":49},{"key":"Thal_VA","name":"Ventral anterior nucleus","group":"Thalamic nuclei","aliases":"VA motor thalamus","color":"#82b1ff","src":"THOMAS thalamic nuclei atlas (Su 2019)","vol":{"L":0.4,"R":0.44},"cent":{"L":[-7.3,-7.2,4.2],"R":[8.5,-5.6,4.0]},"comp":null,"idx":50},{"key":"Thal_VL","name":"Ventral lateral nucleus","group":"Thalamic nuclei","aliases":"VL VLa VLp VIM motor thalamus tremor","color":"#80d8ff","src":"THOMAS thalamic nuclei atlas (Su 2019)","vol":{"L":1.21,"R":1.33},"cent":{"L":[-11.9,-13.6,7.9],"R":[13.1,-12.0,7.8]},"comp":null,"idx":51},{"key":"Thal_VPL","name":"Ventral posterolateral nucleus","group":"Thalamic nuclei","aliases":"VPL somatosensory thalamus","color":"#a7ffeb","src":"THOMAS thalamic nuclei atlas (Su 2019)","vol":{"L":0.4,"R":0.38},"cent":{"L":[-17.3,-21.8,5.4],"R":[18.0,-20.7,5.6]},"comp":null,"idx":52},{"key":"Thal_LGN","name":"Lateral geniculate nucleus","group":"Thalamic nuclei","aliases":"LGN visual thalamus","color":"#cfd8dc","src":"THOMAS thalamic nuclei atlas (Su 2019)","vol":{"L":0.15,"R":0.13},"cent":{"L":[-22.4,-25.6,-5.7],"R":[23.3,-24.8,-5.2]},"comp":null,"idx":53},{"key":"Thal_MGN","name":"Medial geniculate nucleus","group":"Thalamic nuclei","aliases":"MGN auditory thalamus","color":"#ffe0b2","src":"THOMAS thalamic nuclei atlas (Su 2019)","vol":{"L":0.1,"R":0.09},"cent":{"L":[-11.7,-27.9,-3.4],"R":[13.2,-27.0,-3.0]},"comp":null,"idx":54},{"key":"Brainstem","name":"Brainstem","group":"Brainstem & cerebellum","aliases":"midbrain pons medulla","color":"#d6b48c","src":"Hammers 83-region atlas","vol":{"M":29.22},"cent":{"M":[0.5,-29.6,-30.0]},"comp":null,"idx":55},{"key":"Cerebellum","name":"Cerebellum","group":"Brainstem & cerebellum","aliases":"cerebellar","color":"#e3b0a2","src":"Hammers 83-region atlas","vol":{"R":89.74,"L":90.98},"cent":{"R":[22.9,-60.9,-36.9],"L":[-22.2,-61.2,-37.0]},"comp":null,"idx":56},{"key":"Red_nucleus","name":"Red nucleus","group":"Brainstem nuclei","aliases":"rubral midbrain","color":"#ff5a5f","src":"CIT168 subcortical atlas (Pauli 2018)","vol":{"L":0.39,"R":0.38},"cent":{"L":[-4.7,-18.8,-8.9],"R":[4.3,-18.6,-8.8]},"comp":null,"idx":57},{"key":"VTA","name":"Ventral tegmental area","group":"Brainstem nuclei","aliases":"VTA dopamine mesolimbic mesocortical parabrachial pigmented","color":"#ff4fd8","src":"CIT168 subcortical atlas (Pauli 2018)","vol":{"L":0.19,"R":0.2},"cent":{"L":[-6.5,-17.2,-11.4],"R":[5.9,-17.4,-11.5]},"comp":null,"idx":58},{"key":"PAG","name":"Periaqueductal grey","group":"Brainstem nuclei","aliases":"PAG periaqueductal gray defence pain","color":"#d8d2a8","src":"Brainstem Navigator centroid (Bianciardi lab); shape schematic","vol":{"M":0.65},"cent":{"M":[0.5,-32.6,-9.0]},"comp":null,"idx":59},{"key":"Dorsal_raphe","name":"Dorsal raphe nucleus","group":"Brainstem nuclei","aliases":"DRN serotonin 5-HT raphe","color":"#ffd166","src":"Brainstem Navigator centroid (Bianciardi lab); shape schematic","vol":{"M":0.18},"cent":{"M":[0.5,-31.6,-14.1]},"comp":null,"idx":60},{"key":"Median_raphe","name":"Median raphe nucleus","group":"Brainstem nuclei","aliases":"MnR serotonin 5-HT raphe","color":"#f4a261","src":"Brainstem Navigator centroid (Bianciardi lab); shape schematic","vol":{"M":0.14},"cent":{"M":[0.5,-31.1,-20.3]},"comp":null,"idx":61},{"key":"Locus_coeruleus","name":"Locus coeruleus","group":"Brainstem nuclei","aliases":"LC noradrenaline norepinephrine","color":"#3fa9ff","src":"Brainstem Navigator centroid (Bianciardi lab); shape schematic","vol":{"L":0.14,"R":0.14},"cent":{"L":[-3.4,-37.4,-25.5],"R":[5.0,-37.4,-26.0]},"comp":null,"idx":62},{"key":"Corpus_callosum","name":"Corpus callosum","group":"White matter & ventricles","aliases":"commissure white matter","color":"#f2efe6","src":"Hammers 83-region atlas","vol":{"M":26.87},"cent":{"M":[0.4,-5.4,16.7]},"comp":null,"idx":63},{"key":"Lateral_ventricle_no_temporal_horn","name":"Lateral ventricle","group":"White matter & ventricles","aliases":"CSF ventricle frontal horn body occipital horn","color":"#5fb3ff","src":"Hammers 83-region atlas","vol":{"R":9.54,"L":10.45},"cent":{"R":[14.5,-13.4,14.4],"L":[-13.2,-14.1,14.3]},"comp":null,"idx":64},{"key":"Lateral_ventricle_temporal_horn","name":"Lateral ventricle, temporal horn","group":"White matter & ventricles","aliases":"CSF ventricle inferior horn","color":"#5fb3ff","src":"Hammers 83-region atlas","vol":{"R":0.81,"L":0.62},"cent":{"R":[31.7,-15.9,-15.7],"L":[-31.8,-18.8,-14.7]},"comp":null,"idx":65},{"key":"Third_ventricle","name":"Third ventricle","group":"White matter & ventricles","aliases":"CSF ventricle","color":"#5fb3ff","src":"Hammers 83-region atlas","vol":{"M":1.22},"cent":{"M":[0.4,-11.3,-4.2]},"comp":null,"idx":66},{"key":"Fourth_ventricle","name":"Fourth ventricle","group":"White matter & ventricles","aliases":"CSF ventricle","color":"#5fb3ff","src":"CerebrA atlas (Manera 2020)","vol":{"M":1.12},"cent":{"M":[0.6,-44.1,-31.3]},"comp":null,"idx":67},{"key":"Fornix","name":"Fornix","group":"White matter tracts","aliases":"Papez hippocampal output","color":"#fff176","src":"HCP842 tractography atlas (Yeh 2018)","vol":{"L":1.84,"R":1.59},"cent":{"L":[-10.5,-18.8,3.7],"R":[15.4,-20.2,3.4]},"comp":null,"idx":68},{"key":"Cingulum","name":"Cingulum bundle","group":"White matter tracts","aliases":"cingulum Papez","color":"#ff80ab","src":"HCP842 tractography atlas (Yeh 2018)","vol":{"L":17.75,"R":17.0},"cent":{"L":[-9.8,2.4,23.8],"R":[11.7,-0.2,26.2]},"comp":null,"idx":69},{"key":"Uncinate","name":"Uncinate fasciculus","group":"White matter tracts","aliases":"uncinate frontotemporal","color":"#ffab40","src":"HCP842 tractography atlas (Yeh 2018)","vol":{"L":8.68,"R":7.27},"cent":{"L":[-28.4,13.4,-17.2],"R":[29.1,13.9,-17.4]},"comp":null,"idx":70},{"key":"SLF","name":"Superior longitudinal fasciculus","group":"White matter tracts","aliases":"SLF frontoparietal","color":"#40c4ff","src":"HCP842 tractography atlas (Yeh 2018)","vol":{"L":23.71,"R":21.18},"cent":{"L":[-37.0,-7.4,33.7],"R":[34.1,-4.1,34.7]},"comp":null,"idx":71},{"key":"Arcuate","name":"Arcuate fasciculus","group":"White matter tracts","aliases":"arcuate language conduction aphasia","color":"#18ffff","src":"HCP842 tractography atlas (Yeh 2018)","vol":{"L":24.64,"R":10.69},"cent":{"L":[-42.9,-12.6,13.6],"R":[37.7,2.9,20.1]},"comp":null,"idx":72},{"key":"IFOF","name":"Inferior fronto-occipital fasciculus","group":"White matter tracts","aliases":"IFOF","color":"#b388ff","src":"HCP842 tractography atlas (Yeh 2018)","vol":{"L":19.17,"R":18.92},"cent":{"L":[-27.9,-3.0,-1.1],"R":[28.7,-8.0,-0.8]},"comp":null,"idx":73},{"key":"ILF","name":"Inferior longitudinal fasciculus","group":"White matter tracts","aliases":"ILF occipitotemporal","color":"#69f0ae","src":"HCP842 tractography atlas (Yeh 2018)","vol":{"L":14.65,"R":9.12},"cent":{"L":[-33.0,-43.3,-3.4],"R":[36.1,-45.6,0.2]},"comp":null,"idx":74},{"key":"CST","name":"Corticospinal tract","group":"White matter tracts","aliases":"CST pyramidal motor internal capsule","color":"#ff5252","src":"HCP842 tractography atlas (Yeh 2018)","vol":{"L":21.39,"R":22.17},"cent":{"L":[-23.2,-15.6,28.3],"R":[26.2,-12.0,28.3]},"comp":null,"idx":75},{"key":"Optic_radiation","name":"Optic radiation","group":"White matter tracts","aliases":"geniculocalcarine Meyer loop visual","color":"#ea80fc","src":"HCP842 tractography atlas (Yeh 2018)","vol":{"L":3.73,"R":2.61},"cent":{"L":[-22.2,-58.7,5.4],"R":[25.6,-57.4,9.2]},"comp":null,"idx":76},{"key":"Anterior_commissure","name":"Anterior commissure","group":"White matter tracts","aliases":"commissure","color":"#f5f5f5","src":"HCP842 tractography atlas (Yeh 2018)","vol":{"M":15.93},"cent":{"M":[5.1,-26.7,-9.4]},"comp":null,"idx":77},{"key":"MTT","name":"Mammillothalamic tract","group":"White matter tracts","aliases":"MTT Papez mammillothalamic","color":"#ffd8a8","src":"THOMAS thalamic nuclei atlas (Su 2019)","vol":{"L":0.04,"R":0.05},"cent":{"L":[-3.4,-9.8,-4.2],"R":[4.3,-9.2,-4.0]},"comp":null,"idx":78}],"groups":["Frontal lobe","Orbitofrontal cortex","Cingulate & medial prefrontal","Insula","Parietal lobe","Temporal lobe","Medial temporal lobe","Occipital lobe","Basal ganglia","Basal forebrain","Diencephalon","Thalamic nuclei","Brainstem & cerebellum","Brainstem nuclei","White matter & ventricles","White matter tracts"],"scale":0.01,"center_mni":[0.0,-18.0,14.0],"vol":{"dims":[98,123,104],"origin":[-72.0,-108.0,-72.0],"step":[1.5051546391752577,1.5,1.5048543689320388]},"pet":{"dims":[49,62,52],"origin":[-72.0,-108.0,-72.0],"step":[3.0,3.0,3.0],"maps":["D1","D2","DAT","FDOPA","5HT1A","5HT1B","5HT2A","5HT4","5HT6","SERT","NET","A4B2","M1","VAChT","NMDA","mGluR5","GABAA","H3","CB1","MOR"]}}</script>
@@ -446,7 +585,7 @@ const CIRCUITS = [
     desc: 'Orbitofrontal and anterior cingulate cortex → ventral striatum → ventral pallidum → mediodorsal thalamus → back to cortex.',
     clin: 'Hyperactive in OCD. Treated with SSRIs and exposure therapy; refractory cases with ventral capsule/ventral striatum stimulation or anterior capsulotomy.',
     paths: [['Medial_orbital_gyrus', 'Nucleus_accumbens', 'Ventral_pallidum', [-6, -8, 2], 'Thal_MD', [-6, 2, 22], 'Cingulate_gyrus_anterior_part', [-6, 30, 0], 'Medial_orbital_gyrus']] },
-  { id: 'motor', name: 'Motor loop (direct and indirect)', color: '#ffb347',
+  { id: 'motor', name: 'Motor loop (direct and indirect)', color: '#ffb347', view: [0.72, 0.62, 0.34],
     desc: 'Motor cortex → putamen → pallidum → ventral lateral thalamus → motor cortex, with the indirect detour through the subthalamic nucleus.',
     clin: 'Parkinson’s disease: subthalamic or pallidal stimulation. Huntington’s disease: early indirect-pathway loss gives chorea.',
     paths: [['Precentral_gyrus', [-30, -8, 30], 'Putamen', 'Pallidum', [-12, -8, 2], 'Thal_VL', [-22, -16, 40], 'Precentral_gyrus'], ['Putamen', [-16, -8, -4], 'Subthalamic_nucleus', 'Pallidum']] },
@@ -621,6 +760,355 @@ const DRUGS = [
     clin: 'Impulse-control disorders and hallucinations; also used for restless legs.' },
 ];
 
+// ================= story content =================
+// Positions are MNI (left hemisphere). Nodes with `mni` but a `key` glow on that atlas structure but sit at the point given.
+// Every scene below mirrors a numbered scene in the storyboard doc ("Psychosis and mood circuits: checked pathways and animation storyboard").
+const cl01 = x => Math.min(1, Math.max(0, x));
+const mixHex = (a, b, t) => { const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16), ch = s => [(s >> 16) & 255, (s >> 8) & 255, s & 255]; const A = ch(pa), B = ch(pb); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * cl01(t)).toString(16).padStart(2, '0')).join(''); };
+const MED = [-1, 0.34, 0.16], LAT = [0.9, 0.42, 0.45], MED_LOW = [-1, -0.42, 0.3], MED_UP = [-1, 0.62, 0.1];
+const NET_COL = { smn: '#6fa8ff', sal: '#c43afa', dmn: '#cd3e4e' };
+const unitLook = (a, col) => a > 0.05 ? { glow: 0.2 + 0.7 * a, ec: col, op: 0.16 + 0.34 * a } : a < -0.05 ? { dim: 0.75 * -a, glow: 0.12 * -a, ec: '#4a6fa5', op: 0.1 } : { op: 0.14 };
+const KRAEPELIN = { '+++': 'Mania', '---': 'Depression', '+-+': 'Depressive or anxious mania', '+--': 'Excited depression', '++-': 'Mania with poverty of thought', '-+-': 'Manic stupor', '--+': 'Depression with flight of ideas', '-++': 'Inhibited mania' };
+const sgn = x => x > 0.2 ? '+' : x < -0.2 ? '-' : '0';
+
+function terminalInset(S) {
+  const ves = [...Array(6)].map((_, i) => `<circle cx="${72 + i * 31}" cy="${60 + (i % 2) * 9}" r="9" fill="rgba(255,211,77,0.22)" stroke="#ffd34d" stroke-width="1.4"/><rect x="${68 + i * 31}" y="${48 + (i % 2) * 9}" width="8" height="3" rx="1" fill="#8d9bad"/>`).join('');
+  const rel = [...Array(16)].map((_, i) => `<circle r="2.2" fill="#ffd34d" cx="${52 + i * 12.5}" cy="100" opacity="0"/>`).join('');
+  const recs = [...Array(9)].map((_, i) => `<path d="M${46 + i * 26} 126 v-5 m0 0 l-4 -5 m4 5 l4 -5" stroke="#4aa8ff" stroke-width="1.7" fill="none"/>`).join('');
+  const bar = (y, lab) => `<text x="12" y="${y + 7}" fill="#c9d4e2" font-size="10">${lab}</text><rect x="118" y="${y}" width="160" height="8" rx="4" fill="rgba(141,155,173,0.2)"/><rect class="bf" x="118" y="${y}" width="0" height="8" rx="4" fill="#ffd34d"/><line x1="198" y1="${y - 2}" x2="198" y2="${y + 10}" stroke="#e7edf4" stroke-width="1.2" stroke-dasharray="2 2"/>`;
+  const html = `<div class="t">Inside one terminal · caudate head</div>
+    <svg viewBox="0 0 290 190" id="term">
+      <path d="M24 94 C24 32 56 10 145 10 C234 10 266 32 266 94" fill="rgba(141,155,173,0.10)" stroke="#8d9bad" stroke-width="1.4"/>
+      <text x="44" y="32" fill="#c9d4e2" font-size="10">tyrosine → L-DOPA → dopamine</text>
+      <text x="145" y="86" fill="#8d9bad" font-size="9" text-anchor="middle">grey tags = vesicle transporter: normal</text>
+      ${ves}<g id="relg">${rel}</g>
+      <line x1="16" y1="127" x2="274" y2="127" stroke="#8d9bad" stroke-width="1.4"/>${recs}
+      ${bar(142, 'Synthesis')}${bar(158, 'Release')}${bar(174, 'Synaptic dopamine')}
+      <text x="198" y="138" fill="#8d9bad" font-size="8.5" text-anchor="middle">healthy</text>
+    </svg>
+    <div class="foot">Psychosis versus controls, meta-analytic effect sizes: synthesis g 0.65 · release 0.66 · synaptic dopamine 0.78 (Brugger 2020). Vesicle transporter binding normal (Taylor 2000).</div>`;
+  return { html, tick(m, now) {
+    const lv = cl01(0.3 + 0.75 * (m.pop - 0.25) / 0.55), dots = document.querySelectorAll('#relg circle'), n = Math.round(lv * dots.length);
+    dots.forEach((d, i) => { const ph = ((now / 1000) * (0.5 + lv) + i * 0.37) % 1; d.setAttribute('cy', (96 + ph * 26).toFixed(1)); d.setAttribute('opacity', i < n ? (1 - ph * 0.6).toFixed(2) : 0); });
+    document.querySelectorAll('#term .bf').forEach((b, i) => b.setAttribute('width', (160 * cl01(lv + [0, 0.01, 0.04][i])).toFixed(1)));
+  } };
+}
+function compareInset(S) {
+  const panel = (x, title, sub, id) => `<g transform="translate(${x} 0)">
+    <text x="72" y="14" fill="#e7edf4" font-size="11.5" font-weight="600" text-anchor="middle">${title}</text>
+    <text x="72" y="27" fill="#8d9bad" font-size="9.5" text-anchor="middle">${sub}</text>
+    <path d="M48 72 A24 24 0 0 1 96 72" stroke="#5d6878" stroke-width="5" fill="none"/>
+    <line id="${id}n" x1="72" y1="72" x2="72" y2="52" stroke="#e7edf4" stroke-width="2.5" stroke-linecap="round"/><circle cx="72" cy="72" r="3" fill="#e7edf4"/>
+    <ellipse id="${id}a" cx="52" cy="98" rx="19" ry="10"/><ellipse id="${id}l" cx="96" cy="104" rx="14" ry="8.5"/>
+    <text x="52" y="122" fill="#c9d4e2" font-size="9" text-anchor="middle">associative</text><text x="98" y="122" fill="#c9d4e2" font-size="9" text-anchor="middle">limbic</text></g>`;
+  const html = `<div class="t">Same amplifier, two failure modes</div><svg viewBox="0 0 290 128">${panel(0, 'Schizophrenia', 'gain stuck high', 'cA')}${panel(146, 'Bipolar disorder', 'gain swings', 'cB')}<line x1="145" y1="6" x2="145" y2="122" stroke="rgba(141,155,173,0.25)"/></svg>
+    <div class="foot">Left is fixed at the psychosis setting; right is live from the brain above.</div>`;
+  const needle = (id, g) => { const a = Math.PI * (1 - cl01(g)), el = document.getElementById(id + 'n'); if (el) { el.setAttribute('x2', (72 + 20 * Math.cos(a)).toFixed(1)); el.setAttribute('y2', (72 - 20 * Math.sin(a)).toFixed(1)); } };
+  const fill = (id, base, lv) => { const el = document.getElementById(id); if (el) el.setAttribute('fill', mixHex(base, '#ffd34d', cl01((lv - 0.4) / 0.45))); };
+  return { html, tick(m) {
+    needle('cA', 0.8); fill('cAa', '#a98bff', 0.82); fill('cAl', '#3fd0a6', 0.5);
+    needle('cB', m.eff); fill('cBa', '#a98bff', m.assocDA); fill('cBl', '#3fd0a6', m.limbicDA);
+  } };
+}
+
+const STORIES = [
+// ---------------------------------------------------------------- psychosis
+{ id: 'psy', name: 'Psychosis: the gain story', color: '#ffb454', hemi: 'L', view: MED,
+  desc: 'Hippocampus → accumbens → pallidum → midbrain → associative striatum: how a quiet cue gets amplified. Ten scenes.',
+  nodes: {
+    ilc: { key: 'Subgenual_frontal_cortex', label: 'Medial prefrontal' },
+    dl:  { key: 'Middle_frontal_gyrus', ghost: true, label: 'Dorsolateral prefrontal' },
+    re:  { mni: [-1, -10, 4], label: 'Nucleus reuniens (approx.)', r: 1.3, dot: '#b48cff' },
+    ahp: { key: 'Hippocampus', mni: [-25, -13, -20], label: 'Anterior hippocampus', hot: true },
+    nac: { key: 'Nucleus_accumbens', label: 'Accumbens', lo: [-6, 0] },
+    vp:  { key: 'Ventral_pallidum', label: 'Ventral pallidum', lo: [0, 12] },
+    vta: { key: 'VTA', label: 'Ventral tegmental area' },
+    sn:  { key: 'Substantia_nigra', label: 'Substantia nigra', lo: [0, 12] },
+    cd:  { key: 'Caudate_nucleus', mni: [-12, 12, 6], label: 'Caudate head (associative)' },
+    md:  { key: 'Thal_MD', label: 'Mediodorsal thalamus', lo: [0, 12] },
+    ctx: { key: 'Middle_and_inferior_temporal_gyrus', ghost: true, label: 'Temporal cortex' },
+  },
+  edges: [
+    { id: 'ilc-re', from: 'ilc', to: 're', via: [[-3, 8, -2]], sign: 'ctl', act: m => m.ctl },
+    { id: 're-hp', from: 're', to: 'ahp', via: [[-10, -14, -4], [-20, -16, -12]], sign: 'ctl', act: m => m.ctl },
+    { id: 'hp-nac', from: 'ahp', to: 'nac', via: [[-18, -2, -15]], sign: '+', act: m => m.hpOut },
+    { id: 'nac-vp', from: 'nac', to: 'vp', sign: '-', act: m => m.nacOut },
+    { id: 'vp-vta', from: 'vp', to: 'vta', via: [[-9, -7, -10]], sign: '-', act: m => m.stream },
+    { id: 'vta-nac', from: 'vta', to: 'nac', via: [[-6, -4, -12]], sign: 'da', act: m => m.pop },
+    { id: 'nac-sn', from: 'nac', to: 'sn', via: [[-11, -6, -15]], sign: 'spiral', act: m => m.pop * 0.9 },
+    { id: 'sn-cd', from: 'sn', to: 'cd', via: [[-12, -6, -2], [-13, 4, 4]], sign: 'da', act: m => m.assocDA },
+    { id: 'ctx-cd', from: 'ctx', to: 'cd', via: [[-40, -12, -8], [-24, 2, 4]], sign: '+', act: () => 0.45 },
+    { id: 'cd-md', from: 'cd', to: 'md', via: [[-10, -4, 6]], sign: '+', act: m => m.eff },
+    { id: 'md-dl', from: 'md', to: 'dl', via: [[-12, -2, 22], [-24, 18, 28]], sign: '+', act: m => m.eff },
+    { id: 'dl-cd', from: 'dl', to: 'cd', via: [[-22, 22, 16]], sign: '+', act: m => 0.45 + 0.3 * m.eff },
+  ],
+  ring: 'ahp',
+  shieldOn: [['Caudate_nucleus', 8, p => p[1] > 2], ['Nucleus_accumbens', 4, null], ['Putamen', 4, p => p[1] > 0]],
+  vars: { pv: 1, ctl: 1, d2: 0, tr: 0, cs: 4, hpx: -1 },
+  discrete: ['hpx'],
+  states: [
+    { id: 'healthy', label: 'Healthy', vars: { pv: 1, ctl: 1, d2: 0, tr: 0, cs: 4 } },
+    { id: 'psychosis', label: 'Psychosis', vars: { pv: 0.15, ctl: 0.45, d2: 0, cs: 4 } },
+    { id: 'treated', label: 'On antipsychotic', vars: { pv: 0.15, ctl: 0.45, d2: 1, cs: 4 } },
+  ],
+  // cs = how many hops of the cascade have propagated (0–4); scene 5 walks it up one hop at a time
+  model(v) {
+    const H0 = 0.25, nac0 = 0.3 + 0.6 * H0, vp0 = cl01(1.05 - 0.8 * nac0);
+    let hp = cl01(0.25 + 0.6 * (1 - v.pv) + 0.15 * (1 - v.ctl)); if (v.hpx >= 0) hp = v.hpx;
+    const nacF = 0.3 + 0.6 * hp, vpF = cl01(1.05 - 0.8 * nacF), popF = Math.min(0.97, Math.max(0.05, 0.4 + 1.3 * (0.69 - vpF)));
+    const c = k => cl01(v.cs - k), L = (a, b, t) => a + (b - a) * t;
+    let pop = L(0.4, popF, c(3)); if (v.tr > 0) pop = L(pop, 0.42, v.tr);
+    const eff = L(pop, 0.45 + (pop - 0.4) * 0.25, v.d2);
+    return { hp, hpOut: L(H0, hp, c(0)), nac: L(nac0, nacF, c(0)), nacOut: L(nac0, nacF, c(1)), vp: L(vp0, vpF, c(1)), stream: L(vp0, vpF, c(2)),
+      pop, eff, ctl: v.ctl, pv: v.pv, d2: v.d2, tr: v.tr, assocDA: eff, limbicDA: 0.4 + 0.35 * (eff - 0.4) };
+  },
+  gauge: { gain: m => m.eff, raw: m => m.pop, pop: m => m.pop },
+  salience(kind, m) {
+    if (kind === 'relevant') return 1.05 + 0.4 * m.eff;
+    if (kind === 'neutral') return m.tr > 0.5 ? 1.9 : 0.55 + cl01((m.eff - 0.5) * 5) * 1.5;
+    return 1;
+  },
+  look(m) {
+    const heat = cl01((m.hp - 0.28) / 0.55);
+    return {
+      Hippocampus: { heat, glow: 0.12 + 0.6 * heat, ec: '#ff8a3d' },
+      Nucleus_accumbens: { glow: 0.6 * cl01((m.nac - 0.42) / 0.4), ec: '#ff9f43' },
+      Ventral_pallidum: { glow: 0.75 * m.vp, ec: '#7cc4ff' },
+      VTA: { glow: 0.15 + 0.8 * cl01((m.pop - 0.3) / 0.6), ec: '#ffd34d' },
+      Substantia_nigra: { glow: 0.6 * cl01((m.assocDA - 0.4) / 0.4), ec: '#ffd34d' },
+      Caudate_nucleus: { glow: 0.5 * cl01((m.assocDA - 0.45) / 0.35), ec: '#ffc21a' },
+      Subgenual_frontal_cortex: { glow: 0.45 * m.ctl, ec: '#b48cff' },
+      Middle_frontal_gyrus: { glow: 0.3 * m.eff, ec: '#ff9f43', op: 0.12 + 0.1 * m.eff },
+      Middle_and_inferior_temporal_gyrus: { glow: 0.15, ec: '#ff9f43', op: 0.13 },
+      Thal_MD: { glow: 0.4 * cl01((m.eff - 0.4) / 0.4), ec: '#ff9f43' },
+    };
+  },
+  insets: {
+    chips: () => ({ html: '<div class="t">What strains the interneurons</div><div class="chips"><span class="chip">Redox load</span><span class="chip">NMDA receptor hypofunction</span><span class="chip">Stress</span></div>' }),
+    terminal: terminalInset,
+  },
+  scenes: [
+    { title: 'Orient', dur: 7, state: 'healthy', cam: { dir: MED }, show: [], hud: { dial: false, grid: false },
+      caption: 'Six stops: prefrontal cortex, hippocampus, accumbens, pallidum, midbrain, striatum.',
+      beats: [{ at: 0.3, labels: ['ilc', 'dl'] }, { at: 1.3, labels: ['ahp'] }, { at: 2.2, labels: ['nac'] }, { at: 3.0, labels: ['vp'] }, { at: 3.8, labels: ['vta', 'sn'] }, { at: 4.7, labels: ['cd', 'md'] }] },
+    { title: 'Healthy baseline', dur: 10, state: 'healthy', cam: { dir: MED },
+      show: ['ilc-re', 're-hp', 'hp-nac', 'nac-vp', 'vp-vta', 'vta-nac'], focus: ['ilc-re', 're-hp', 'ilc', 're', 'ahp'], labels: ['ilc', 're', 'ahp'],
+      hud: { dial: true, grid: true, ring: true },
+      caption: 'Medial prefrontal cortex reaches the hippocampus through nucleus reuniens; interneurons hold it quiet.',
+      beats: [{ at: 5, focus: ['vp-vta', 'vp', 'vta'], labels: ['vp', 'vta'], caption: 'The pallidum keeps most dopamine neurons silent — a reserve, not a deficit.' }] },
+    { title: 'A cue that matters, and one that doesn’t', dur: 10, state: 'healthy', cam: { dir: LAT, fit: ['ctx', 'cd', 'vta', 'sn'] },
+      show: ['ctx-cd', 'sn-cd', 'vta-nac'], focus: ['ctx-cd', 'sn-cd', 'ctx', 'cd', 'sn'], labels: ['ctx', 'cd'], hud: { dial: true, grid: true },
+      caption: 'Healthy gain: only what matters gets amplified.',
+      beats: [{ at: 0.8, token: { icon: 'wave', from: 'ctx', to: 'cd', kind: 'relevant', flash: 'sn-cd' } }, { at: 4.8, token: { icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', flash: 'sn-cd' } }] },
+    { title: 'The interneurons falter', dur: 10, state: 'healthy', set: { cs: 0 }, cam: { fit: ['ahp', 're'], r: 22, dir: [-1, 0.22, 0.32] },
+      show: ['ilc-re', 're-hp', 'hp-nac'], focus: ['ilc-re', 're-hp', 'ahp', 're', 'ilc'], labels: ['ahp', 're'], hud: { dial: true, grid: true, ring: true }, inset: 'chips',
+      caption: 'Anterior hippocampus runs hot.',
+      beats: [{ at: 0.6, tween: { pv: [0.15, 6], ctl: [0.45, 6] }, state: 'psychosis' }] },
+    { title: 'The cascade', dur: 13, state: 'psychosis', set: { cs: 0 }, cam: { fit: ['ahp', 'nac'], dir: MED, r: 22 },
+      show: ['hp-nac', 'nac-vp', 'vp-vta', 'vta-nac'], focus: ['hp-nac', 'ahp', 'nac'], labels: ['ahp', 'nac'], hud: { dial: true, grid: true, ledger: true }, fx: { ledger: 0 },
+      caption: 'Subiculum excites accumbens.',
+      beats: [
+        { at: 0.4, tween: { cs: [1, 2] }, fx: { ledger: 1 } },
+        { at: 3.2, tween: { cs: [2, 2] }, fx: { ledger: 2 }, focus: ['nac-vp', 'nac', 'vp'], labels: ['vp'], cam: { fit: ['nac', 'vp'], dir: MED, r: 20 }, caption: 'Accumbens inhibits pallidum.' },
+        { at: 6.2, tween: { cs: [3, 2] }, fx: { ledger: 3 }, focus: ['vp-vta', 'vp', 'vta'], labels: ['vta'], cam: { fit: ['vp', 'vta'], dir: MED, r: 20 }, caption: 'The brake lifts.' },
+        { at: 9.2, tween: { cs: [4, 2] }, fx: { ledger: 4 }, focus: ['vta-nac', 'vta', 'nac'], cam: { fit: ['vta', 'nac', 'vp'], dir: MED, r: 24 }, caption: 'More dopamine neurons awake.' }] },
+    { title: 'Spiral up to the associative striatum', dur: 10, state: 'psychosis', cam: { fit: ['vta', 'nac', 'sn', 'cd'], dir: MED },
+      show: ['vta-nac', 'nac-sn', 'sn-cd'], focus: ['vta-nac', 'vta', 'nac'], labels: ['vta', 'nac'], hud: { dial: true, grid: true, tint: true },
+      caption: 'The excess lands in the associative striatum.',
+      beats: [{ at: 3, focus: ['nac-sn', 'nac', 'sn'], labels: ['sn'], tags: { 'nac-sn': 'untested link' } }, { at: 6, focus: ['sn-cd', 'sn', 'cd'], labels: ['cd'] }] },
+    { title: 'Inside the terminal', dur: 10, state: 'psychosis', cam: { target: 'cd', r: 18, dir: [-0.7, 0.55, 0.55] },
+      show: ['sn-cd'], labels: ['cd'], hud: { tint: true }, inset: 'terminal',
+      caption: 'More dopamine made and released — the vesicles themselves are normal.' },
+    { title: 'Aberrant salience', dur: 13, state: 'psychosis', cam: { dir: LAT, fit: ['ctx', 'cd', 'md', 'dl'] },
+      show: ['ctx-cd', 'sn-cd', 'cd-md', 'md-dl', 'dl-cd'], focus: ['ctx-cd', 'sn-cd', 'ctx', 'cd'], labels: ['ctx', 'cd'], hud: { dial: true, grid: true, tint: true },
+      caption: 'The same passing car comes back.',
+      beats: [
+        { at: 0.6, token: { icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', persist: true, ghost: 0.55, flash: 'sn-cd' } },
+        { at: 3.4, caption: 'Nothing changed outside. The gain did.', focus: null, labels: ['md', 'dl'], token: { icon: 'plate', from: 'ctx', to: 'cd', kind: 'neutral', persist: true, soff: [98, -66], flash: 'sn-cd' } },
+        { at: 5.4, token: { icon: 'radio', from: 'ctx', to: 'cd', kind: 'neutral', persist: true, soff: [-94, -76], flash: 'sn-cd' } },
+        { at: 7.8, fx: { threads: true }, caption: 'Linked up, they become an explanation: the delusion.' }] },
+    { title: 'On an antipsychotic', dur: 11, state: 'treated', set: { d2: 0 }, cam: { dir: MED },
+      show: ['hp-nac', 'nac-vp', 'vp-vta', 'vta-nac', 'sn-cd', 'ctx-cd'], labels: ['ahp', 'cd'], hud: { dial: true, grid: true, tint: true, shields: true },
+      caption: 'D2 receptors in the striatum are blocked.',
+      controls: [{ type: 'toggle', var: 'tr', label: 'Treatment-resistant variant', after: S => S.flashEdge('sn-cd', 0) }, { type: 'button', label: 'Send a neutral cue', do: S => S.spawn({ icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', flash: 'sn-cd' }) }],
+      beats: [{ at: 0.8, tween: { d2: [1, 1.6] } }, { at: 3.4, token: { icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', flash: 'sn-cd' } }, { at: 6.4, caption: 'Antipsychotics turn down the speaker, not the source.' }] },
+    { title: 'Free play', free: true, dur: 0, state: 'psychosis', set: { hpx: 0.84 }, cam: { dir: MED }, show: 'all', labels: ['ahp', 'vta', 'cd'],
+      hud: { dial: true, grid: true, tint: true, ring: true, shields: true },
+      caption: 'Drag the hippocampus. Watch the midbrain.',
+      controls: [{ type: 'range', var: 'hpx', label: 'Hippocampal drive', min: 0.2, max: 1 }, { type: 'toggle', var: 'd2', label: 'Antipsychotic' },
+        { type: 'button', label: 'Send a neutral cue', do: S => S.spawn({ icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', flash: 'sn-cd' }) }] },
+  ] },
+
+// ---------------------------------------------------------------- affective
+{ id: 'aff', name: 'Mood: the affective disruption story', color: '#3fd0c9', hemi: 'L', view: MED_LOW,
+  desc: 'Prefrontal brakes, amygdala, pallidal gate and a circadian clock: how a mood loop runs away in either direction. Nine scenes.',
+  nodes: {
+    ifg:  { key: 'Inferior_frontal_gyrus', ghost: true, label: 'Ventrolateral prefrontal' },
+    lofc: { key: 'Lateral_orbital_gyrus', ghost: true, label: 'Orbitofrontal' },
+    amy:  { key: 'Amygdala', label: 'Amygdala (basolateral)', lo: [0, 12] },
+    nac:  { key: 'Nucleus_accumbens', label: 'Accumbens' },
+    vp:   { key: 'Ventral_pallidum', label: 'Ventral pallidum', lo: [0, 12] },
+    vta:  { key: 'VTA', label: 'Ventral tegmental area' },
+    hp:   { key: 'Hippocampus', ghost: true, label: 'Hippocampus', nofit: true },
+    scn:  { key: 'Hypothalamus', mni: [-2, 2, -12], label: 'Suprachiasmatic (approx.)', r: 1.2, dot: '#3fd0c9', lo: [0, 12] },
+    rph:  { key: 'Dorsal_raphe', label: 'Dorsal raphe', lo: [0, 12] },
+    mpfc: { key: 'Pre-subgenual_frontal_cortex', ghost: true, label: 'Medial prefrontal', noDot: true },
+    sn:   { key: 'Substantia_nigra', label: 'Substantia nigra', lo: [0, 12], nofit: true },
+    cd:   { key: 'Caudate_nucleus', ghost: true, mni: [-12, 12, 6], label: 'Caudate head (associative)', nofit: true },
+    ctx:  { key: 'Middle_and_inferior_temporal_gyrus', ghost: true, label: 'Temporal cortex', nofit: true },
+    smn:  { key: 'Precentral_gyrus', ghost: true, label: 'Sensorimotor network', noDot: true, nofit: true },
+    sal:  { key: 'Insula', ghost: true, label: 'Salience network', noDot: true, nofit: true },
+    dmn:  { key: 'Cingulate_gyrus_posterior_part', ghost: true, label: 'Default mode network', noDot: true, nofit: true },
+  },
+  ghostCast: ['Postcentral_gyrus', 'Cingulate_gyrus_anterior_part', 'Medial_orbital_gyrus'],
+  edges: [
+    { id: 'ifg-amy', from: 'ifg', to: 'amy', via: [[-36, 8, -12]], sign: 'ctl', act: m => m.brake },
+    { id: 'ofc-nac', from: 'lofc', to: 'nac', via: [[-26, 24, -12]], sign: 'ctl', act: m => m.brake },
+    { id: 'amy-vp', from: 'amy', to: 'vp', via: [[-17, 0, -14]], sign: '+', act: m => m.amy },
+    { id: 'hp-nac', from: 'hp', to: 'nac', via: [[-20, -2, -14]], sign: '+', act: () => 0.3 },
+    { id: 'nac-vp', from: 'nac', to: 'vp', sign: '-', act: m => m.nac },
+    { id: 'vp-vta', from: 'vp', to: 'vta', via: [[-9, -7, -10]], sign: '-', act: m => m.vp },
+    { id: 'vta-nac', from: 'vta', to: 'nac', via: [[-6, -4, -12]], sign: 'da', act: m => m.pop },
+    { id: 'scn-vta', from: 'scn', to: 'vta', via: [[-3, -8, -12]], sign: 'clock', act: m => m.clockEff },
+    { id: 'rph-mpfc', from: 'rph', to: 'mpfc', via: [[0, -14, -6], [-2, 14, -10]], sign: '5ht', act: m => 0.35 + 0.4 * cl01(-m.tilt) },
+    { id: 'nac-sn', from: 'nac', to: 'sn', via: [[-11, -6, -15]], sign: 'spiral', act: m => m.assocDA },
+    { id: 'sn-cd', from: 'sn', to: 'cd', via: [[-12, -6, -2], [-13, 4, 4]], sign: 'da', act: m => m.assocDA },
+    { id: 'ctx-cd', from: 'ctx', to: 'cd', via: [[-40, -12, -8], [-24, 2, 4]], sign: '+', act: () => 0.45 },
+  ],
+  shieldOn: [['Nucleus_accumbens', 5, null], ['Caudate_nucleus', 6, p => p[1] > 2], ['Putamen', 3, p => p[1] > 0]],
+  vars: { clock: 1, brake: 1, amy: 0.3, b: 0.2, m: 0, ev: 1, d2: 0, lith: 0, rth: 0, ps: 0, af: 0, th: 0 },
+  discrete: ['ev'],
+  states: [
+    { id: 'eu', label: 'Euthymia', vars: { clock: 1, brake: 1, amy: 0.3, b: 0.2, ev: 1, m: 0, d2: 0, lith: 0, rth: 0 } },
+    { id: 'mania', label: 'Mania', vars: { clock: 0.3, brake: 0.55, amy: 0.3, b: 0.9, ev: 2, m: 0.6 } },
+    { id: 'dep', label: 'Depression', vars: { clock: 0.75, brake: 0.55, amy: 0.9, b: 0.9, ev: 3, m: -0.6 } },
+  ],
+  model(v, S) {
+    const clockEff = Math.min(1, v.clock + (1 - v.clock) * (0.55 * v.rth + 0.45 * v.lith));
+    const pop = Math.min(0.95, Math.max(0.08, 0.4 + 0.45 * (1 - clockEff) * (1 - 0.4 * v.lith) + 0.2 * v.m - 0.5 * Math.max(0, v.amy - 0.3)));
+    const eff = pop + v.d2 * (0.45 + (pop - 0.4) * 0.25 - pop);
+    const day = (S && S.sim && S.sim.day) || 0;
+    return { clockEff, pop, popShow: Math.min(1, Math.max(0, pop + 0.07 * Math.sin(day * Math.PI * 2) * clockEff)), eff,
+      vp: cl01(0.69 - (pop - 0.4) / 1.3), nac: 0.3 + 0.5 * pop, limbicDA: eff, assocDA: cl01(0.3 + Math.max(0, eff - 0.72) * 3),
+      tilt: Math.max(-1, Math.min(1, (pop - 0.4) * 1.6 + 0.45 * v.m)), amy: v.amy, brake: v.brake, b: v.b * (1 - 0.6 * v.lith), m: v.m };
+  },
+  gauge: { gain: m => m.eff, raw: m => m.pop, pop: m => m.popShow },
+  gridAt: 'vta', biasTo: 'nac',
+  salience(kind, m) {
+    if (kind === 'rewardPos') return 0.85 + 0.7 * m.eff;
+    if (kind === 'rewardNeg') return 0.85;
+    if (kind === 'neutral') return 0.55 + cl01((m.assocDA - 0.5) * 5) * 1.5;
+    if (kind === 'stress') return 1.35;
+    return 1;
+  },
+  // reward events: an outcome travels orbitofrontal → accumbens; on arrival mood integrates the prediction error
+  tick(dt, v, m, S) {
+    const sim = S.sim;
+    sim.day = (sim.day || 0) + dt * (0.2 + 0.55 * (1 - m.clockEff));
+    if (S.fx.swing) { const ph = S.t * 0.5; v.m = 0.85 * Math.sin(ph); v.amy = 0.3 + 0.5 * Math.max(0, -Math.sin(ph)); v.clock = 0.6; }
+    const ev = Math.round(v.ev); if (!ev) return;
+    sim.next = (sim.next ?? 0.7) - dt; if (sim.next > 0) return;
+    sim.next = Math.max(0.55, 1.5 - 0.7 * Math.abs(v.m));
+    const R = S.rand, r = ev === 1 ? (R() - 0.5) * 0.6 : ev === 2 ? 0.12 + R() * 0.16 : -0.18 - R() * 0.16 + (R() < 0.2 ? 0.3 : 0);
+    S.spawn({ icon: r >= 0 ? 'coin' : 'cloud', from: 'lofc', to: 'nac', dur: 0.9, life: 0.5, kind: r >= 0 ? 'rewardPos' : 'rewardNeg', onArrive: S2 => {
+      const mm = S2.def.model(S2.vars, S2), V = S2.vars;
+      const delta = (r + mm.b * V.m) * (0.5 + mm.eff), decay = 0.86 - 0.14 * V.lith;
+      V.m = Math.max(-1, Math.min(1, V.m * decay + 0.35 * delta));
+      S2.flashEdge('vta-nac', cl01(Math.abs(delta) * 1.8), delta < 0);
+    } });
+  },
+  look(m, S) {
+    const day = (S.sim.day || 0), a = cl01((m.amy - 0.3) / 0.6), mixed = !!S.hud.mixed, net = mixed || !!S.hud.seesaw;
+    const L = {
+      Amygdala: { heat: a, glow: 0.12 + 0.7 * a, ec: '#ff6b5b' },
+      Nucleus_accumbens: { glow: 0.15 + 0.65 * cl01((m.limbicDA - 0.3) / 0.6), ec: '#ffd34d' },
+      Ventral_pallidum: { glow: 0.75 * m.vp, ec: '#7cc4ff' },
+      VTA: { glow: 0.12 + 0.8 * cl01((m.pop - 0.1) / 0.8), ec: '#ffd34d' },
+      Inferior_frontal_gyrus: { glow: 0.35 * m.brake, ec: '#b48cff', op: 0.1 + 0.12 * m.brake },
+      Lateral_orbital_gyrus: { glow: 0.3 * m.brake, ec: '#b48cff', op: 0.1 + 0.12 * m.brake },
+      Hypothalamus: { glow: 0.25 + 0.3 * Math.sin(day * Math.PI * 2) * m.clockEff, ec: '#3fd0c9' },
+      Caudate_nucleus: { glow: 0.6 * cl01((m.assocDA - 0.45) / 0.4), ec: '#ffd34d', op: S.hud.tint ? 0.8 : 0.08 },
+      Substantia_nigra: { glow: 0.5 * cl01((m.assocDA - 0.45) / 0.4), ec: '#ffd34d' },
+    };
+    if (net) {
+      const smn = mixed ? S.vars.ps : m.tilt, sal = mixed ? S.vars.af : Math.max(0, m.tilt) * 0.9, dmn = mixed ? S.vars.th : -m.tilt;
+      L.Precentral_gyrus = L.Postcentral_gyrus = unitLook(smn, NET_COL.smn);
+      L.Insula = L.Cingulate_gyrus_anterior_part = unitLook(sal, NET_COL.sal);
+      L.Cingulate_gyrus_posterior_part = L['Pre-subgenual_frontal_cortex'] = unitLook(dmn, NET_COL.dmn);
+    }
+    return L;
+  },
+  liveCaption(v) {
+    const w = x => x > 0.2 ? 'excited' : x < -0.2 ? 'inhibited' : 'neutral', name = KRAEPELIN[sgn(v.ps) + sgn(v.af) + sgn(v.th)] || 'Between states';
+    return `${name}: psychomotor ${w(v.ps)}, affect ${w(v.af)}, thought ${w(v.th)}.`;
+  },
+  mixedHtml(v) {
+    const row = (lab, sub, x) => { const w = Math.abs(x) * 50, left = x < 0 ? 50 - w : 50; return `<span>${lab} <span style="color:var(--muted)">${sub}</span></span><span class="g"><i style="left:${left}%;width:${w}%;background:${x < 0 ? '#4aa8ff' : '#ffb454'}"></i></span>`; };
+    const key = sgn(v.ps) + sgn(v.af) + sgn(v.th), name = KRAEPELIN[key] || 'Between states';
+    return `<div class="t">Three dimensions</div><div class="row3">${row('Psychomotor', 'sensorimotor', v.ps)}${row('Affect', 'salience', v.af)}${row('Thought', 'default mode', v.th)}</div><div class="nm">${name}</div><div class="src">Warm = excited, cool = inhibited, shown on the network that carries each dimension (Martino &amp; Magioncalda 2022). Names from Kraepelin's scheme (recalled).</div>`;
+  },
+  insets: {
+    compare: compareInset,
+    evidence: () => ({ html: '<div class="t">Evidence</div>Bipolar psychosis matches schizophrenia on striatal dopamine synthesis capacity, and it tracks positive symptoms after adjusting for mania (Jauhar 2017).' }),
+  },
+  scenes: [
+    { title: 'Orient', dur: 7, state: 'eu', set: { ev: 0 }, cam: { dir: MED_LOW }, show: [], hud: {},
+      caption: 'The mood engine: prefrontal brakes, amygdala, accumbens, pallidum, midbrain, clock.',
+      beats: [{ at: 0.3, labels: ['ifg', 'lofc'] }, { at: 1.4, labels: ['amy'] }, { at: 2.4, labels: ['nac', 'vp'] }, { at: 3.4, labels: ['vta'] }, { at: 4.4, labels: ['scn', 'rph'] }] },
+    { title: 'Euthymia', dur: 12, state: 'eu', cam: { dir: MED_LOW, fit: ['amy', 'nac', 'vp', 'vta', 'scn'], r: 20 },
+      show: ['ifg-amy', 'ofc-nac', 'amy-vp', 'nac-vp', 'vp-vta', 'vta-nac', 'scn-vta'], labels: ['amy', 'nac', 'vta', 'scn'],
+      hud: { dial: true, grid: true, mood: true, clock: true, strip: true },
+      caption: 'Mood is the running total of surprises — and it decays back.' },
+    { title: 'The trigger', dur: 9, state: 'eu', cam: { dir: MED_LOW, fit: ['amy', 'nac', 'vp', 'vta', 'scn'], r: 20 },
+      show: ['ifg-amy', 'ofc-nac', 'amy-vp', 'nac-vp', 'vp-vta', 'vta-nac', 'scn-vta'], focus: ['scn-vta', 'ifg-amy', 'ofc-nac', 'scn', 'vta', 'ifg', 'lofc', 'amy', 'nac'], labels: ['scn', 'vta'],
+      hud: { dial: true, grid: true, mood: true, clock: true, strip: true },
+      caption: 'Sleep loss knocks the midbrain off its clock.',
+      beats: [{ at: 0.4, tween: { clock: [0.3, 4.5], brake: [0.55, 4.5] } }] },
+    { title: 'Mania: the momentum ratchet', dur: 15, state: 'mania', set: { m: 0.12 }, cam: { dir: MED_UP, fit: ['ifg', 'lofc', 'amy', 'nac', 'vta', 'smn', 'dmn'] },
+      show: ['ofc-nac', 'nac-vp', 'vp-vta', 'vta-nac', 'scn-vta', 'ifg-amy'], focus: ['ofc-nac', 'vta-nac', 'scn-vta', 'lofc', 'nac', 'vta'], labels: ['lofc', 'nac'],
+      tags: { 'scn-vta': 'extrapolation' },
+      hud: { dial: true, grid: true, mood: true, seesaw: true }, fx: { bias: true },
+      caption: 'Good news makes the next news look better. The loop runs away.',
+      beats: [{ at: 6, labels: ['smn', 'sal', 'dmn'], caption: 'Sensorimotor and salience networks brighten; the default mode network dims.' }, { at: 11, caption: 'Good news makes the next news look better. The loop runs away.' }] },
+    { title: 'Psychosis spillover', dur: 10, state: 'mania', set: { m: 0.95 }, cam: { dir: MED, fit: ['vta', 'nac', 'sn', 'cd', 'ctx'] },
+      show: ['vta-nac', 'nac-sn', 'sn-cd', 'ctx-cd'], labels: ['nac', 'cd'], tags: { 'nac-sn': 'untested link' }, hud: { dial: true, grid: true, mood: true, tint: true }, inset: 'evidence',
+      caption: 'Same amplifier, overflowing into the associative striatum.',
+      controls: [{ type: 'button', label: 'See it in the psychosis story', do: () => startStory('psy', 7) }],
+      beats: [{ at: 3, token: { icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', persist: true, flash: 'sn-cd' } }] },
+    { title: 'The switch to depression', dur: 16, state: 'dep', set: { amy: 0.3, m: 0, ev: 0 }, cam: { dir: MED_UP, fit: ['ifg', 'lofc', 'amy', 'nac', 'vta', 'smn', 'dmn'] },
+      show: ['ifg-amy', 'ofc-nac', 'amy-vp', 'nac-vp', 'vp-vta', 'vta-nac'], focus: ['amy-vp', 'vp-vta', 'amy', 'vp', 'vta'], labels: ['amy', 'vp', 'vta'],
+      tags: { 'amy-vp': 'rodent circuit' },
+      hud: { dial: true, grid: true, mood: true, seesaw: true, dat: true }, fx: { bias: true },
+      caption: 'A stressor hits the amygdala.',
+      beats: [
+        { at: 0.5, token: { icon: 'bolt', from: 'ctx', to: 'amy', kind: 'stress', dur: 1.4 } },
+        { at: 1.8, tween: { amy: [0.9, 2.5] }, caption: 'The amygdala clamps the brake. Rewards stop landing.' },
+        { at: 4, set: { ev: 3 }, focus: null },
+        { at: 8.5, labels: ['dmn', 'smn'], caption: 'Default mode network up (rumination), sensorimotor down (slowing).' },
+        { at: 13, caption: 'The amygdala clamps the brake. Rewards stop landing.' }] },
+    { title: 'Mixed states', free: true, dur: 0, state: 'eu', set: { ev: 0, ps: 1, af: -1, th: -1 }, cam: { dir: MED_UP, fit: ['ifg', 'nac', 'vta', 'smn', 'sal', 'dmn'] },
+      show: [], labels: ['smn', 'sal', 'dmn'], hud: { mixed: true, dial: false, grid: false }, live: 'mixed',
+      caption: 'Three dimensions, each excited or inhibited: eight combinations — two pure states, six mixed.',
+      controls: [
+        { type: 'range', var: 'ps', label: 'Psychomotor', min: -1, max: 1 }, { type: 'range', var: 'af', label: 'Affect', min: -1, max: 1 }, { type: 'range', var: 'th', label: 'Thought', min: -1, max: 1 },
+        { type: 'presets', items: [{ label: 'Mania', set: { ps: 1, af: 1, th: 1 } }, { label: 'Depression', set: { ps: -1, af: -1, th: -1 } }, { label: 'Excited depression', set: { ps: 1, af: -1, th: -1 } }, { label: 'Inhibited mania', set: { ps: -1, af: 1, th: 1 } }] },
+        { type: 'note', html: 'Warm = excited, cool = inhibited, shown on the network that carries each dimension (Martino &amp; Magioncalda 2022). State names follow Kraepelin’s scheme (recalled).' }] },
+    { title: 'Treatment', dur: 14, state: 'mania', set: { m: 0.8, lith: 0, d2: 0, rth: 0 }, cam: { dir: MED_LOW, fit: ['amy', 'nac', 'vp', 'vta', 'scn'], r: 20 },
+      show: ['ifg-amy', 'ofc-nac', 'amy-vp', 'nac-vp', 'vp-vta', 'vta-nac', 'scn-vta'], labels: ['scn', 'nac', 'vta'],
+      hud: { dial: true, grid: true, mood: true, clock: true, strip: true, shields: true }, fx: { bias: true },
+      caption: 'Mania, running.',
+      controls: [{ type: 'toggle', var: 'lith', label: 'Lithium' }, { type: 'toggle', var: 'd2', label: 'Antipsychotic' }, { type: 'toggle', var: 'rth', label: 'Rhythm' }],
+      beats: [
+        { at: 1.5, tween: { lith: [1, 1.5] }, set: { ev: 1 }, caption: 'Lithium: the clock steadies and the loop gains a damper.' },
+        { at: 6, tween: { d2: [1, 1.2] }, caption: 'Antipsychotic: the gain is capped and the ratchet stalls.' },
+        { at: 9.5, tween: { rth: [1, 1.5] }, caption: 'Rhythm: regular sleep and routine stop the creep.' },
+        { at: 12.5, caption: 'Steady the clock, damp the loop, cap the gain.' }] },
+    { title: 'Side by side', dur: 16, state: 'eu', set: { ev: 0 }, fx: { swing: true }, cam: { dir: MED, fit: ['vta', 'nac', 'sn', 'cd'] },
+      show: ['vta-nac', 'nac-sn', 'sn-cd'], labels: ['nac', 'cd'], hud: { dial: true, grid: true, tint: true }, inset: 'compare',
+      caption: 'Stuck gain, wrong territory. Swinging gain, right territory.' },
+  ] },
+];
+
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -707,7 +1195,7 @@ function applyMaterials() {
     mesh.visible = lv > 0 && (state.hemi === 'B' || hemi === 'M' || hemi === state.hemi);
     const ghost = lv === 1;
     if (mat.transparent !== ghost) { mat.transparent = ghost; mat.needsUpdate = true; }
-    mat.opacity = ghost ? state.ghost : 1; mat.depthWrite = !ghost;
+    mat.opacity = ghost ? (state.featured && state.featured.has(key) ? Math.max(0.3, state.ghost * 2.2) : state.ghost) : 1; mat.depthWrite = !ghost;
     const side = clipOn && !ghost ? THREE.DoubleSide : THREE.FrontSide;
     if (mat.side !== side) { mat.side = side; mat.needsUpdate = true; }
     mat.clippingPlanes = clipOn ? [clipPlane] : [];
@@ -958,6 +1446,7 @@ function syncNets() { $$('#nets .net').forEach(b => b.setAttribute('aria-pressed
 
 // ---------------- pathways ----------------
 const circuitGroup = new THREE.Group(); scene.add(circuitGroup);
+const circuitPts = [];
 const flowMats = [];
 function centroid(key, hemi) {
   const s = structs.get(key); if (!s) return null;
@@ -977,7 +1466,7 @@ function flowMaterial(color, len) {
   flowMats.push(m); return m;
 }
 function buildCircuit(c) {
-  const used = new Set();
+  const used = new Set(); circuitPts.length = 0;
   for (const hemi of ['L', 'R']) {
     for (const path of c.paths) {
       const pts = [];
@@ -987,7 +1476,7 @@ function buildCircuit(c) {
       }
       if (pts.length < 2) continue;
       const curve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
-      const len = curve.getLength();
+      const len = curve.getLength(); circuitPts.push(...curve.getSpacedPoints(24));
       const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(48, Math.round(len * 1.2)), 0.85, 8, false), flowMaterial(c.color, len));
       tube.renderOrder = 4; circuitGroup.add(tube);
       for (const n of path) if (typeof n === 'string') {
@@ -1009,18 +1498,26 @@ function clearCircuit() {
 }
 function startCircuit(id) {
   const c = CIRCUITS.find(c => c.id === id);
+  if (story.def) endStory(true);
   if (!state.circuit) state.snapshot = { level: new Map(state.level), hemi: state.hemi, preset: state.preset };
   clearCircuit();
   const used = buildCircuit(c);
-  setLevels(all, 0); setLevels(cortex, 1); setLevels(used, 2);
+  // cortical relays stay see-through (a solid gyrus hides the deep loop), drawn a little denser than the rest of the cortex
+  const corticalUsed = used.filter(k => CORTEX_GROUPS.has(structs.get(k).group));
+  setLevels(all, 0); setLevels(cortex, 1); setLevels(used, 2); setLevels(corticalUsed, 1); state.featured = new Set(corticalUsed);
   if (used.some(k => structs.get(k).group === 'Thalamic nuclei')) state.level.set('Thalamus', 1);
   if (used.some(k => ['Brainstem nuclei'].includes(structs.get(k).group) || k === 'Substantia_nigra')) state.level.set('Brainstem', 1);
   state.circuit = id; state.circuitNodes = used; state.infoOpen = false; state.hemi = 'B'; state.netMode = 'off'; state.rec = null; state.drug = null; if (slice) slice.material.uniforms.petOn.value = 0; syncDrugs(); state.preset = null; state.sel = null;
-  syncAll(); setView('iso');
+  if (innerWidth <= 760) $('#panel').classList.add('min');
+  document.body.classList.add('circ');
+  syncAll();
+  // frame once the card and sheet have settled, so the fit uses the real uncovered strip
+  requestAnimationFrame(() => { resize(); const sp = sphereOf(circuitPts, 34, 6); frameSphere(sp.center, sp.radius, c.view || VIEWS.iso); });
 }
 function endCircuit(restore = true) {
+  if (story.def) endStory(restore);
   if (!state.circuit) return;
-  clearCircuit(); state.circuit = null;
+  clearCircuit(); state.circuit = null; state.featured = null; document.body.classList.remove('circ');
   if (restore && state.snapshot) { state.level = state.snapshot.level; state.hemi = state.snapshot.hemi; state.preset = state.snapshot.preset; }
   state.snapshot = null; syncAll();
 }
@@ -1051,12 +1548,43 @@ $('#views').innerHTML = VIEW_BTNS.map(([k, n]) => `<button data-v="${k}">${n}</b
 $('#viewbar').innerHTML = VIEW_BTNS.slice(0, 5).map(([k, n]) => `<button data-v="${k}" aria-label="View from the ${n.toLowerCase()}">${n}</button>`).join('') + '<button data-v="iso" aria-label="Three-quarter view">3/4</button>';
 document.addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) setView(b.dataset.v); });
 let tween = null;
-function sheetH() { return innerWidth <= 760 ? $('#panel').getBoundingClientRect().height : 0; }
-function baseDist() {
-  const r = $('#stage').getBoundingClientRect();
-  const visFrac = Math.max(0.35, (r.height - sheetH()) / r.height), f = THREE.MathUtils.degToRad(camera.fov);
-  const vfov = 2 * Math.atan(Math.tan(f / 2) * visFrac), hfov = 2 * Math.atan(Math.tan(f / 2) * r.width / r.height);
-  return 94 / Math.sin(Math.min(vfov, hfov) / 2);
+function sheetH() { return innerWidth <= 760 && getComputedStyle($('#panel')).display !== 'none' ? $('#panel').getBoundingClientRect().height : 0; }
+// The uncovered horizontal strip of the stage: overlays wider than half the stage count as obstructions,
+// above the middle they push the top edge down, below it they pull the bottom edge up.
+const OBSTRUCTIONS = ['#panel', '#info', '#storybar', '#inset', '#quiz', '#hudrow'];
+function freeBand() {
+  const r = $('#stage').getBoundingClientRect(), H = Math.max(r.height, 1), W = Math.max(r.width, 1);
+  let top = innerWidth <= 760 ? 44 : 0, bot = H;
+  for (const sel of OBSTRUCTIONS) {
+    const el = $(sel); if (!el) continue;
+    const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+    const b = el.getBoundingClientRect(); if (b.height < 1 || b.width < 1) continue;
+    if (Math.min(b.right, r.right) - Math.max(b.left, r.left) < W * 0.5) continue;
+    const y0 = b.top - r.top, y1 = b.bottom - r.top;
+    if (y1 <= 0 || y0 >= H) continue;
+    if ((y0 + y1) / 2 < H / 2) top = Math.max(top, y1 + 6); else bot = Math.min(bot, y0 - 6);
+  }
+  if (bot - top < H * 0.3) { const mid = (top + bot) / 2; top = Math.max(0, mid - H * 0.15); bot = Math.min(H, top + H * 0.3); }
+  return { top, bot, H, W };
+}
+let _fbc = null, _fbt = 0;
+function freeBandCached() { const n = performance.now(); if (!_fbc || n - _fbt > 250) { _fbc = freeBand(); _fbt = n; } return _fbc; }
+function fitDist(radius) {
+  const fb = freeBand(), f = THREE.MathUtils.degToRad(camera.fov);
+  const visFrac = Math.max(0.3, (fb.bot - fb.top) / fb.H);
+  const vfov = 2 * Math.atan(Math.tan(f / 2) * visFrac), hfov = 2 * Math.atan(Math.tan(f / 2) * fb.W / fb.H);
+  return radius / Math.sin(Math.min(vfov, hfov) / 2);
+}
+function baseDist() { return fitDist(94); }
+// Frame a sphere (three-space centre, radius in mm) from direction dir (camera sits at centre + dir * distance).
+function frameSphere(c, r, dir, animate = true, dur = 800) {
+  const to = new THREE.Vector3(...dir).normalize().multiplyScalar(fitDist(r)).add(c);
+  if (!animate || reduceMotion) { tween = null; camera.position.copy(to); controls.target.copy(c); controls.update(); return; }
+  tween = { from: camera.position.clone(), to, fromT: controls.target.clone(), toT: c.clone(), t0: performance.now(), dur };
+}
+function sphereOf(points, minR = 28, pad = 10) {
+  const s = new THREE.Box3().setFromPoints(points).getBoundingSphere(new THREE.Sphere());
+  s.radius = Math.max(minR, s.radius + pad); return s;
 }
 function setView(name, animate = true, targetMni = null, zoom = 1) {
   const tgt = targetMni ? mni2three(targetMni) : new THREE.Vector3();
@@ -1213,6 +1741,7 @@ function renderInfo() {
   const box = $('#info');
   document.body.classList.toggle('has-info', !!(state.sel || state.circuit || state.drug || state.rec));
   if (state.sel) return renderStruct(box);
+  if (typeof story !== 'undefined' && story.def) { box.classList.remove('on'); box.innerHTML = ''; return; }
   if (state.drug) return renderDrug(box);
   if (state.rec) return renderReceptor(box);
   if (state.circuit) return renderCircuit(box);
@@ -1220,7 +1749,7 @@ function renderInfo() {
 }
 const compact = () => innerWidth <= 760 && !state.infoOpen;
 const moreBtn = () => innerWidth <= 760 ? `<button class="btn" id="infomore">${state.infoOpen ? 'Less' : 'Details'}</button>` : '';
-function wireMore() { const b = $('#infomore'); if (b) b.onclick = () => { state.infoOpen = !state.infoOpen; renderInfo(); }; }
+function wireMore() { const b = $('#infomore'); if (b) b.onclick = () => { state.infoOpen = !state.infoOpen; renderInfo(); requestAnimationFrame(resize); }; }
 function renderStruct(box) {
   const s = structs.get(state.sel), hemis = Object.keys(s.vol), small = innerWidth <= 760;
   const schematic = s.src.includes('schematic'), tract = s.group === 'White matter tracts';
@@ -1403,16 +1932,20 @@ function letter(t, col) {
 });
 
 // ---------------- render loop ----------------
+let lastSize = '';
 function resize() {
-  const r = $('#stage').getBoundingClientRect();
-  renderer.setSize(r.width, r.height, false);
+  const r = $('#stage').getBoundingClientRect(), sz = `${r.width}x${r.height}`;
+  if (sz !== lastSize) { renderer.setSize(r.width, r.height, false); lastSize = sz; }
   camera.aspect = r.width / Math.max(r.height, 1);
-  const sh = sheetH();
-  if (sh) camera.setViewOffset(r.width, r.height, 0, Math.min(sh, r.height * 0.6) / 2, r.width, r.height); else camera.clearViewOffset();
+  // shift the projection centre into the middle of the uncovered strip
+  const fb = freeBand(), d = r.height / 2 - (fb.top + fb.bot) / 2;
+  if (Math.abs(d) > 1) camera.setViewOffset(r.width, r.height, 0, d, r.width, r.height); else camera.clearViewOffset();
   camera.updateProjectionMatrix();
+  document.body.style.setProperty('--sheet-h', `${Math.round(sheetH())}px`);
 }
 addEventListener('resize', resize);
 $('#panel').addEventListener('transitionend', resize);
+if (typeof ResizeObserver !== 'undefined') { const ro = new ResizeObserver(() => resize()); for (const sel of ['#panel', '#info']) ro.observe($(sel)); window.__ro = ro; }
 const tmpV = new THREE.Vector3();
 function placeLabel() {
   const el = $('#flabel');
@@ -1438,18 +1971,616 @@ function frame(now) {
   controls.update();
   const pulse = reduceMotion ? 0.45 : 0.34 + 0.2 * Math.sin(now / 260);
   for (const m of meshes) m.material.emissiveIntensity = m.userData.key === state.sel ? pulse : 0;
+  if (story.def) storyFrame(now);
   if (!reduceMotion) for (const fm of flowMats) fm.uniforms.t.value = now / 1000 * 0.9;
   doHover(now); placeLabel();
   const w = renderer.domElement.width, h = renderer.domElement.height, pr = renderer.getPixelRatio();
   renderer.setScissorTest(false); renderer.setViewport(0, 0, w / pr, h / pr); renderer.render(scene, camera);
   const gs = 104, small = innerWidth <= 760, gx = (w / pr) - gs - 8;
-  const gy = small ? sheetH() + 6 : ((state.sel || state.circuit || state.drug || state.rec) ? (h / pr) - gs - 50 : 10);
+  const gy = small ? (freeBandCached().H - freeBandCached().bot) + 6 : ((state.sel || state.circuit || state.drug || state.rec || story.def) ? (h / pr) - gs - 50 : 10);
+  const gizmoOn = !(small && story.def);
   gCam.position.copy(camera.position).sub(controls.target).normalize().multiplyScalar(4); gCam.quaternion.copy(camera.quaternion);
   renderer.autoClear = false; renderer.clearDepth(); renderer.setScissorTest(true);
-  renderer.setScissor(gx, gy, gs, gs); renderer.setViewport(gx, gy, gs, gs); renderer.render(gScene, gCam);
+  if (gizmoOn) { renderer.setScissor(gx, gy, gs, gs); renderer.setViewport(gx, gy, gs, gs); renderer.render(gScene, gCam); }
   renderer.setScissorTest(false); renderer.autoClear = true;
   requestAnimationFrame(frame);
 }
+
+// ================= animated stories =================
+// A story = nodes (atlas structures or approximate points) + signed edges + a small state model + scenes with timed beats.
+// Every visual (edge thickness, particle rate, glow, dot grid, dial, token size) is computed from the model each frame,
+// so scenes, state switches and free play all stay consistent with one another.
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const easeIO = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+const SIGN = {
+  '+':    { col: '#ff9f43', cap: 'arrow' },               // excitatory (glutamate)
+  '-':    { col: '#4aa8ff', cap: 'bar' },                 // inhibitory (GABA)
+  da:     { col: '#ffd34d', cap: 'arrow', packets: true },// dopamine
+  ctl:    { col: '#b48cff', cap: 'arrow', dash: true },   // net top-down regulation
+  spiral: { col: '#c9b27a', cap: 'arrow', dash: true },   // proposed / untested link
+  clock:  { col: '#3fd0c9', cap: 'arrow', dash: true },   // circadian input, schematic
+  '5ht':  { col: '#ff8fb1', cap: 'arrow', packets: true },// serotonin
+};
+const ICONS = {
+  wave: '<svg viewBox="0 0 24 24"><circle cx="11" cy="5.5" r="2.6"/><path d="M11 8.5v7.5M11 16l-3 5M11 16l3 5M11 11l-4 2.5M11 11l5-4.5"/></svg>',
+  car: '<svg viewBox="0 0 24 24"><path d="M3 15.5h18v-3.5l-2.2-4.2H6.2L4 12H3z"/><circle cx="7.5" cy="16.5" r="1.9"/><circle cx="16.5" cy="16.5" r="1.9"/></svg>',
+  plate: '<svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M5.5 10.5v3M8 10.5v3M11 10.5h2.5v3H11M16 10.5h2.5M16 12h2.5M16 13.5h2.5"/></svg>',
+  radio: '<svg viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="11" rx="2"/><circle cx="9" cy="14.5" r="2.8"/><path d="M14.5 12.5h3.5M14.5 15h3.5M14.5 17.5h3.5M7 9l9-5"/></svg>',
+  coin: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5l1.4 2.9 3.1.4-2.3 2.2.6 3.1-2.8-1.5-2.8 1.5.6-3.1-2.3-2.2 3.1-.4z"/></svg>',
+  cloud: '<svg viewBox="0 0 24 24"><path d="M7 17.5h10a4 4 0 0 0 .4-8 5.5 5.5 0 0 0-10.6 1.6A3.3 3.3 0 0 0 7 17.5z"/><path d="M9 20l-1 2M13 20l-1 2"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24"><path d="M13 2L5 13.5h6L10 22l8-11.5h-6z"/></svg>',
+};
+const story = { def: null, i: 0, t: 0, playing: true, vars: {}, tweens: [], m: {}, group: new THREE.Group(), edges: new Map(), nodes: new Map(),
+  tokens: [], fx: {}, hud: {}, beatIdx: 0, scene: null, focus: null, show: [], labelSet: new Set(), last: 0, snapshot: null, flash: {}, flashNeg: {},
+  rand: Math.random, sim: {}, stateId: null, tags: {}, camNow: null, framePending: false, instant: false };
+scene.add(story.group);
+let storyMeshes = [];
+const TINT_KEYS = new Set(['Caudate_nucleus', 'Putamen', 'Nucleus_accumbens']);
+const HEAT = new THREE.Color('#ff8a3d'), DIMC = new THREE.Color('#1c2330'), GOLD = new THREE.Color('#ffc21a'), tmpC = new THREE.Color();
+const TERR = [new THREE.Color('#3fd0a6'), new THREE.Color('#a98bff'), new THREE.Color('#5b7cff')];   // limbic, associative, sensorimotor
+const pv3 = new THREE.Vector3();
+
+// ---------- building the 3D layer ----------
+function nodePos(n) { return mni2three(n.mni || centroid(n.key, story.def.hemi || 'L')); }
+function makeLabel(text, cls = '') { const el = document.createElement('div'); el.className = 'slab ' + cls; el.textContent = text; $('#labels').append(el); return el; }
+function edgeMat(sign, len) {
+  const S = SIGN[sign];
+  return new THREE.ShaderMaterial({
+    uniforms: { ph: { value: 0 }, col: { value: new THREE.Color(S.col) }, len: { value: len }, act: { value: 0.5 }, w: { value: 1 }, vis: { value: 0 },
+      dash: { value: S.dash ? 1 : 0 }, pk: { value: S.packets ? 1 : 0 }, fl: { value: 0 }, neg: { value: 0 } },
+    vertexShader: 'uniform float w; varying vec2 vUv; void main(){ vUv = uv; vec3 p = position + normal * (w - 1.0) * 0.7; gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }',
+    fragmentShader: `uniform float ph; uniform vec3 col; uniform float len; uniform float act; uniform float vis; uniform float dash; uniform float pk; uniform float fl; uniform float neg; varying vec2 vUv;
+      void main(){
+        float s = vUv.x * len;
+        float x = fract(s / (pk > 0.5 ? 15.0 : 9.0) - ph);
+        float p = pk > 0.5 ? smoothstep(0.0, 0.05, x) * (1.0 - smoothstep(0.05, 0.2, x)) : smoothstep(0.0, 0.12, x) * (1.0 - smoothstep(0.12, 0.6, x));
+        float a = 0.2 + 0.3 * act + (0.3 + 0.9 * act) * p + 0.9 * fl;
+        if (dash > 0.5 && fract(s / 4.0) > 0.55) a *= 0.12;
+        vec3 c = mix(col, vec3(0.32, 0.42, 0.58), neg);
+        gl_FragColor = vec4(c * (0.45 + 1.25 * p * (0.35 + act) + 1.2 * fl), a * vis);
+      }`,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  });
+}
+function buildStory(def) {
+  clearStory3D();
+  for (const [id, n] of Object.entries(def.nodes)) {
+    const p = nodePos(n);
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(n.r || 1.5, 16, 12), new THREE.MeshBasicMaterial({ color: n.dot || '#e7edf4', transparent: true, opacity: 0, depthWrite: false }));
+    dot.position.copy(p); dot.renderOrder = 6; dot.visible = false; story.group.add(dot);
+    story.nodes.set(id, { id, def: n, pos: p, dot, label: n.label ? makeLabel(n.label, n.hot ? 'hot' : '') : null, vis: 0 });
+  }
+  for (const e of def.edges) {
+    const a = story.nodes.get(e.from), b = story.nodes.get(e.to), S = SIGN[e.sign];
+    const curve = new THREE.CatmullRomCurve3([a.pos, ...(e.via || []).map(v => mni2three(v)), b.pos], false, 'centripetal');
+    const len = curve.getLength(), mat = edgeMat(e.sign, len);
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(40, Math.round(len * 1.4)), 0.7, 8, false), mat);
+    tube.renderOrder = 5; tube.visible = false; story.group.add(tube);
+    const cap = new THREE.Mesh(S.cap === 'bar' ? new THREE.CylinderGeometry(2.3, 2.3, 0.9, 20) : new THREE.ConeGeometry(1.7, 3.8, 14),
+      new THREE.MeshBasicMaterial({ color: S.col, transparent: true, opacity: 0, depthWrite: false }));
+    const tEnd = clamp(1 - ((b.def.r || 1.5) * 2.4) / len, 0.6, 0.97);
+    cap.position.copy(curve.getPointAt(tEnd));
+    cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), curve.getTangentAt(tEnd).normalize());
+    cap.renderOrder = 6; cap.visible = false; story.group.add(cap);
+    story.edges.set(e.id, { id: e.id, def: e, curve, len, tube, mat, cap, vis: 0, ph: Math.random(), act: 0, tag: makeLabel('', 'tag') });
+  }
+  // parvalbumin interneuron ring
+  story.ring = [];
+  if (def.ring) {
+    const c = story.nodes.get(def.ring).pos;
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * Math.PI * 2, s = new THREE.Mesh(new THREE.SphereGeometry(0.9, 10, 8), new THREE.MeshBasicMaterial({ color: '#6cc4ff', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+      s.position.set(c.x + Math.cos(a) * 7, c.y + Math.sin(a) * 6, c.z + Math.sin(a * 2) * 2); s.renderOrder = 7; s.visible = false; story.group.add(s); story.ring.push(s);
+    }
+  }
+  // D2 receptor shields: small hexagon caps on the striatal surface
+  story.shields = [];
+  if (def.shieldOn) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d');
+    g.strokeStyle = '#9fd3ff'; g.fillStyle = 'rgba(74,168,255,0.55)'; g.lineWidth = 5; g.beginPath();
+    for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; g[k ? 'lineTo' : 'moveTo'](32 + 26 * Math.cos(a), 32 + 26 * Math.sin(a)); }
+    g.closePath(); g.fill(); g.stroke();
+    const tex = new THREE.CanvasTexture(cv);
+    let n = 0;
+    for (const [key, count, test] of def.shieldOn) {
+      const mesh = (byKey.get(key) || []).find(mm => mm.userData.hemi === (def.hemi || 'L')); if (!mesh) continue;
+      const pos = mesh.geometry.attributes.position, nor = mesh.geometry.attributes.normal, cand = [];
+      for (let i = 0; i < pos.count; i += 3) { const v = new THREE.Vector3().fromBufferAttribute(pos, i); if (!test || test(three2mni(v))) cand.push(i); }
+      const R = rng(77 + n++);
+      for (let k = 0; k < count && cand.length; k++) {
+        const i = cand.splice(Math.floor(R() * cand.length), 1)[0];
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false }));
+        sp.position.fromBufferAttribute(pos, i).addScaledVector(new THREE.Vector3().fromBufferAttribute(nor, i), 1.6);
+        sp.scale.setScalar(0.01); sp.renderOrder = 8; sp.userData.delay = k * 0.06; story.group.add(sp); story.shields.push(sp);
+      }
+    }
+  }
+}
+function clearStory3D() {
+  for (const o of [...story.group.children]) { o.geometry?.dispose(); if (o.material) { o.material.map?.dispose?.(); o.material.dispose(); } story.group.remove(o); }
+  story.edges.clear(); story.nodes.clear(); $('#labels').innerHTML = '';
+}
+
+// ---------- tokens ----------
+function spawnToken(t) {
+  const a = story.nodes.get(t.from), b = story.nodes.get(t.to); if (!a || !b) return null;
+  const curve = new THREE.CatmullRomCurve3([a.pos, ...(t.via || []).map(v => mni2three(v)), b.pos], false, 'centripetal');
+  const el = document.createElement('div'); el.className = 'tok'; el.innerHTML = (ICONS[t.icon] || '') + '<span class="bang">!</span>';
+  const ring = document.createElement('div'); ring.className = 'ghostring';
+  $('#tokens').append(ring, el);
+  const tok = { dur: 2.2, life: 3, ...t, curve, el, ring, t0: story.t, size: 1, target: 1, arrived: false, off: t.off ? new THREE.Vector3(...t.off) : null, pos: new THREE.Vector3() };
+  story.tokens.push(tok); return tok;
+}
+function clearTokens() { for (const tk of story.tokens) { tk.el.remove(); tk.ring.remove(); } story.tokens = []; }
+story.spawn = spawnToken;
+story.flashEdge = (id, mag, neg = false) => { story.flash[id] = Math.max(story.flash[id] || 0, mag); story.flashNeg[id] = neg ? 1 : 0; };
+story.setState = id => { story.stateId = id; syncBar(); };
+
+// ---------- vars, tweens, scenes ----------
+function tweenVar(k, to, dur = 1.2) {
+  story.tweens = story.tweens.filter(tw => tw.k !== k);
+  if (dur <= 0 || reduceMotion || story.instant || (story.def.discrete || []).includes(k)) { story.vars[k] = to; return; }
+  story.tweens.push({ k, from: story.vars[k] ?? 0, to, t0: performance.now(), dur: dur * 1000 });
+}
+function stepTweens(now) {
+  story.tweens = story.tweens.filter(tw => { const e = clamp((now - tw.t0) / tw.dur); story.vars[tw.k] = lerp(tw.from, tw.to, easeIO(e)); return e < 1; });
+}
+function applyState(id, dur = 0.9) {
+  const st = story.def.states.find(s => s.id === id); if (!st) return;
+  for (const [k, v] of Object.entries(st.vars)) tweenVar(k, v, dur);
+  story.stateId = id;
+}
+function frameCam(cam, animate = true) {
+  if (!cam || !story.def) return;
+  const ids = cam.fit || (cam.target ? [cam.target] : [...story.nodes.keys()].filter(k => !story.def.nodes[k].nofit));
+  const pts = ids.map(id => story.nodes.get(id)?.pos).filter(Boolean);
+  const sp = sphereOf(pts, cam.r || 24, cam.pad ?? 9);
+  frameSphere(sp.center, sp.radius, cam.dir || story.def.view, animate && !story.instant, cam.dur || 1000);
+}
+function gotoScene(i, opts = {}) {
+  const def = story.def; if (!def) return;
+  i = clamp(i, 0, def.scenes.length - 1);
+  const sc = def.scenes[i];
+  story.i = i; story.t = 0; story.beatIdx = 0; story.scene = sc; story.rand = rng(1000 + i * 7919); story.sim = {};
+  story.instant = !!opts.instant;
+  const target = { ...def.vars, ...((def.states.find(s => s.id === sc.state) || {}).vars || {}), ...(sc.set || {}) };
+  for (const [k, v] of Object.entries(target)) tweenVar(k, v, sc.ease ?? 0.9);
+  story.stateId = sc.state;
+  story.show = sc.show === 'all' ? [...story.edges.keys()] : (sc.show || []);
+  story.focus = sc.focus || null; story.labelSet = new Set(sc.labels || []); story.tags = { ...(sc.tags || {}) };
+  story.fx = { ...(sc.fx || {}) }; story.hud = { ...(def.hud || {}), ...(sc.hud || {}) };
+  story.flash = {}; story.flashNeg = {};
+  clearTokens(); setCaption(sc.caption); renderExtra(sc); renderInset(sc.inset || null); syncBar();
+  story.camNow = sc.cam || { dir: def.view }; story.framePending = true;
+  const anim = !opts.instant;
+  requestAnimationFrame(() => { story.framePending = false; resize(); frameCam(story.camNow, anim); });
+  story.instant = false;
+  if (opts.play !== undefined) story.playing = opts.play;
+}
+function applyBeat(b) {
+  if (b.caption) setCaption(b.caption);
+  if (b.focus !== undefined) story.focus = b.focus;
+  if (b.show) story.show = b.show === 'all' ? [...story.edges.keys()] : b.show;
+  if (b.labels) for (const l of b.labels) story.labelSet.add(l);
+  if (b.tags) Object.assign(story.tags, b.tags);
+  if (b.cam) { story.camNow = b.cam; if (!story.framePending) frameCam(b.cam, !story.instant); }
+  if (b.tween) for (const [k, v] of Object.entries(b.tween)) Array.isArray(v) ? tweenVar(k, v[0], v[1]) : tweenVar(k, v);
+  if (b.set) Object.assign(story.vars, b.set);
+  if (b.fx) Object.assign(story.fx, b.fx);
+  if (b.hud) Object.assign(story.hud, b.hud);
+  if (b.state) story.stateId = b.state, syncBar();
+  if (b.token) spawnToken(b.token);
+  if (b.inset !== undefined) renderInset(b.inset);
+  if (b.do) b.do(story);
+}
+function fastForward(t) {
+  story.instant = true;
+  for (let x = 0; x < t; x += 0.1) {
+    story.t += 0.1;
+    const beats = story.scene.beats || [];
+    while (story.beatIdx < beats.length && beats[story.beatIdx].at <= story.t) applyBeat(beats[story.beatIdx++]);
+    for (const tw of story.tweens) story.vars[tw.k] = tw.to; story.tweens = [];
+    story.m = story.def.model(story.vars, story);
+    if (story.def.tick) story.def.tick(0.1, story.vars, story.m, story);
+    for (const tk of story.tokens) if (story.t - tk.t0 >= tk.dur && !tk.arrived) arrive(tk);
+  }
+  story.instant = false;
+}
+function arrive(tk) {
+  tk.arrived = true;
+  tk.target = story.def.salience ? story.def.salience(tk.kind, story.m, story) : 1;
+  if (tk.flash) story.flashEdge(tk.flash, clamp(tk.target - 0.55), false);
+  if (tk.onArrive) tk.onArrive(story, tk);
+}
+
+// ---------- per-frame ----------
+const shownE = id => story.show.includes(id);
+const focusedId = id => !story.focus || story.focus.includes(id);
+function storyFrame(now) {
+  const dt = Math.min(0.1, (now - (story.last || now)) / 1000); story.last = now;
+  const def = story.def, sc = story.scene;
+  if (story.playing) {
+    story.t += dt;
+    const beats = sc.beats || [];
+    while (story.beatIdx < beats.length && beats[story.beatIdx].at <= story.t) applyBeat(beats[story.beatIdx++]);
+  }
+  stepTweens(now);
+  story.m = def.model(story.vars, story);
+  if (story.playing && def.tick) def.tick(dt, story.vars, story.m, story);
+  if (story.playing && !sc.free && story.t >= sc.dur + (sc.hold ?? 1.5)) {
+    if (story.i < def.scenes.length - 1) gotoScene(story.i + 1); else { story.playing = false; syncBar(); }
+  }
+  applyLook(dt, now);
+  updateHud(dt, now);
+}
+function applyLook(dt, now) {
+  const m = story.m, def = story.def, k = 1 - Math.exp(-dt * 5);
+  for (const E of story.edges.values()) {
+    const e = E.def, on = shownE(e.id), tgt = on ? (focusedId(e.id) ? 1 : 0.2) : 0;
+    E.vis += (tgt - E.vis) * k;
+    E.act += (clamp(e.act ? e.act(m) : 0.5) - E.act) * k;
+    const w = e.w ? e.w(m) : 0.55 + 1.15 * E.act;
+    let fl = story.flash[e.id] || 0; if (fl) story.flash[e.id] = Math.max(0, fl - dt * 1.3);
+    if (!reduceMotion) E.ph += dt * (0.15 + 1.5 * E.act);
+    const u = E.mat.uniforms; u.ph.value = E.ph; u.act.value = E.act; u.w.value = w; u.vis.value = E.vis; u.fl.value = Math.min(1, fl); u.neg.value = story.flashNeg[e.id] || 0;
+    const vis = E.vis > 0.01; E.tube.visible = E.cap.visible = vis;
+    E.cap.material.opacity = 0.85 * E.vis; E.cap.scale.setScalar(0.75 + 0.45 * w);
+  }
+  for (const N of story.nodes.values()) {
+    let touched = false; for (const E of story.edges.values()) if ((E.def.from === N.id || E.def.to === N.id) && shownE(E.def.id)) { touched = true; break; }
+    const tgt = (touched || story.labelSet.has(N.id)) && !N.def.noDot ? (focusedId(N.id) ? 0.9 : 0.35) : 0;
+    N.vis += (tgt - N.vis) * k; N.dot.material.opacity = N.vis; N.dot.visible = N.vis > 0.01;
+  }
+  const look = def.look ? def.look(m, story) : {};
+  for (const mesh of storyMeshes) {
+    const key = mesh.userData.key, L = look[key], mat = mesh.material, st = mesh.userData.st, tinted = story.hud.tint && TINT_KEYS.has(key);
+    if (!L) { if (mat.userData.sl) { if (!tinted) mat.color.set(st.color); mat.userData.sl = false; } continue; }
+    mat.userData.sl = true;
+    if (!tinted) { tmpC.set(st.color); if (L.heat) tmpC.lerp(HEAT, clamp(L.heat)); if (L.dim) tmpC.lerp(DIMC, clamp(L.dim)); mat.color.copy(tmpC); }
+    mat.emissive.set(L.ec || '#ffb454'); mat.emissiveIntensity = Math.max(mat.emissiveIntensity, clamp(L.glow || 0) * 0.9);
+    if (L.op !== undefined && mat.transparent) mat.opacity = L.op;
+  }
+  if (story.hud.tint) tintStriatum(m, now); else if (tintOn) untint();
+  if (story.ring.length) {
+    const pvN = (story.vars.pv ?? 1) * 8, on = !!story.hud.ring;
+    story.ring.forEach((s, i) => {
+      const alive = i < pvN - 0.5 || (i < pvN + 0.5 && Math.sin(now / 90 + i * 3) > 0);
+      const tgt = on && alive ? 0.95 : 0; s.material.opacity += (tgt - s.material.opacity) * k * 1.6; s.visible = s.material.opacity > 0.02;
+      s.scale.setScalar(0.85 + 0.25 * Math.sin(now / 240 + i));
+    });
+  }
+  if (story.shields.length) {
+    const d2 = story.hud.shields ? (story.vars.d2 ?? 0) : 0;
+    story.shields.forEach(sp => { const tgt = clamp(d2 * 1.25 - sp.userData.delay) * 3.4; sp.scale.setScalar(Math.max(0.01, sp.scale.x + (tgt - sp.scale.x) * k * 1.5)); sp.visible = sp.scale.x > 0.05; });
+  }
+}
+let tintOn = false;
+// Oklab mixing: lavender → gold passes through a neutral grey instead of pink
+function toLab(c) { const l = Math.cbrt(0.4122214708 * c.r + 0.5363325363 * c.g + 0.0514459929 * c.b), m = Math.cbrt(0.2119034982 * c.r + 0.6806995451 * c.g + 0.1073969566 * c.b), s = Math.cbrt(0.0883024619 * c.r + 0.2817188376 * c.g + 0.6299787005 * c.b);
+  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s]; }
+function fromLab([L, A, B], out) { const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3, m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3, s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
+  return out.setRGB(clamp(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s), clamp(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s), clamp(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s), THREE.LinearSRGBColorSpace); }
+const TERR_LAB = TERR.map(toLab), GOLD_LAB = toLab(GOLD);
+const terrCache = new Map();
+function territories(mesh) {
+  if (terrCache.has(mesh)) return terrCache.get(mesh);
+  const p = mesh.geometry.attributes.position, key = mesh.userData.key, out = new Uint8Array(p.count), v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    const [, y, z] = three2mni(v.fromBufferAttribute(p, i));
+    out[i] = key === 'Nucleus_accumbens' ? 0 : key === 'Caudate_nucleus' ? (z < 2 && y > 8 ? 0 : 1) : (y < -2 ? 2 : z < -3 ? 0 : 1);
+  }
+  terrCache.set(mesh, out); return out;
+}
+function tintStriatum(m, now) {
+  tintOn = true;
+  const lv = [m.limbicDA ?? 0.4, m.assocDA ?? 0.4, 0.3], pulse = 0.88 + 0.12 * Math.sin(now / 300);
+  for (const mesh of storyMeshes) {
+    if (!TINT_KEYS.has(mesh.userData.key)) continue;
+    const mat = mesh.material, ter = territories(mesh), arr = mesh.geometry.attributes.color.array;
+    if (!mat.vertexColors) { mat.vertexColors = true; mat.needsUpdate = true; }
+    mat.color.set(0xffffff);
+    for (let i = 0; i < ter.length; i++) {
+      // reach pure gold at high dopamine (mixing gold with the blue-ish base in linear space reads as peach)
+      const g = clamp((lv[ter[i]] - 0.38) / 0.3), A = TERR_LAB[ter[i]];
+      fromLab([A[0] + (GOLD_LAB[0] - A[0]) * g, A[1] + (GOLD_LAB[1] - A[1]) * g, A[2] + (GOLD_LAB[2] - A[2]) * g], tmpC).multiplyScalar(g > 0.05 ? pulse : 1);
+      arr[i * 3] = tmpC.r; arr[i * 3 + 1] = tmpC.g; arr[i * 3 + 2] = tmpC.b;
+    }
+    mesh.geometry.attributes.color.needsUpdate = true;
+  }
+}
+function untint() {
+  tintOn = false;
+  for (const mesh of storyMeshes) if (TINT_KEYS.has(mesh.userData.key)) { mesh.material.vertexColors = false; mesh.material.needsUpdate = true; mesh.material.color.set(mesh.userData.st.color); }
+}
+
+// ---------- heads-up layer ----------
+// Phones: one strip across the top (counted as an obstruction, so the camera frames below it).
+// Desktop: a column down the left edge. Labels are decluttered every frame and keep a leader line to their node.
+const hud = {};
+const isSmall = () => innerWidth <= 760;
+const PLAY_SVG = '<svg viewBox="0 0 20 20"><path d="M6 4l10 6-10 6z"/></svg>', PAUSE_SVG = '<svg viewBox="0 0 20 20"><path d="M6 4v12M14 4v12" stroke-width="3"/></svg>';
+function initHud() {
+  const P = (a, R, cx = 54, cy = 52) => [cx + R * Math.cos(a), cy - R * Math.sin(a)];
+  const arc = (a0, a1, col) => { const [x0, y0] = P(a0, 42), [x1, y1] = P(a1, 42); return `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} A42 42 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}" stroke="${col}" stroke-width="7" fill="none"/>`; };
+  $('#dial').innerHTML = `<div class="t">Dopamine gain</div><svg viewBox="0 0 108 60">${arc(Math.PI, 0.62 * Math.PI, '#4aa8ff')}${arc(0.62 * Math.PI, 0.38 * Math.PI, '#5d6878')}${arc(0.38 * Math.PI, 0, '#ffd34d')}
+    <line id="draw" x1="54" y1="52" x2="54" y2="12" stroke="#e7edf4" stroke-width="2" stroke-dasharray="3 3" opacity="0"/>
+    <line id="dneedle" x1="54" y1="52" x2="54" y2="16" stroke="#e7edf4" stroke-width="3" stroke-linecap="round"/><circle cx="54" cy="52" r="4.5" fill="#e7edf4"/></svg><div id="dword" class="mono" style="font-size:10.5px;margin-top:-1px;line-height:1.25"></div>`;
+  hud.needle = $('#dneedle'); hud.raw = $('#draw'); hud.word = $('#dword'); hud.P = P;
+  $('#grid').innerHTML = Array.from({ length: 25 }, () => '<i></i>').join('') + '<div class="cap">dopamine neurons awake</div>';
+  hud.dots = $$('#grid i');
+  $('#ledger').innerHTML = '<span class="p">+</span>&thinsp;<span>×</span>&thinsp;<span class="m">−</span>&thinsp;<span>×</span>&thinsp;<span class="m">−</span>&thinsp;<span class="r">= +</span>';
+  hud.ledger = $$('#ledger span');
+  $('#moodbar').innerHTML = '<div class="lab">Mood</div><div class="track"><div class="zero"></div><div class="knob"></div></div><div class="lab">running total of surprises</div>';
+  hud.knob = $('#moodbar .knob'); hud.track = $('#moodbar .track');
+  $('#seesaw').innerHTML = `<div class="t" style="text-align:center">Network balance</div><svg viewBox="0 0 180 56">
+    <text x="4" y="11" fill="#e7edf4" font-size="10.5">Default mode</text><text x="176" y="11" fill="#e7edf4" font-size="10.5" text-anchor="end">Sensorimotor</text>
+    <polygon points="90,46 81,55 99,55" fill="#5d6878"/>
+    <g id="beam"><line x1="18" y1="44" x2="162" y2="44" stroke="#c9d4e2" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="35" r="7.5" fill="#cd3e4e"/><circle cx="154" cy="35" r="7.5" fill="#6fa8ff"/></g></svg>
+    <div class="src">resting-state variability, Martino 2016</div>`;
+  hud.beam = $('#beam');
+  $('#clockico').innerHTML = '<svg viewBox="0 0 30 30"><circle cx="15" cy="15" r="12" fill="rgba(10,15,22,0.85)" stroke="#3fd0c9" stroke-width="2"/><line id="chand" x1="15" y1="15" x2="15" y2="6" stroke="#3fd0c9" stroke-width="2.4" stroke-linecap="round"/><circle cx="15" cy="15" r="2" fill="#3fd0c9"/></svg>';
+  hud.hand = $('#chand');
+  $('#daystrip').innerHTML = '<canvas width="600" height="32"></canvas><span class="lab">day / night</span>';
+  hud.strip = $('#daystrip canvas');
+  hud.datLabel = makeLabel('Dopamine transporter ↑ (faster clearance)', 'tag');
+  $('#hudsvg').innerHTML = `<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+    <g id="leaders"></g><path id="gridlead" fill="none" stroke="#ffd34d" stroke-width="1.2" stroke-dasharray="3 4" opacity="0"/><path id="bias" fill="none" stroke-linecap="round" marker-end="url(#ah)" opacity="0"/><g id="threads"></g>`;
+  hud.bias = $('#bias'); hud.threads = $('#threads'); hud.leaders = $('#leaders'); hud.gridlead = $('#gridlead');
+  if (!hud.ro && typeof ResizeObserver !== 'undefined') {
+    hud.ro = new ResizeObserver(() => { document.body.style.setProperty('--sb-h', `${Math.round($('#storybar').getBoundingClientRect().height)}px`); _fbc = null; resize(); });
+    for (const sel of ['#storybar', '#inset', '#hudrow']) hud.ro.observe($(sel));
+  }
+}
+function clearHud() {
+  for (const id of ['#dial', '#ledger', '#moodbar', '#seesaw', '#grid', '#clockico', '#daystrip']) $(id).classList.remove('on');
+  $('#hudsvg').innerHTML = ''; $('#tokens').innerHTML = ''; $('#labels').innerHTML = '';
+}
+// push overlapping labels apart vertically, keep them inside the uncovered strip
+function declutter(items, fb, W) {
+  for (const it of items) { it.x = clamp(it.ax - it.w / 2, 2, W - it.w - 2); it.y = it.below ? it.ay + 9 : it.ay - it.h - 9; }
+  for (let pass = 0; pass < 8; pass++) {
+    let moved = false; items.sort((a, b) => a.y - b.y);
+    for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+      const a = items[i], b = items[j];
+      if (a.x < b.x + b.w + 4 && b.x < a.x + a.w + 4 && a.y < b.y + b.h + 3 && b.y < a.y + a.h + 3) { const dy = (a.y + a.h + 3 - b.y) / 2 + 0.5; a.y -= dy; b.y += dy; moved = true; }
+    }
+    for (const it of items) it.y = clamp(it.y, fb.top + 2, fb.bot - it.h - 2);
+    if (!moved) break;
+  }
+}
+function measure(el) { if (el._t !== el.textContent) { el._t = el.textContent; el._w = el.offsetWidth; el._h = el.offsetHeight; } return [el._w || 60, el._h || 20]; }
+function updateHud(dt, now) {
+  const r = canvas.getBoundingClientRect(), W = r.width, H = r.height, m = story.m, H2 = story.hud, def = story.def, small = isSmall();
+  const fb = freeBandCached();
+  const proj = p => { pv3.copy(p).project(camera); return { x: (pv3.x + 1) / 2 * W, y: (1 - pv3.y) / 2 * H, ok: pv3.z < 1 && pv3.z > -1 }; };
+  const k = 1 - Math.exp(-dt * 6);
+  const insetEl = $('#inset'), insetOn = !insetEl.hidden, ir = insetOn ? insetEl.getBoundingClientRect() : null;
+  // the heads-up row/column sits below the inset card on phones
+  const row = $('#hudrow'); row.style.top = `${small && insetOn ? Math.round(ir.bottom - r.top + 6) : (small ? 8 : 12)}px`;
+  const dial = $('#dial'); dial.classList.toggle('on', !!H2.dial);
+  if (H2.dial) {
+    const g = clamp(def.gauge.gain(m)), [x, y] = hud.P(Math.PI * (1 - g), 36);
+    hud.needle.setAttribute('x2', x.toFixed(1)); hud.needle.setAttribute('y2', y.toFixed(1));
+    const raw = def.gauge.raw ? clamp(def.gauge.raw(m)) : g, show = Math.abs(raw - g) > 0.06, [rx, ry] = hud.P(Math.PI * (1 - raw), 40);
+    hud.raw.setAttribute('x2', rx.toFixed(1)); hud.raw.setAttribute('y2', ry.toFixed(1)); hud.raw.setAttribute('opacity', show ? 0.8 : 0);
+    const word = (g < 0.38 ? 'low' : g > 0.62 ? 'high' : 'normal') + (show ? ` · source ${raw > 0.62 ? 'high' : 'normal'}` : '');
+    if (hud.word.textContent !== word) hud.word.textContent = word;
+  }
+  const led = $('#ledger'); led.classList.toggle('on', !!H2.ledger);
+  if (H2.ledger) { const upto = [0, 1, 3, 5, 6][story.fx.ledger || 0] || 0; hud.ledger.forEach((s, i) => s.classList.toggle('on', i < upto)); }
+  const mb = $('#moodbar'); mb.classList.toggle('on', !!H2.mood);
+  if (H2.mood) {
+    const f = (clamp(story.vars.m ?? 0, -1, 1) + 1) / 2;
+    if (small) { hud.knob.style.left = `${f * 100}%`; hud.knob.style.top = '50%'; } else { hud.knob.style.left = '50%'; hud.knob.style.top = `${(1 - f) * 100}%`; }
+  }
+  const ss = $('#seesaw'); ss.classList.toggle('on', !!H2.seesaw);
+  if (H2.seesaw) hud.beam.setAttribute('transform', `rotate(${(clamp(m.tilt ?? 0, -1, 1) * 14).toFixed(1)} 90 44)`);
+  // dopamine neuron grid lives in the heads-up row, with a leader line down to the ventral tegmental area
+  const grid = $('#grid'), vta = story.nodes.get(def.gridAt || 'vta');
+  grid.classList.toggle('on', !!H2.grid && !!vta);
+  if (H2.grid && vta) {
+    const lit = Math.round(clamp(def.gauge.pop(m)) * 25);
+    hud.dots.forEach((d, i) => d.classList.toggle('lit', i < lit));
+    const gr = grid.getBoundingClientRect(), s = proj(vta.pos);
+    const gx = gr.left - r.left + gr.width / 2, gy = gr.bottom - r.top;
+    hud.gridlead.setAttribute('d', `M${gx.toFixed(1)} ${gy.toFixed(1)} Q ${gx.toFixed(1)} ${((gy + s.y) / 2).toFixed(1)} ${s.x.toFixed(1)} ${(s.y - 4).toFixed(1)}`);
+    hud.gridlead.setAttribute('opacity', s.ok ? 0.55 : 0);
+  } else hud.gridlead.setAttribute('opacity', 0);
+  // labels: nodes, edge tags and the transporter note, decluttered together
+  const items = [];
+  for (const N of story.nodes.values()) {
+    if (!N.label) continue;
+    const s = proj(N.pos), on = story.labelSet.has(N.id) && s.ok; N.label.classList.toggle('on', on);
+    if (on) { const [w, h] = measure(N.label); items.push({ el: N.label, ax: s.x, ay: s.y, w, h, below: (N.def.lo || [0, 0])[1] > 0 }); }
+  }
+  for (const E of story.edges.values()) {
+    const txt = story.tags[E.id], on = !!txt && E.vis > 0.5;
+    E.tag.classList.toggle('on', on);
+    if (on) { if (E.tag.textContent !== txt) E.tag.textContent = txt; const s = proj(E.curve.getPointAt(0.5)), [w, h] = measure(E.tag); items.push({ el: E.tag, ax: s.x, ay: s.y + h / 2 + 9, w, h, tag: true }); }
+  }
+  const nac = story.nodes.get('nac'), datOn = !!H2.dat && nac && def.gauge.pop(m) < 0.3;
+  hud.datLabel.classList.toggle('on', !!datOn);
+  if (datOn) { const s = proj(nac.pos), [w, h] = measure(hud.datLabel); items.push({ el: hud.datLabel, ax: s.x, ay: s.y, w, h, below: true }); }
+  declutter(items, fb, W);
+  let lead = '';
+  for (const it of items) {
+    it.el.style.transform = `translate(${it.x.toFixed(1)}px, ${it.y.toFixed(1)}px)`;
+    if (it.tag) continue;
+    const ex = clamp(it.ax, it.x, it.x + it.w), ey = it.ay < it.y ? it.y : it.ay > it.y + it.h ? it.y + it.h : it.ay;
+    if (Math.hypot(ex - it.ax, ey - it.ay) > 14) lead += `<line x1="${ex.toFixed(1)}" y1="${ey.toFixed(1)}" x2="${it.ax.toFixed(1)}" y2="${it.ay.toFixed(1)}" stroke="rgba(231,237,244,0.45)" stroke-width="1"/>`;
+  }
+  if (hud.leaders._h !== lead) { hud.leaders.innerHTML = lead; hud.leaders._h = lead; }
+  // tokens
+  for (const tk of story.tokens) {
+    const age = story.t - tk.t0, prog = easeIO(clamp(age / tk.dur));
+    tk.curve.getPointAt(prog, tk.pos); if (tk.off) tk.pos.addScaledVector(tk.off, prog);
+    if (age >= tk.dur && !tk.arrived) arrive(tk);
+    tk.size += (tk.target - tk.size) * k;
+    const life = tk.target < 0.8 ? Math.min(tk.life, 0.9) : tk.life;
+    const fade = tk.persist ? 1 : clamp(1 - (age - tk.dur - life) / 0.6);
+    const s = proj(tk.pos), so = tk.soff || [0, 0]; tk.sx = s.x + so[0] * prog; tk.sy = s.y + so[1] * prog;
+    tk.el.style.transform = `translate(${(tk.sx - 17).toFixed(1)}px, ${(tk.sy - 17).toFixed(1)}px) scale(${Math.max(0.05, tk.size).toFixed(3)})`;
+    tk.el.style.opacity = s.ok ? fade : 0;
+    tk.el.classList.toggle('bangon', tk.kind === 'neutral' && tk.size > 1.3);
+    tk.el.classList.toggle('gold', tk.kind === 'rewardPos'); tk.el.classList.toggle('cool', tk.kind === 'rewardNeg');
+    if (tk.ghost && tk.arrived) { tk.ring.classList.add('on'); tk.ring.style.transform = `translate(${(tk.sx - 17).toFixed(1)}px, ${(tk.sy - 17).toFixed(1)}px) scale(${tk.ghost})`; }
+    tk.dead = !tk.persist && age > tk.dur + life + 1;
+  }
+  for (const tk of story.tokens) if (tk.dead) { tk.el.remove(); tk.ring.remove(); }
+  story.tokens = story.tokens.filter(tk => !tk.dead);
+  if (story.fx.threads) {
+    const big = story.tokens.filter(tk => tk.persist && tk.arrived && tk.size > 1.2);
+    let h = ''; for (let i = 0; i < big.length; i++) for (let j = i + 1; j < big.length; j++) h += `<line x1="${big[i].sx.toFixed(1)}" y1="${big[i].sy.toFixed(1)}" x2="${big[j].sx.toFixed(1)}" y2="${big[j].sy.toFixed(1)}" stroke="#ffd34d" stroke-width="2.2" stroke-dasharray="5 4" opacity="0.95"/>`;
+    hud.threads.innerHTML = h;
+  } else if (hud.threads.innerHTML) hud.threads.innerHTML = '';
+  // mood bias arrow: from the mood knob back into valuation
+  const tgtN = story.nodes.get(def.biasTo || 'nac');
+  if (story.fx.bias && H2.mood && tgtN) {
+    const kr = hud.knob.getBoundingClientRect(), s = proj(tgtN.pos), mv = story.vars.m ?? 0, wgt = clamp((m.b ?? 0.5) * Math.abs(mv));
+    const x0 = small ? kr.left - r.left + kr.width / 2 : kr.right - r.left + 4, y0 = small ? kr.bottom - r.top + 4 : kr.top - r.top + kr.height / 2;
+    const c1 = small ? [x0, y0 + 90] : [x0 + 90, y0 - 50];
+    hud.bias.setAttribute('d', `M${x0.toFixed(1)} ${y0.toFixed(1)} C ${c1[0].toFixed(1)} ${c1[1].toFixed(1)}, ${(s.x - 50).toFixed(1)} ${(s.y - 90).toFixed(1)}, ${(s.x - 6).toFixed(1)} ${(s.y - 14).toFixed(1)}`);
+    hud.bias.setAttribute('stroke', mv >= 0 ? '#ffb454' : '#4aa8ff'); hud.bias.setAttribute('stroke-width', (1 + 6 * wgt).toFixed(1)); hud.bias.setAttribute('opacity', (0.25 + 0.7 * wgt).toFixed(2));
+  } else hud.bias.setAttribute('opacity', 0);
+  // clock + day/night strip
+  const ck = $('#clockico'), scn = story.nodes.get('scn');
+  ck.classList.toggle('on', !!H2.clock && !!scn);
+  if (H2.clock && scn) {
+    const s = proj(scn.pos); ck.style.transform = `translate(${(s.x - 34).toFixed(1)}px, ${(s.y - 6).toFixed(1)}px)`;
+    const day = story.sim.day || 0, jit = (1 - (m.clockEff ?? 1)) * Math.sin(now / 37) * 40;
+    hud.hand.setAttribute('transform', `rotate(${((day % 1) * 360 + jit).toFixed(1)} 15 15)`);
+  }
+  const ds = $('#daystrip'); ds.classList.toggle('on', !!H2.strip);
+  if (H2.strip) {
+    ds.style.left = small ? '10px' : '200px'; ds.style.right = '12px'; ds.style.top = `${fb.bot - 22}px`;
+    const g = hud.strip.getContext('2d'), cw = hud.strip.width, chh = hud.strip.height, day = story.sim.day || 0, ce = m.clockEff ?? 1, nf = 0.12 + 0.3 * ce, span = 4;
+    g.clearRect(0, 0, cw, chh);
+    for (let d = Math.floor(day) - 1; d < day + span + 1; d++) {
+      const x0 = (d - day) / span * cw, nx = (d + 1 - nf - day) / span * cw, x1 = (d + 1 - day) / span * cw;
+      g.fillStyle = '#35587d'; g.fillRect(x0, 0, nx - x0, chh); g.fillStyle = '#0b1119'; g.fillRect(nx, 0, x1 - nx, chh);
+    }
+  }
+  if (insetOn && story.insetTick) story.insetTick(m, now);
+  if (def.liveCaption && story.scene.live) { const c = def.liveCaption(story.vars, story.scene.live); if (c !== hud.lastLive) { hud.lastLive = c; setCaption(c); } }
+  $('#sbprog i').style.width = sc_progress();
+  if (now - (hud.syncT || 0) > 200) { hud.syncT = now; syncControls(); }
+}
+function sc_progress() { const sc = story.scene; return sc.free ? '100%' : `${clamp(story.t / sc.dur) * 100}%`; }
+
+// ---------- story bar ----------
+function setCaption(text) { $('#sbcap').textContent = text || ''; }
+function syncBar() {
+  const def = story.def; if (!def) return;
+  const sc = story.scene;
+  $('#sbtitle').textContent = sc.title;
+  $('#sbcount').textContent = `${story.i + 1} / ${def.scenes.length}`;
+  const seg = $('#sbstate');
+  if (seg.dataset.story !== def.id) { seg.innerHTML = def.states.map(s => `<button data-s="${s.id}">${s.label}</button>`).join(''); seg.dataset.story = def.id; }
+  $$('#sbstate button').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === story.stateId));
+  const pb = $('#sbplay'); pb.innerHTML = story.playing ? PAUSE_SVG : PLAY_SVG; pb.setAttribute('aria-label', story.playing ? 'Pause autoplay' : 'Play');
+  $('#sbprev').disabled = story.i === 0; $('#sbnext').disabled = story.i === def.scenes.length - 1;
+}
+function renderExtra(sc) {
+  const box = $('#sbextra'), ctl = sc.controls || [];
+  let html = '', row = [];
+  const flush = () => { if (row.length) { html += `<div class="sbrow">${row.join('')}</div>`; row = []; } };
+  ctl.forEach((c, i) => {
+    if (c.type === 'range') { flush(); html += `<div class="sbrow"><label><span>${c.label}</span><input type="range" data-i="${i}" min="${c.min ?? 0}" max="${c.max ?? 1}" step="${c.step ?? 0.01}" aria-label="${c.label}"></label></div>`; }
+    else if (c.type === 'toggle') row.push(`<button class="btn" data-i="${i}" aria-pressed="false">${c.label}</button>`);
+    else if (c.type === 'button') row.push(`<button class="btn" data-i="${i}">${c.label}</button>`);
+    else if (c.type === 'presets') { flush(); html += `<div class="sbrow">${c.items.map((it, j) => `<button class="btn" data-i="${i}" data-j="${j}">${it.label}</button>`).join('')}</div>`; }
+    else if (c.type === 'note') { flush(); html += `<div class="sbnote">${c.html}</div>`; }
+  });
+  flush(); box.innerHTML = html;
+  $$('input[type=range]', box).forEach(inp => { const c = ctl[+inp.dataset.i]; inp.value = story.vars[c.var] ?? c.min ?? 0; });
+}
+function syncControls() {
+  const sc = story.scene; if (!sc || !sc.controls) return;
+  $$('#sbextra [data-i]').forEach(el => {
+    const c = sc.controls[+el.dataset.i];
+    if (c.type === 'toggle') el.setAttribute('aria-pressed', (story.vars[c.var] ?? 0) > 0.5);
+    if (c.type === 'range' && document.activeElement !== el && !story.tweens.some(tw => tw.k === c.var) && Math.abs(+el.value - (story.vars[c.var] ?? 0)) > 0.02) el.value = story.vars[c.var] ?? 0;
+  });
+}
+$('#sbextra').addEventListener('input', e => {
+  const el = e.target.closest('input[type=range]'); if (!el) return;
+  const c = story.scene.controls[+el.dataset.i];
+  story.tweens = story.tweens.filter(tw => tw.k !== c.var); story.vars[c.var] = +el.value;
+});
+$('#sbextra').addEventListener('click', e => {
+  const el = e.target.closest('button[data-i]'); if (!el) return;
+  const c = story.scene.controls[+el.dataset.i];
+  if (c.type === 'toggle') { tweenVar(c.var, (story.vars[c.var] ?? 0) > 0.5 ? 0 : 1, 0.8); if (c.after) c.after(story); }
+  else if (c.type === 'button') c.do(story);
+  else if (c.type === 'presets') { const it = c.items[+el.dataset.j]; for (const [k, v] of Object.entries(it.set)) tweenVar(k, v, 0.6); }
+  syncControls();
+});
+$('#sbstate').addEventListener('click', e => {
+  const b = e.target.closest('[data-s]'); if (!b) return;
+  applyState(b.dataset.s); story.playing = false; syncBar();
+});
+$('#sbprev').addEventListener('click', () => gotoScene(story.i - 1));
+$('#sbnext').addEventListener('click', () => gotoScene(story.i + 1));
+$('#sbreplay').addEventListener('click', () => gotoScene(story.i, { play: true }));
+$('#sbplay').addEventListener('click', () => { story.playing = !story.playing; if (story.playing && !story.scene.free && story.t >= story.scene.dur) gotoScene(story.i + 1); syncBar(); });
+$('#sbclose').addEventListener('click', () => endStory());
+
+// ---------- inset cards ----------
+function renderInset(kind) {
+  const el = $('#inset'); story.insetTick = null;
+  if (!kind) { el.hidden = true; el.innerHTML = ''; requestAnimationFrame(resize); return; }
+  const k = typeof kind === 'string' ? kind : kind.kind;
+  if (k === 'html') el.innerHTML = kind.html;
+  else if (story.def.insets && story.def.insets[k]) { const r = story.def.insets[k](story); el.innerHTML = r.html; story.insetTick = r.tick || null; }
+  el.hidden = false; requestAnimationFrame(resize);
+}
+
+// ---------- start / end ----------
+function startStory(id, i = 0, opts = {}) {
+  const def = STORIES.find(s => s.id === id); if (!def) return;
+  if (state.quiz) stopQuiz();
+  if (story.def) endStory(false);
+  endCircuit(false);
+  story.snapshot = { level: new Map(state.level), hemi: state.hemi, preset: state.preset };
+  state.netMode = 'off'; state.rec = null; state.drug = null; syncDrugs(); if (slice) slice.material.uniforms.petOn.value = 0;
+  state.sel = null; state.cut = 'off'; applyCut();
+  story.def = def; story.vars = { ...def.vars }; story.tweens = []; story.flash = {}; story.flashNeg = {};
+  const solid = new Set([...Object.values(def.nodes).filter(n => n.key && !n.ghost).map(n => n.key), ...(def.cast || [])]);
+  const ghostK = new Set([...Object.values(def.nodes).filter(n => n.key && n.ghost).map(n => n.key), ...(def.ghostCast || [])]);
+  setLevels(all, 0); setLevels(cortex, 1); setLevels([...ghostK], 1); setLevels([...solid], 2);
+  state.hemi = def.hemi || 'L'; state.preset = null;
+  storyMeshes = meshes.filter(mm => solid.has(mm.userData.key) || ghostK.has(mm.userData.key));
+  document.body.classList.add('story'); $('#storybar').hidden = false;
+  if (innerWidth <= 760) $('#panel').classList.add('min');
+  buildStory(def); initHud();
+  syncAll(); syncStories();
+  gotoScene(i, { instant: true, play: !opts.paused });
+  if (opts.t) fastForward(opts.t);
+  syncBar();
+}
+function endStory(restore = true) {
+  if (!story.def) return;
+  for (const mesh of storyMeshes) { const mat = mesh.material; mat.color.set(mesh.userData.st.color); mat.emissive.set(0xffe6bf); mat.emissiveIntensity = 0; mat.userData.sl = false; }
+  if (tintOn) untint();
+  clearTokens(); clearStory3D(); clearHud(); renderInset(null);
+  story.def = null; story.scene = null; storyMeshes = [];
+  document.body.classList.remove('story'); $('#storybar').hidden = true;
+  if (restore && story.snapshot) { state.level = story.snapshot.level; state.hemi = story.snapshot.hemi; state.preset = story.snapshot.preset; }
+  story.snapshot = null; lastNetMode = null;
+  syncAll(); syncStories(); requestAnimationFrame(() => { resize(); setView('iso'); });
+}
+$('#stories').innerHTML = STORIES.map(s => `<button class="net" data-st="${s.id}" aria-pressed="false"><span class="dot" style="background:${s.color}"></span><b>${s.name}</b><span class="d">${s.desc}</span></button>`).join('');
+$('#stories').addEventListener('click', e => { const b = e.target.closest('[data-st]'); if (!b) return; story.def?.id === b.dataset.st ? endStory() : startStory(b.dataset.st); });
+function syncStories() { $$('#stories .net').forEach(b => b.setAttribute('aria-pressed', b.dataset.st === story.def?.id)); }
+function storyFromHash() {
+  const h = new URLSearchParams(location.hash.slice(1)), id = h.get('story');
+  if (!id || !STORIES.find(s => s.id === id)) return;
+  startStory(id, Math.max(0, (+h.get('scene') || 1) - 1), { paused: h.get('pause') === '1', t: +h.get('t') || 0 });
+}
+
 
 // ---------------- start ----------------
 if (innerWidth <= 760) $('#panel').classList.add('min');
@@ -1482,7 +2613,8 @@ requestAnimationFrame(frame);
     $('#petnote').textContent = 'This browser cannot unpack the receptor maps (it lacks DecompressionStream), so drug mode is unavailable here.';
   }
 })();
-window.__atlas = { state, select, applyPreset, setView, syncAll, startCircuit, endCircuit, setReceptor, selectDrug };
+window.__atlas = { state, select, applyPreset, setView, syncAll, startCircuit, endCircuit, setReceptor, selectDrug, story, STORIES, startStory, endStory, gotoScene, freeBand, camera, structs, centroid, mni2three };
+storyFromHash();
 </script>
 </body>
 </html>

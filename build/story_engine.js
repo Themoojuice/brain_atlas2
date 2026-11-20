@@ -1,0 +1,594 @@
+// ================= animated stories =================
+// A story = nodes (atlas structures or approximate points) + signed edges + a small state model + scenes with timed beats.
+// Every visual (edge thickness, particle rate, glow, dot grid, dial, token size) is computed from the model each frame,
+// so scenes, state switches and free play all stay consistent with one another.
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const easeIO = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+const SIGN = {
+  '+':    { col: '#ff9f43', cap: 'arrow' },               // excitatory (glutamate)
+  '-':    { col: '#4aa8ff', cap: 'bar' },                 // inhibitory (GABA)
+  da:     { col: '#ffd34d', cap: 'arrow', packets: true },// dopamine
+  ctl:    { col: '#b48cff', cap: 'arrow', dash: true },   // net top-down regulation
+  spiral: { col: '#c9b27a', cap: 'arrow', dash: true },   // proposed / untested link
+  clock:  { col: '#3fd0c9', cap: 'arrow', dash: true },   // circadian input, schematic
+  '5ht':  { col: '#ff8fb1', cap: 'arrow', packets: true },// serotonin
+};
+const ICONS = {
+  wave: '<svg viewBox="0 0 24 24"><circle cx="11" cy="5.5" r="2.6"/><path d="M11 8.5v7.5M11 16l-3 5M11 16l3 5M11 11l-4 2.5M11 11l5-4.5"/></svg>',
+  car: '<svg viewBox="0 0 24 24"><path d="M3 15.5h18v-3.5l-2.2-4.2H6.2L4 12H3z"/><circle cx="7.5" cy="16.5" r="1.9"/><circle cx="16.5" cy="16.5" r="1.9"/></svg>',
+  plate: '<svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M5.5 10.5v3M8 10.5v3M11 10.5h2.5v3H11M16 10.5h2.5M16 12h2.5M16 13.5h2.5"/></svg>',
+  radio: '<svg viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="11" rx="2"/><circle cx="9" cy="14.5" r="2.8"/><path d="M14.5 12.5h3.5M14.5 15h3.5M14.5 17.5h3.5M7 9l9-5"/></svg>',
+  coin: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5l1.4 2.9 3.1.4-2.3 2.2.6 3.1-2.8-1.5-2.8 1.5.6-3.1-2.3-2.2 3.1-.4z"/></svg>',
+  cloud: '<svg viewBox="0 0 24 24"><path d="M7 17.5h10a4 4 0 0 0 .4-8 5.5 5.5 0 0 0-10.6 1.6A3.3 3.3 0 0 0 7 17.5z"/><path d="M9 20l-1 2M13 20l-1 2"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24"><path d="M13 2L5 13.5h6L10 22l8-11.5h-6z"/></svg>',
+};
+const story = { def: null, i: 0, t: 0, playing: true, vars: {}, tweens: [], m: {}, group: new THREE.Group(), edges: new Map(), nodes: new Map(),
+  tokens: [], fx: {}, hud: {}, beatIdx: 0, scene: null, focus: null, show: [], labelSet: new Set(), last: 0, snapshot: null, flash: {}, flashNeg: {},
+  rand: Math.random, sim: {}, stateId: null, tags: {}, camNow: null, framePending: false, instant: false };
+scene.add(story.group);
+let storyMeshes = [];
+const TINT_KEYS = new Set(['Caudate_nucleus', 'Putamen', 'Nucleus_accumbens']);
+const HEAT = new THREE.Color('#ff8a3d'), DIMC = new THREE.Color('#1c2330'), GOLD = new THREE.Color('#ffc21a'), tmpC = new THREE.Color();
+const TERR = [new THREE.Color('#3fd0a6'), new THREE.Color('#a98bff'), new THREE.Color('#5b7cff')];   // limbic, associative, sensorimotor
+const pv3 = new THREE.Vector3();
+
+// ---------- building the 3D layer ----------
+function nodePos(n) { return mni2three(n.mni || centroid(n.key, story.def.hemi || 'L')); }
+function makeLabel(text, cls = '') { const el = document.createElement('div'); el.className = 'slab ' + cls; el.textContent = text; $('#labels').append(el); return el; }
+function edgeMat(sign, len) {
+  const S = SIGN[sign];
+  return new THREE.ShaderMaterial({
+    uniforms: { ph: { value: 0 }, col: { value: new THREE.Color(S.col) }, len: { value: len }, act: { value: 0.5 }, w: { value: 1 }, vis: { value: 0 },
+      dash: { value: S.dash ? 1 : 0 }, pk: { value: S.packets ? 1 : 0 }, fl: { value: 0 }, neg: { value: 0 } },
+    vertexShader: 'uniform float w; varying vec2 vUv; void main(){ vUv = uv; vec3 p = position + normal * (w - 1.0) * 0.7; gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }',
+    fragmentShader: `uniform float ph; uniform vec3 col; uniform float len; uniform float act; uniform float vis; uniform float dash; uniform float pk; uniform float fl; uniform float neg; varying vec2 vUv;
+      void main(){
+        float s = vUv.x * len;
+        float x = fract(s / (pk > 0.5 ? 15.0 : 9.0) - ph);
+        float p = pk > 0.5 ? smoothstep(0.0, 0.05, x) * (1.0 - smoothstep(0.05, 0.2, x)) : smoothstep(0.0, 0.12, x) * (1.0 - smoothstep(0.12, 0.6, x));
+        float a = 0.2 + 0.3 * act + (0.3 + 0.9 * act) * p + 0.9 * fl;
+        if (dash > 0.5 && fract(s / 4.0) > 0.55) a *= 0.12;
+        vec3 c = mix(col, vec3(0.32, 0.42, 0.58), neg);
+        gl_FragColor = vec4(c * (0.45 + 1.25 * p * (0.35 + act) + 1.2 * fl), a * vis);
+      }`,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  });
+}
+function buildStory(def) {
+  clearStory3D();
+  for (const [id, n] of Object.entries(def.nodes)) {
+    const p = nodePos(n);
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(n.r || 1.5, 16, 12), new THREE.MeshBasicMaterial({ color: n.dot || '#e7edf4', transparent: true, opacity: 0, depthWrite: false }));
+    dot.position.copy(p); dot.renderOrder = 6; dot.visible = false; story.group.add(dot);
+    story.nodes.set(id, { id, def: n, pos: p, dot, label: n.label ? makeLabel(n.label, n.hot ? 'hot' : '') : null, vis: 0 });
+  }
+  for (const e of def.edges) {
+    const a = story.nodes.get(e.from), b = story.nodes.get(e.to), S = SIGN[e.sign];
+    const curve = new THREE.CatmullRomCurve3([a.pos, ...(e.via || []).map(v => mni2three(v)), b.pos], false, 'centripetal');
+    const len = curve.getLength(), mat = edgeMat(e.sign, len);
+    const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(40, Math.round(len * 1.4)), 0.7, 8, false), mat);
+    tube.renderOrder = 5; tube.visible = false; story.group.add(tube);
+    const cap = new THREE.Mesh(S.cap === 'bar' ? new THREE.CylinderGeometry(2.3, 2.3, 0.9, 20) : new THREE.ConeGeometry(1.7, 3.8, 14),
+      new THREE.MeshBasicMaterial({ color: S.col, transparent: true, opacity: 0, depthWrite: false }));
+    const tEnd = clamp(1 - ((b.def.r || 1.5) * 2.4) / len, 0.6, 0.97);
+    cap.position.copy(curve.getPointAt(tEnd));
+    cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), curve.getTangentAt(tEnd).normalize());
+    cap.renderOrder = 6; cap.visible = false; story.group.add(cap);
+    story.edges.set(e.id, { id: e.id, def: e, curve, len, tube, mat, cap, vis: 0, ph: Math.random(), act: 0, tag: makeLabel('', 'tag') });
+  }
+  // parvalbumin interneuron ring
+  story.ring = [];
+  if (def.ring) {
+    const c = story.nodes.get(def.ring).pos;
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * Math.PI * 2, s = new THREE.Mesh(new THREE.SphereGeometry(0.9, 10, 8), new THREE.MeshBasicMaterial({ color: '#6cc4ff', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+      s.position.set(c.x + Math.cos(a) * 7, c.y + Math.sin(a) * 6, c.z + Math.sin(a * 2) * 2); s.renderOrder = 7; s.visible = false; story.group.add(s); story.ring.push(s);
+    }
+  }
+  // D2 receptor shields: small hexagon caps on the striatal surface
+  story.shields = [];
+  if (def.shieldOn) {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d');
+    g.strokeStyle = '#9fd3ff'; g.fillStyle = 'rgba(74,168,255,0.55)'; g.lineWidth = 5; g.beginPath();
+    for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; g[k ? 'lineTo' : 'moveTo'](32 + 26 * Math.cos(a), 32 + 26 * Math.sin(a)); }
+    g.closePath(); g.fill(); g.stroke();
+    const tex = new THREE.CanvasTexture(cv);
+    let n = 0;
+    for (const [key, count, test] of def.shieldOn) {
+      const mesh = (byKey.get(key) || []).find(mm => mm.userData.hemi === (def.hemi || 'L')); if (!mesh) continue;
+      const pos = mesh.geometry.attributes.position, nor = mesh.geometry.attributes.normal, cand = [];
+      for (let i = 0; i < pos.count; i += 3) { const v = new THREE.Vector3().fromBufferAttribute(pos, i); if (!test || test(three2mni(v))) cand.push(i); }
+      const R = rng(77 + n++);
+      for (let k = 0; k < count && cand.length; k++) {
+        const i = cand.splice(Math.floor(R() * cand.length), 1)[0];
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false }));
+        sp.position.fromBufferAttribute(pos, i).addScaledVector(new THREE.Vector3().fromBufferAttribute(nor, i), 1.6);
+        sp.scale.setScalar(0.01); sp.renderOrder = 8; sp.userData.delay = k * 0.06; story.group.add(sp); story.shields.push(sp);
+      }
+    }
+  }
+}
+function clearStory3D() {
+  for (const o of [...story.group.children]) { o.geometry?.dispose(); if (o.material) { o.material.map?.dispose?.(); o.material.dispose(); } story.group.remove(o); }
+  story.edges.clear(); story.nodes.clear(); $('#labels').innerHTML = '';
+}
+
+// ---------- tokens ----------
+function spawnToken(t) {
+  const a = story.nodes.get(t.from), b = story.nodes.get(t.to); if (!a || !b) return null;
+  const curve = new THREE.CatmullRomCurve3([a.pos, ...(t.via || []).map(v => mni2three(v)), b.pos], false, 'centripetal');
+  const el = document.createElement('div'); el.className = 'tok'; el.innerHTML = (ICONS[t.icon] || '') + '<span class="bang">!</span>';
+  const ring = document.createElement('div'); ring.className = 'ghostring';
+  $('#tokens').append(ring, el);
+  const tok = { dur: 2.2, life: 3, ...t, curve, el, ring, t0: story.t, size: 1, target: 1, arrived: false, off: t.off ? new THREE.Vector3(...t.off) : null, pos: new THREE.Vector3() };
+  story.tokens.push(tok); return tok;
+}
+function clearTokens() { for (const tk of story.tokens) { tk.el.remove(); tk.ring.remove(); } story.tokens = []; }
+story.spawn = spawnToken;
+story.flashEdge = (id, mag, neg = false) => { story.flash[id] = Math.max(story.flash[id] || 0, mag); story.flashNeg[id] = neg ? 1 : 0; };
+story.setState = id => { story.stateId = id; syncBar(); };
+
+// ---------- vars, tweens, scenes ----------
+function tweenVar(k, to, dur = 1.2) {
+  story.tweens = story.tweens.filter(tw => tw.k !== k);
+  if (dur <= 0 || reduceMotion || story.instant || (story.def.discrete || []).includes(k)) { story.vars[k] = to; return; }
+  story.tweens.push({ k, from: story.vars[k] ?? 0, to, t0: performance.now(), dur: dur * 1000 });
+}
+function stepTweens(now) {
+  story.tweens = story.tweens.filter(tw => { const e = clamp((now - tw.t0) / tw.dur); story.vars[tw.k] = lerp(tw.from, tw.to, easeIO(e)); return e < 1; });
+}
+function applyState(id, dur = 0.9) {
+  const st = story.def.states.find(s => s.id === id); if (!st) return;
+  for (const [k, v] of Object.entries(st.vars)) tweenVar(k, v, dur);
+  story.stateId = id;
+}
+function frameCam(cam, animate = true) {
+  if (!cam || !story.def) return;
+  const ids = cam.fit || (cam.target ? [cam.target] : [...story.nodes.keys()].filter(k => !story.def.nodes[k].nofit));
+  const pts = ids.map(id => story.nodes.get(id)?.pos).filter(Boolean);
+  const sp = sphereOf(pts, cam.r || 24, cam.pad ?? 9);
+  frameSphere(sp.center, sp.radius, cam.dir || story.def.view, animate && !story.instant, cam.dur || 1000);
+}
+function gotoScene(i, opts = {}) {
+  const def = story.def; if (!def) return;
+  i = clamp(i, 0, def.scenes.length - 1);
+  const sc = def.scenes[i];
+  story.i = i; story.t = 0; story.beatIdx = 0; story.scene = sc; story.rand = rng(1000 + i * 7919); story.sim = {};
+  story.instant = !!opts.instant;
+  const target = { ...def.vars, ...((def.states.find(s => s.id === sc.state) || {}).vars || {}), ...(sc.set || {}) };
+  for (const [k, v] of Object.entries(target)) tweenVar(k, v, sc.ease ?? 0.9);
+  story.stateId = sc.state;
+  story.show = sc.show === 'all' ? [...story.edges.keys()] : (sc.show || []);
+  story.focus = sc.focus || null; story.labelSet = new Set(sc.labels || []); story.tags = { ...(sc.tags || {}) };
+  story.fx = { ...(sc.fx || {}) }; story.hud = { ...(def.hud || {}), ...(sc.hud || {}) };
+  story.flash = {}; story.flashNeg = {};
+  clearTokens(); setCaption(sc.caption); renderExtra(sc); renderInset(sc.inset || null); syncBar();
+  story.camNow = sc.cam || { dir: def.view }; story.framePending = true;
+  const anim = !opts.instant;
+  requestAnimationFrame(() => { story.framePending = false; resize(); frameCam(story.camNow, anim); });
+  story.instant = false;
+  if (opts.play !== undefined) story.playing = opts.play;
+}
+function applyBeat(b) {
+  if (b.caption) setCaption(b.caption);
+  if (b.focus !== undefined) story.focus = b.focus;
+  if (b.show) story.show = b.show === 'all' ? [...story.edges.keys()] : b.show;
+  if (b.labels) for (const l of b.labels) story.labelSet.add(l);
+  if (b.tags) Object.assign(story.tags, b.tags);
+  if (b.cam) { story.camNow = b.cam; if (!story.framePending) frameCam(b.cam, !story.instant); }
+  if (b.tween) for (const [k, v] of Object.entries(b.tween)) Array.isArray(v) ? tweenVar(k, v[0], v[1]) : tweenVar(k, v);
+  if (b.set) Object.assign(story.vars, b.set);
+  if (b.fx) Object.assign(story.fx, b.fx);
+  if (b.hud) Object.assign(story.hud, b.hud);
+  if (b.state) story.stateId = b.state, syncBar();
+  if (b.token) spawnToken(b.token);
+  if (b.inset !== undefined) renderInset(b.inset);
+  if (b.do) b.do(story);
+}
+function fastForward(t) {
+  story.instant = true;
+  for (let x = 0; x < t; x += 0.1) {
+    story.t += 0.1;
+    const beats = story.scene.beats || [];
+    while (story.beatIdx < beats.length && beats[story.beatIdx].at <= story.t) applyBeat(beats[story.beatIdx++]);
+    for (const tw of story.tweens) story.vars[tw.k] = tw.to; story.tweens = [];
+    story.m = story.def.model(story.vars, story);
+    if (story.def.tick) story.def.tick(0.1, story.vars, story.m, story);
+    for (const tk of story.tokens) if (story.t - tk.t0 >= tk.dur && !tk.arrived) arrive(tk);
+  }
+  story.instant = false;
+}
+function arrive(tk) {
+  tk.arrived = true;
+  tk.target = story.def.salience ? story.def.salience(tk.kind, story.m, story) : 1;
+  if (tk.flash) story.flashEdge(tk.flash, clamp(tk.target - 0.55), false);
+  if (tk.onArrive) tk.onArrive(story, tk);
+}
+
+// ---------- per-frame ----------
+const shownE = id => story.show.includes(id);
+const focusedId = id => !story.focus || story.focus.includes(id);
+function storyFrame(now) {
+  const dt = Math.min(0.1, (now - (story.last || now)) / 1000); story.last = now;
+  const def = story.def, sc = story.scene;
+  if (story.playing) {
+    story.t += dt;
+    const beats = sc.beats || [];
+    while (story.beatIdx < beats.length && beats[story.beatIdx].at <= story.t) applyBeat(beats[story.beatIdx++]);
+  }
+  stepTweens(now);
+  story.m = def.model(story.vars, story);
+  if (story.playing && def.tick) def.tick(dt, story.vars, story.m, story);
+  if (story.playing && !sc.free && story.t >= sc.dur + (sc.hold ?? 1.5)) {
+    if (story.i < def.scenes.length - 1) gotoScene(story.i + 1); else { story.playing = false; syncBar(); }
+  }
+  applyLook(dt, now);
+  updateHud(dt, now);
+}
+function applyLook(dt, now) {
+  const m = story.m, def = story.def, k = 1 - Math.exp(-dt * 5);
+  for (const E of story.edges.values()) {
+    const e = E.def, on = shownE(e.id), tgt = on ? (focusedId(e.id) ? 1 : 0.2) : 0;
+    E.vis += (tgt - E.vis) * k;
+    E.act += (clamp(e.act ? e.act(m) : 0.5) - E.act) * k;
+    const w = e.w ? e.w(m) : 0.55 + 1.15 * E.act;
+    let fl = story.flash[e.id] || 0; if (fl) story.flash[e.id] = Math.max(0, fl - dt * 1.3);
+    if (!reduceMotion) E.ph += dt * (0.15 + 1.5 * E.act);
+    const u = E.mat.uniforms; u.ph.value = E.ph; u.act.value = E.act; u.w.value = w; u.vis.value = E.vis; u.fl.value = Math.min(1, fl); u.neg.value = story.flashNeg[e.id] || 0;
+    const vis = E.vis > 0.01; E.tube.visible = E.cap.visible = vis;
+    E.cap.material.opacity = 0.85 * E.vis; E.cap.scale.setScalar(0.75 + 0.45 * w);
+  }
+  for (const N of story.nodes.values()) {
+    let touched = false; for (const E of story.edges.values()) if ((E.def.from === N.id || E.def.to === N.id) && shownE(E.def.id)) { touched = true; break; }
+    const tgt = (touched || story.labelSet.has(N.id)) && !N.def.noDot ? (focusedId(N.id) ? 0.9 : 0.35) : 0;
+    N.vis += (tgt - N.vis) * k; N.dot.material.opacity = N.vis; N.dot.visible = N.vis > 0.01;
+  }
+  const look = def.look ? def.look(m, story) : {};
+  for (const mesh of storyMeshes) {
+    const key = mesh.userData.key, L = look[key], mat = mesh.material, st = mesh.userData.st, tinted = story.hud.tint && TINT_KEYS.has(key);
+    if (!L) { if (mat.userData.sl) { if (!tinted) mat.color.set(st.color); mat.userData.sl = false; } continue; }
+    mat.userData.sl = true;
+    if (!tinted) { tmpC.set(st.color); if (L.heat) tmpC.lerp(HEAT, clamp(L.heat)); if (L.dim) tmpC.lerp(DIMC, clamp(L.dim)); mat.color.copy(tmpC); }
+    mat.emissive.set(L.ec || '#ffb454'); mat.emissiveIntensity = Math.max(mat.emissiveIntensity, clamp(L.glow || 0) * 0.9);
+    if (L.op !== undefined && mat.transparent) mat.opacity = L.op;
+  }
+  if (story.hud.tint) tintStriatum(m, now); else if (tintOn) untint();
+  if (story.ring.length) {
+    const pvN = (story.vars.pv ?? 1) * 8, on = !!story.hud.ring;
+    story.ring.forEach((s, i) => {
+      const alive = i < pvN - 0.5 || (i < pvN + 0.5 && Math.sin(now / 90 + i * 3) > 0);
+      const tgt = on && alive ? 0.95 : 0; s.material.opacity += (tgt - s.material.opacity) * k * 1.6; s.visible = s.material.opacity > 0.02;
+      s.scale.setScalar(0.85 + 0.25 * Math.sin(now / 240 + i));
+    });
+  }
+  if (story.shields.length) {
+    const d2 = story.hud.shields ? (story.vars.d2 ?? 0) : 0;
+    story.shields.forEach(sp => { const tgt = clamp(d2 * 1.25 - sp.userData.delay) * 3.4; sp.scale.setScalar(Math.max(0.01, sp.scale.x + (tgt - sp.scale.x) * k * 1.5)); sp.visible = sp.scale.x > 0.05; });
+  }
+}
+let tintOn = false;
+// Oklab mixing: lavender → gold passes through a neutral grey instead of pink
+function toLab(c) { const l = Math.cbrt(0.4122214708 * c.r + 0.5363325363 * c.g + 0.0514459929 * c.b), m = Math.cbrt(0.2119034982 * c.r + 0.6806995451 * c.g + 0.1073969566 * c.b), s = Math.cbrt(0.0883024619 * c.r + 0.2817188376 * c.g + 0.6299787005 * c.b);
+  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s]; }
+function fromLab([L, A, B], out) { const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3, m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3, s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
+  return out.setRGB(clamp(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s), clamp(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s), clamp(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s), THREE.LinearSRGBColorSpace); }
+const TERR_LAB = TERR.map(toLab), GOLD_LAB = toLab(GOLD);
+const terrCache = new Map();
+function territories(mesh) {
+  if (terrCache.has(mesh)) return terrCache.get(mesh);
+  const p = mesh.geometry.attributes.position, key = mesh.userData.key, out = new Uint8Array(p.count), v = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    const [, y, z] = three2mni(v.fromBufferAttribute(p, i));
+    out[i] = key === 'Nucleus_accumbens' ? 0 : key === 'Caudate_nucleus' ? (z < 2 && y > 8 ? 0 : 1) : (y < -2 ? 2 : z < -3 ? 0 : 1);
+  }
+  terrCache.set(mesh, out); return out;
+}
+function tintStriatum(m, now) {
+  tintOn = true;
+  const lv = [m.limbicDA ?? 0.4, m.assocDA ?? 0.4, 0.3], pulse = 0.88 + 0.12 * Math.sin(now / 300);
+  for (const mesh of storyMeshes) {
+    if (!TINT_KEYS.has(mesh.userData.key)) continue;
+    const mat = mesh.material, ter = territories(mesh), arr = mesh.geometry.attributes.color.array;
+    if (!mat.vertexColors) { mat.vertexColors = true; mat.needsUpdate = true; }
+    mat.color.set(0xffffff);
+    for (let i = 0; i < ter.length; i++) {
+      // reach pure gold at high dopamine (mixing gold with the blue-ish base in linear space reads as peach)
+      const g = clamp((lv[ter[i]] - 0.38) / 0.3), A = TERR_LAB[ter[i]];
+      fromLab([A[0] + (GOLD_LAB[0] - A[0]) * g, A[1] + (GOLD_LAB[1] - A[1]) * g, A[2] + (GOLD_LAB[2] - A[2]) * g], tmpC).multiplyScalar(g > 0.05 ? pulse : 1);
+      arr[i * 3] = tmpC.r; arr[i * 3 + 1] = tmpC.g; arr[i * 3 + 2] = tmpC.b;
+    }
+    mesh.geometry.attributes.color.needsUpdate = true;
+  }
+}
+function untint() {
+  tintOn = false;
+  for (const mesh of storyMeshes) if (TINT_KEYS.has(mesh.userData.key)) { mesh.material.vertexColors = false; mesh.material.needsUpdate = true; mesh.material.color.set(mesh.userData.st.color); }
+}
+
+// ---------- heads-up layer ----------
+// Phones: one strip across the top (counted as an obstruction, so the camera frames below it).
+// Desktop: a column down the left edge. Labels are decluttered every frame and keep a leader line to their node.
+const hud = {};
+const isSmall = () => innerWidth <= 760;
+const PLAY_SVG = '<svg viewBox="0 0 20 20"><path d="M6 4l10 6-10 6z"/></svg>', PAUSE_SVG = '<svg viewBox="0 0 20 20"><path d="M6 4v12M14 4v12" stroke-width="3"/></svg>';
+function initHud() {
+  const P = (a, R, cx = 54, cy = 52) => [cx + R * Math.cos(a), cy - R * Math.sin(a)];
+  const arc = (a0, a1, col) => { const [x0, y0] = P(a0, 42), [x1, y1] = P(a1, 42); return `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} A42 42 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}" stroke="${col}" stroke-width="7" fill="none"/>`; };
+  $('#dial').innerHTML = `<div class="t">Dopamine gain</div><svg viewBox="0 0 108 60">${arc(Math.PI, 0.62 * Math.PI, '#4aa8ff')}${arc(0.62 * Math.PI, 0.38 * Math.PI, '#5d6878')}${arc(0.38 * Math.PI, 0, '#ffd34d')}
+    <line id="draw" x1="54" y1="52" x2="54" y2="12" stroke="#e7edf4" stroke-width="2" stroke-dasharray="3 3" opacity="0"/>
+    <line id="dneedle" x1="54" y1="52" x2="54" y2="16" stroke="#e7edf4" stroke-width="3" stroke-linecap="round"/><circle cx="54" cy="52" r="4.5" fill="#e7edf4"/></svg><div id="dword" class="mono" style="font-size:10.5px;margin-top:-1px;line-height:1.25"></div>`;
+  hud.needle = $('#dneedle'); hud.raw = $('#draw'); hud.word = $('#dword'); hud.P = P;
+  $('#grid').innerHTML = Array.from({ length: 25 }, () => '<i></i>').join('') + '<div class="cap">dopamine neurons awake</div>';
+  hud.dots = $$('#grid i');
+  $('#ledger').innerHTML = '<span class="p">+</span>&thinsp;<span>×</span>&thinsp;<span class="m">−</span>&thinsp;<span>×</span>&thinsp;<span class="m">−</span>&thinsp;<span class="r">= +</span>';
+  hud.ledger = $$('#ledger span');
+  $('#moodbar').innerHTML = '<div class="lab">Mood</div><div class="track"><div class="zero"></div><div class="knob"></div></div><div class="lab">running total of surprises</div>';
+  hud.knob = $('#moodbar .knob'); hud.track = $('#moodbar .track');
+  $('#seesaw').innerHTML = `<div class="t" style="text-align:center">Network balance</div><svg viewBox="0 0 180 56">
+    <text x="4" y="11" fill="#e7edf4" font-size="10.5">Default mode</text><text x="176" y="11" fill="#e7edf4" font-size="10.5" text-anchor="end">Sensorimotor</text>
+    <polygon points="90,46 81,55 99,55" fill="#5d6878"/>
+    <g id="beam"><line x1="18" y1="44" x2="162" y2="44" stroke="#c9d4e2" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="35" r="7.5" fill="#cd3e4e"/><circle cx="154" cy="35" r="7.5" fill="#6fa8ff"/></g></svg>
+    <div class="src">resting-state variability, Martino 2016</div>`;
+  hud.beam = $('#beam');
+  $('#clockico').innerHTML = '<svg viewBox="0 0 30 30"><circle cx="15" cy="15" r="12" fill="rgba(10,15,22,0.85)" stroke="#3fd0c9" stroke-width="2"/><line id="chand" x1="15" y1="15" x2="15" y2="6" stroke="#3fd0c9" stroke-width="2.4" stroke-linecap="round"/><circle cx="15" cy="15" r="2" fill="#3fd0c9"/></svg>';
+  hud.hand = $('#chand');
+  $('#daystrip').innerHTML = '<canvas width="600" height="32"></canvas><span class="lab">day / night</span>';
+  hud.strip = $('#daystrip canvas');
+  hud.datLabel = makeLabel('Dopamine transporter ↑ (faster clearance)', 'tag');
+  $('#hudsvg').innerHTML = `<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
+    <g id="leaders"></g><path id="gridlead" fill="none" stroke="#ffd34d" stroke-width="1.2" stroke-dasharray="3 4" opacity="0"/><path id="bias" fill="none" stroke-linecap="round" marker-end="url(#ah)" opacity="0"/><g id="threads"></g>`;
+  hud.bias = $('#bias'); hud.threads = $('#threads'); hud.leaders = $('#leaders'); hud.gridlead = $('#gridlead');
+  if (!hud.ro && typeof ResizeObserver !== 'undefined') {
+    hud.ro = new ResizeObserver(() => { document.body.style.setProperty('--sb-h', `${Math.round($('#storybar').getBoundingClientRect().height)}px`); _fbc = null; resize(); });
+    for (const sel of ['#storybar', '#inset', '#hudrow']) hud.ro.observe($(sel));
+  }
+}
+function clearHud() {
+  for (const id of ['#dial', '#ledger', '#moodbar', '#seesaw', '#grid', '#clockico', '#daystrip']) $(id).classList.remove('on');
+  $('#hudsvg').innerHTML = ''; $('#tokens').innerHTML = ''; $('#labels').innerHTML = '';
+}
+// push overlapping labels apart vertically, keep them inside the uncovered strip
+function declutter(items, fb, W) {
+  for (const it of items) { it.x = clamp(it.ax - it.w / 2, 2, W - it.w - 2); it.y = it.below ? it.ay + 9 : it.ay - it.h - 9; }
+  for (let pass = 0; pass < 8; pass++) {
+    let moved = false; items.sort((a, b) => a.y - b.y);
+    for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+      const a = items[i], b = items[j];
+      if (a.x < b.x + b.w + 4 && b.x < a.x + a.w + 4 && a.y < b.y + b.h + 3 && b.y < a.y + a.h + 3) { const dy = (a.y + a.h + 3 - b.y) / 2 + 0.5; a.y -= dy; b.y += dy; moved = true; }
+    }
+    for (const it of items) it.y = clamp(it.y, fb.top + 2, fb.bot - it.h - 2);
+    if (!moved) break;
+  }
+}
+function measure(el) { if (el._t !== el.textContent) { el._t = el.textContent; el._w = el.offsetWidth; el._h = el.offsetHeight; } return [el._w || 60, el._h || 20]; }
+function updateHud(dt, now) {
+  const r = canvas.getBoundingClientRect(), W = r.width, H = r.height, m = story.m, H2 = story.hud, def = story.def, small = isSmall();
+  const fb = freeBandCached();
+  const proj = p => { pv3.copy(p).project(camera); return { x: (pv3.x + 1) / 2 * W, y: (1 - pv3.y) / 2 * H, ok: pv3.z < 1 && pv3.z > -1 }; };
+  const k = 1 - Math.exp(-dt * 6);
+  const insetEl = $('#inset'), insetOn = !insetEl.hidden, ir = insetOn ? insetEl.getBoundingClientRect() : null;
+  // the heads-up row/column sits below the inset card on phones
+  const row = $('#hudrow'); row.style.top = `${small && insetOn ? Math.round(ir.bottom - r.top + 6) : (small ? 8 : 12)}px`;
+  const dial = $('#dial'); dial.classList.toggle('on', !!H2.dial);
+  if (H2.dial) {
+    const g = clamp(def.gauge.gain(m)), [x, y] = hud.P(Math.PI * (1 - g), 36);
+    hud.needle.setAttribute('x2', x.toFixed(1)); hud.needle.setAttribute('y2', y.toFixed(1));
+    const raw = def.gauge.raw ? clamp(def.gauge.raw(m)) : g, show = Math.abs(raw - g) > 0.06, [rx, ry] = hud.P(Math.PI * (1 - raw), 40);
+    hud.raw.setAttribute('x2', rx.toFixed(1)); hud.raw.setAttribute('y2', ry.toFixed(1)); hud.raw.setAttribute('opacity', show ? 0.8 : 0);
+    const word = (g < 0.38 ? 'low' : g > 0.62 ? 'high' : 'normal') + (show ? ` · source ${raw > 0.62 ? 'high' : 'normal'}` : '');
+    if (hud.word.textContent !== word) hud.word.textContent = word;
+  }
+  const led = $('#ledger'); led.classList.toggle('on', !!H2.ledger);
+  if (H2.ledger) { const upto = [0, 1, 3, 5, 6][story.fx.ledger || 0] || 0; hud.ledger.forEach((s, i) => s.classList.toggle('on', i < upto)); }
+  const mb = $('#moodbar'); mb.classList.toggle('on', !!H2.mood);
+  if (H2.mood) {
+    const f = (clamp(story.vars.m ?? 0, -1, 1) + 1) / 2;
+    if (small) { hud.knob.style.left = `${f * 100}%`; hud.knob.style.top = '50%'; } else { hud.knob.style.left = '50%'; hud.knob.style.top = `${(1 - f) * 100}%`; }
+  }
+  const ss = $('#seesaw'); ss.classList.toggle('on', !!H2.seesaw);
+  if (H2.seesaw) hud.beam.setAttribute('transform', `rotate(${(clamp(m.tilt ?? 0, -1, 1) * 14).toFixed(1)} 90 44)`);
+  // dopamine neuron grid lives in the heads-up row, with a leader line down to the ventral tegmental area
+  const grid = $('#grid'), vta = story.nodes.get(def.gridAt || 'vta');
+  grid.classList.toggle('on', !!H2.grid && !!vta);
+  if (H2.grid && vta) {
+    const lit = Math.round(clamp(def.gauge.pop(m)) * 25);
+    hud.dots.forEach((d, i) => d.classList.toggle('lit', i < lit));
+    const gr = grid.getBoundingClientRect(), s = proj(vta.pos);
+    const gx = gr.left - r.left + gr.width / 2, gy = gr.bottom - r.top;
+    hud.gridlead.setAttribute('d', `M${gx.toFixed(1)} ${gy.toFixed(1)} Q ${gx.toFixed(1)} ${((gy + s.y) / 2).toFixed(1)} ${s.x.toFixed(1)} ${(s.y - 4).toFixed(1)}`);
+    hud.gridlead.setAttribute('opacity', s.ok ? 0.55 : 0);
+  } else hud.gridlead.setAttribute('opacity', 0);
+  // labels: nodes, edge tags and the transporter note, decluttered together
+  const items = [];
+  for (const N of story.nodes.values()) {
+    if (!N.label) continue;
+    const s = proj(N.pos), on = story.labelSet.has(N.id) && s.ok; N.label.classList.toggle('on', on);
+    if (on) { const [w, h] = measure(N.label); items.push({ el: N.label, ax: s.x, ay: s.y, w, h, below: (N.def.lo || [0, 0])[1] > 0 }); }
+  }
+  for (const E of story.edges.values()) {
+    const txt = story.tags[E.id], on = !!txt && E.vis > 0.5;
+    E.tag.classList.toggle('on', on);
+    if (on) { if (E.tag.textContent !== txt) E.tag.textContent = txt; const s = proj(E.curve.getPointAt(0.5)), [w, h] = measure(E.tag); items.push({ el: E.tag, ax: s.x, ay: s.y + h / 2 + 9, w, h, tag: true }); }
+  }
+  const nac = story.nodes.get('nac'), datOn = !!H2.dat && nac && def.gauge.pop(m) < 0.3;
+  hud.datLabel.classList.toggle('on', !!datOn);
+  if (datOn) { const s = proj(nac.pos), [w, h] = measure(hud.datLabel); items.push({ el: hud.datLabel, ax: s.x, ay: s.y, w, h, below: true }); }
+  declutter(items, fb, W);
+  let lead = '';
+  for (const it of items) {
+    it.el.style.transform = `translate(${it.x.toFixed(1)}px, ${it.y.toFixed(1)}px)`;
+    if (it.tag) continue;
+    const ex = clamp(it.ax, it.x, it.x + it.w), ey = it.ay < it.y ? it.y : it.ay > it.y + it.h ? it.y + it.h : it.ay;
+    if (Math.hypot(ex - it.ax, ey - it.ay) > 14) lead += `<line x1="${ex.toFixed(1)}" y1="${ey.toFixed(1)}" x2="${it.ax.toFixed(1)}" y2="${it.ay.toFixed(1)}" stroke="rgba(231,237,244,0.45)" stroke-width="1"/>`;
+  }
+  if (hud.leaders._h !== lead) { hud.leaders.innerHTML = lead; hud.leaders._h = lead; }
+  // tokens
+  for (const tk of story.tokens) {
+    const age = story.t - tk.t0, prog = easeIO(clamp(age / tk.dur));
+    tk.curve.getPointAt(prog, tk.pos); if (tk.off) tk.pos.addScaledVector(tk.off, prog);
+    if (age >= tk.dur && !tk.arrived) arrive(tk);
+    tk.size += (tk.target - tk.size) * k;
+    const life = tk.target < 0.8 ? Math.min(tk.life, 0.9) : tk.life;
+    const fade = tk.persist ? 1 : clamp(1 - (age - tk.dur - life) / 0.6);
+    const s = proj(tk.pos), so = tk.soff || [0, 0]; tk.sx = s.x + so[0] * prog; tk.sy = s.y + so[1] * prog;
+    tk.el.style.transform = `translate(${(tk.sx - 17).toFixed(1)}px, ${(tk.sy - 17).toFixed(1)}px) scale(${Math.max(0.05, tk.size).toFixed(3)})`;
+    tk.el.style.opacity = s.ok ? fade : 0;
+    tk.el.classList.toggle('bangon', tk.kind === 'neutral' && tk.size > 1.3);
+    tk.el.classList.toggle('gold', tk.kind === 'rewardPos'); tk.el.classList.toggle('cool', tk.kind === 'rewardNeg');
+    if (tk.ghost && tk.arrived) { tk.ring.classList.add('on'); tk.ring.style.transform = `translate(${(tk.sx - 17).toFixed(1)}px, ${(tk.sy - 17).toFixed(1)}px) scale(${tk.ghost})`; }
+    tk.dead = !tk.persist && age > tk.dur + life + 1;
+  }
+  for (const tk of story.tokens) if (tk.dead) { tk.el.remove(); tk.ring.remove(); }
+  story.tokens = story.tokens.filter(tk => !tk.dead);
+  if (story.fx.threads) {
+    const big = story.tokens.filter(tk => tk.persist && tk.arrived && tk.size > 1.2);
+    let h = ''; for (let i = 0; i < big.length; i++) for (let j = i + 1; j < big.length; j++) h += `<line x1="${big[i].sx.toFixed(1)}" y1="${big[i].sy.toFixed(1)}" x2="${big[j].sx.toFixed(1)}" y2="${big[j].sy.toFixed(1)}" stroke="#ffd34d" stroke-width="2.2" stroke-dasharray="5 4" opacity="0.95"/>`;
+    hud.threads.innerHTML = h;
+  } else if (hud.threads.innerHTML) hud.threads.innerHTML = '';
+  // mood bias arrow: from the mood knob back into valuation
+  const tgtN = story.nodes.get(def.biasTo || 'nac');
+  if (story.fx.bias && H2.mood && tgtN) {
+    const kr = hud.knob.getBoundingClientRect(), s = proj(tgtN.pos), mv = story.vars.m ?? 0, wgt = clamp((m.b ?? 0.5) * Math.abs(mv));
+    const x0 = small ? kr.left - r.left + kr.width / 2 : kr.right - r.left + 4, y0 = small ? kr.bottom - r.top + 4 : kr.top - r.top + kr.height / 2;
+    const c1 = small ? [x0, y0 + 90] : [x0 + 90, y0 - 50];
+    hud.bias.setAttribute('d', `M${x0.toFixed(1)} ${y0.toFixed(1)} C ${c1[0].toFixed(1)} ${c1[1].toFixed(1)}, ${(s.x - 50).toFixed(1)} ${(s.y - 90).toFixed(1)}, ${(s.x - 6).toFixed(1)} ${(s.y - 14).toFixed(1)}`);
+    hud.bias.setAttribute('stroke', mv >= 0 ? '#ffb454' : '#4aa8ff'); hud.bias.setAttribute('stroke-width', (1 + 6 * wgt).toFixed(1)); hud.bias.setAttribute('opacity', (0.25 + 0.7 * wgt).toFixed(2));
+  } else hud.bias.setAttribute('opacity', 0);
+  // clock + day/night strip
+  const ck = $('#clockico'), scn = story.nodes.get('scn');
+  ck.classList.toggle('on', !!H2.clock && !!scn);
+  if (H2.clock && scn) {
+    const s = proj(scn.pos); ck.style.transform = `translate(${(s.x - 34).toFixed(1)}px, ${(s.y - 6).toFixed(1)}px)`;
+    const day = story.sim.day || 0, jit = (1 - (m.clockEff ?? 1)) * Math.sin(now / 37) * 40;
+    hud.hand.setAttribute('transform', `rotate(${((day % 1) * 360 + jit).toFixed(1)} 15 15)`);
+  }
+  const ds = $('#daystrip'); ds.classList.toggle('on', !!H2.strip);
+  if (H2.strip) {
+    ds.style.left = small ? '10px' : '200px'; ds.style.right = '12px'; ds.style.top = `${fb.bot - 22}px`;
+    const g = hud.strip.getContext('2d'), cw = hud.strip.width, chh = hud.strip.height, day = story.sim.day || 0, ce = m.clockEff ?? 1, nf = 0.12 + 0.3 * ce, span = 4;
+    g.clearRect(0, 0, cw, chh);
+    for (let d = Math.floor(day) - 1; d < day + span + 1; d++) {
+      const x0 = (d - day) / span * cw, nx = (d + 1 - nf - day) / span * cw, x1 = (d + 1 - day) / span * cw;
+      g.fillStyle = '#35587d'; g.fillRect(x0, 0, nx - x0, chh); g.fillStyle = '#0b1119'; g.fillRect(nx, 0, x1 - nx, chh);
+    }
+  }
+  if (insetOn && story.insetTick) story.insetTick(m, now);
+  if (def.liveCaption && story.scene.live) { const c = def.liveCaption(story.vars, story.scene.live); if (c !== hud.lastLive) { hud.lastLive = c; setCaption(c); } }
+  $('#sbprog i').style.width = sc_progress();
+  if (now - (hud.syncT || 0) > 200) { hud.syncT = now; syncControls(); }
+}
+function sc_progress() { const sc = story.scene; return sc.free ? '100%' : `${clamp(story.t / sc.dur) * 100}%`; }
+
+// ---------- story bar ----------
+function setCaption(text) { $('#sbcap').textContent = text || ''; }
+function syncBar() {
+  const def = story.def; if (!def) return;
+  const sc = story.scene;
+  $('#sbtitle').textContent = sc.title;
+  $('#sbcount').textContent = `${story.i + 1} / ${def.scenes.length}`;
+  const seg = $('#sbstate');
+  if (seg.dataset.story !== def.id) { seg.innerHTML = def.states.map(s => `<button data-s="${s.id}">${s.label}</button>`).join(''); seg.dataset.story = def.id; }
+  $$('#sbstate button').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === story.stateId));
+  const pb = $('#sbplay'); pb.innerHTML = story.playing ? PAUSE_SVG : PLAY_SVG; pb.setAttribute('aria-label', story.playing ? 'Pause autoplay' : 'Play');
+  $('#sbprev').disabled = story.i === 0; $('#sbnext').disabled = story.i === def.scenes.length - 1;
+}
+function renderExtra(sc) {
+  const box = $('#sbextra'), ctl = sc.controls || [];
+  let html = '', row = [];
+  const flush = () => { if (row.length) { html += `<div class="sbrow">${row.join('')}</div>`; row = []; } };
+  ctl.forEach((c, i) => {
+    if (c.type === 'range') { flush(); html += `<div class="sbrow"><label><span>${c.label}</span><input type="range" data-i="${i}" min="${c.min ?? 0}" max="${c.max ?? 1}" step="${c.step ?? 0.01}" aria-label="${c.label}"></label></div>`; }
+    else if (c.type === 'toggle') row.push(`<button class="btn" data-i="${i}" aria-pressed="false">${c.label}</button>`);
+    else if (c.type === 'button') row.push(`<button class="btn" data-i="${i}">${c.label}</button>`);
+    else if (c.type === 'presets') { flush(); html += `<div class="sbrow">${c.items.map((it, j) => `<button class="btn" data-i="${i}" data-j="${j}">${it.label}</button>`).join('')}</div>`; }
+    else if (c.type === 'note') { flush(); html += `<div class="sbnote">${c.html}</div>`; }
+  });
+  flush(); box.innerHTML = html;
+  $$('input[type=range]', box).forEach(inp => { const c = ctl[+inp.dataset.i]; inp.value = story.vars[c.var] ?? c.min ?? 0; });
+}
+function syncControls() {
+  const sc = story.scene; if (!sc || !sc.controls) return;
+  $$('#sbextra [data-i]').forEach(el => {
+    const c = sc.controls[+el.dataset.i];
+    if (c.type === 'toggle') el.setAttribute('aria-pressed', (story.vars[c.var] ?? 0) > 0.5);
+    if (c.type === 'range' && document.activeElement !== el && !story.tweens.some(tw => tw.k === c.var) && Math.abs(+el.value - (story.vars[c.var] ?? 0)) > 0.02) el.value = story.vars[c.var] ?? 0;
+  });
+}
+$('#sbextra').addEventListener('input', e => {
+  const el = e.target.closest('input[type=range]'); if (!el) return;
+  const c = story.scene.controls[+el.dataset.i];
+  story.tweens = story.tweens.filter(tw => tw.k !== c.var); story.vars[c.var] = +el.value;
+});
+$('#sbextra').addEventListener('click', e => {
+  const el = e.target.closest('button[data-i]'); if (!el) return;
+  const c = story.scene.controls[+el.dataset.i];
+  if (c.type === 'toggle') { tweenVar(c.var, (story.vars[c.var] ?? 0) > 0.5 ? 0 : 1, 0.8); if (c.after) c.after(story); }
+  else if (c.type === 'button') c.do(story);
+  else if (c.type === 'presets') { const it = c.items[+el.dataset.j]; for (const [k, v] of Object.entries(it.set)) tweenVar(k, v, 0.6); }
+  syncControls();
+});
+$('#sbstate').addEventListener('click', e => {
+  const b = e.target.closest('[data-s]'); if (!b) return;
+  applyState(b.dataset.s); story.playing = false; syncBar();
+});
+$('#sbprev').addEventListener('click', () => gotoScene(story.i - 1));
+$('#sbnext').addEventListener('click', () => gotoScene(story.i + 1));
+$('#sbreplay').addEventListener('click', () => gotoScene(story.i, { play: true }));
+$('#sbplay').addEventListener('click', () => { story.playing = !story.playing; if (story.playing && !story.scene.free && story.t >= story.scene.dur) gotoScene(story.i + 1); syncBar(); });
+$('#sbclose').addEventListener('click', () => endStory());
+
+// ---------- inset cards ----------
+function renderInset(kind) {
+  const el = $('#inset'); story.insetTick = null;
+  if (!kind) { el.hidden = true; el.innerHTML = ''; requestAnimationFrame(resize); return; }
+  const k = typeof kind === 'string' ? kind : kind.kind;
+  if (k === 'html') el.innerHTML = kind.html;
+  else if (story.def.insets && story.def.insets[k]) { const r = story.def.insets[k](story); el.innerHTML = r.html; story.insetTick = r.tick || null; }
+  el.hidden = false; requestAnimationFrame(resize);
+}
+
+// ---------- start / end ----------
+function startStory(id, i = 0, opts = {}) {
+  const def = STORIES.find(s => s.id === id); if (!def) return;
+  if (state.quiz) stopQuiz();
+  if (story.def) endStory(false);
+  endCircuit(false);
+  story.snapshot = { level: new Map(state.level), hemi: state.hemi, preset: state.preset };
+  state.netMode = 'off'; state.rec = null; state.drug = null; syncDrugs(); if (slice) slice.material.uniforms.petOn.value = 0;
+  state.sel = null; state.cut = 'off'; applyCut();
+  story.def = def; story.vars = { ...def.vars }; story.tweens = []; story.flash = {}; story.flashNeg = {};
+  const solid = new Set([...Object.values(def.nodes).filter(n => n.key && !n.ghost).map(n => n.key), ...(def.cast || [])]);
+  const ghostK = new Set([...Object.values(def.nodes).filter(n => n.key && n.ghost).map(n => n.key), ...(def.ghostCast || [])]);
+  setLevels(all, 0); setLevels(cortex, 1); setLevels([...ghostK], 1); setLevels([...solid], 2);
+  state.hemi = def.hemi || 'L'; state.preset = null;
+  storyMeshes = meshes.filter(mm => solid.has(mm.userData.key) || ghostK.has(mm.userData.key));
+  document.body.classList.add('story'); $('#storybar').hidden = false;
+  if (innerWidth <= 760) $('#panel').classList.add('min');
+  buildStory(def); initHud();
+  syncAll(); syncStories();
+  gotoScene(i, { instant: true, play: !opts.paused });
+  if (opts.t) fastForward(opts.t);
+  syncBar();
+}
+function endStory(restore = true) {
+  if (!story.def) return;
+  for (const mesh of storyMeshes) { const mat = mesh.material; mat.color.set(mesh.userData.st.color); mat.emissive.set(0xffe6bf); mat.emissiveIntensity = 0; mat.userData.sl = false; }
+  if (tintOn) untint();
+  clearTokens(); clearStory3D(); clearHud(); renderInset(null);
+  story.def = null; story.scene = null; storyMeshes = [];
+  document.body.classList.remove('story'); $('#storybar').hidden = true;
+  if (restore && story.snapshot) { state.level = story.snapshot.level; state.hemi = story.snapshot.hemi; state.preset = story.snapshot.preset; }
+  story.snapshot = null; lastNetMode = null;
+  syncAll(); syncStories(); requestAnimationFrame(() => { resize(); setView('iso'); });
+}
+$('#stories').innerHTML = STORIES.map(s => `<button class="net" data-st="${s.id}" aria-pressed="false"><span class="dot" style="background:${s.color}"></span><b>${s.name}</b><span class="d">${s.desc}</span></button>`).join('');
+$('#stories').addEventListener('click', e => { const b = e.target.closest('[data-st]'); if (!b) return; story.def?.id === b.dataset.st ? endStory() : startStory(b.dataset.st); });
+function syncStories() { $$('#stories .net').forEach(b => b.setAttribute('aria-pressed', b.dataset.st === story.def?.id)); }
+function storyFromHash() {
+  const h = new URLSearchParams(location.hash.slice(1)), id = h.get('story');
+  if (!id || !STORIES.find(s => s.id === id)) return;
+  startStory(id, Math.max(0, (+h.get('scene') || 1) - 1), { paused: h.get('pause') === '1', t: +h.get('t') || 0 });
+}

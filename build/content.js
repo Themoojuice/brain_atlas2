@@ -122,7 +122,7 @@ const CIRCUITS = [
     desc: 'Orbitofrontal and anterior cingulate cortex → ventral striatum → ventral pallidum → mediodorsal thalamus → back to cortex.',
     clin: 'Hyperactive in OCD. Treated with SSRIs and exposure therapy; refractory cases with ventral capsule/ventral striatum stimulation or anterior capsulotomy.',
     paths: [['Medial_orbital_gyrus', 'Nucleus_accumbens', 'Ventral_pallidum', [-6, -8, 2], 'Thal_MD', [-6, 2, 22], 'Cingulate_gyrus_anterior_part', [-6, 30, 0], 'Medial_orbital_gyrus']] },
-  { id: 'motor', name: 'Motor loop (direct and indirect)', color: '#ffb347',
+  { id: 'motor', name: 'Motor loop (direct and indirect)', color: '#ffb347', view: [0.72, 0.62, 0.34],
     desc: 'Motor cortex → putamen → pallidum → ventral lateral thalamus → motor cortex, with the indirect detour through the subthalamic nucleus.',
     clin: 'Parkinson’s disease: subthalamic or pallidal stimulation. Huntington’s disease: early indirect-pathway loss gives chorea.',
     paths: [['Precentral_gyrus', [-30, -8, 30], 'Putamen', 'Pallidum', [-12, -8, 2], 'Thal_VL', [-22, -16, 40], 'Precentral_gyrus'], ['Putamen', [-16, -8, -4], 'Subthalamic_nucleus', 'Pallidum']] },
