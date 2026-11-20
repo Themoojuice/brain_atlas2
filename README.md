@@ -8,7 +8,7 @@ A rotatable 3D human brain for learning neuroanatomy, networks, pathways and psy
 - 78 structures in MNI152 space: cortex, deep grey matter, basal forebrain, hypothalamus, habenula, thalamic nuclei, brainstem monoamine nuclei, ventricles and 11 white matter tracts. Each has a plus/minus toggle (solid, ghost, hidden), a teaching note and its source atlas
 - Networks: salience, default mode, central executive, triple network, all seven Yeo networks
 - Pathways: animated schematic circuits (dopamine, Papez, noradrenaline, serotonin, acetylcholine, limbic and motor loops), each framed to fit above the card on phones
-- Animated stories (Pathways tab): **Psychosis: the gain story** (10 scenes) and **Mood: the affective disruption story** (9 scenes). Signed edges (excitatory, inhibitory, dopamine, regulatory), a state switch, a dopamine gain dial, a dopamine-neuron grid, event tokens and free-play sliders, all driven by one small state model per story. Deep link: `#story=psy&scene=5` (add `&pause=1`, `&t=6` to freeze at a moment)
+- Animated stories (Pathways tab): **Psychosis: the gain story** (11 scenes) and **Mood: the affective disruption story** (9 scenes). Signed edges (excitatory, inhibitory, dopamine, regulatory), a state switch, a dopamine gain dial, a dopamine-neuron grid, event tokens and free-play sliders, all driven by one small state model per story. Deep link: `#story=psy&scene=5` (add `&pause=1`, `&t=6` to freeze at a moment)
 - Drugs: 20 receptor PET maps painted on the brain and on the MRI slice, and 40 drugs linked to their targets
 - Tools: cut planes with the MNI152 MRI and atlas outlines, "Find it" quiz, orientation marker
 

@@ -771,14 +771,46 @@ const unitLook = (a, col) => a > 0.05 ? { glow: 0.2 + 0.7 * a, ec: col, op: 0.16
 const KRAEPELIN = { '+++': 'Mania', '---': 'Depression', '+-+': 'Depressive or anxious mania', '+--': 'Excited depression', '++-': 'Mania with poverty of thought', '-+-': 'Manic stupor', '--+': 'Depression with flight of ideas', '-++': 'Inhibited mania' };
 const sgn = x => x > 0.2 ? '+' : x < -0.2 ? '-' : '0';
 
+function nmdaInset(S) {
+  const rec = [[192, 56], [189, 70], [192, 84]].map(([x, y], i) => `<rect x="${x - 4}" y="${y - 4}" width="2.4" height="8" fill="#ff9f43"/><rect x="${x + 2}" y="${y - 4}" width="2.4" height="8" fill="#ff9f43"/><circle class="plug" cx="${x + 0.2}" cy="${y}" r="2.6" fill="#c9d4e2" opacity="0"/>`).join('');
+  const bar = (y, lab, id, healthy) => `<text x="10" y="${y + 7}" fill="#c9d4e2" font-size="10">${lab}</text><rect x="150" y="${y}" width="130" height="8" rx="4" fill="rgba(141,155,173,0.2)"/><rect id="${id}" x="150" y="${y}" width="0" height="8" rx="4" fill="${id === 'nbP' ? '#ff9f43' : '#6cc4ff'}"/><line x1="${150 + 130 * healthy}" y1="${y - 2}" x2="${150 + 130 * healthy}" y2="${y + 10}" stroke="#e7edf4" stroke-width="1.2" stroke-dasharray="2 2"/>`;
+  const html = `<div class="t">Inside the anterior hippocampus</div>
+    <svg viewBox="0 0 290 172" id="nmdasvg">
+      <defs><marker id="nah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ff9f43"/></marker></defs>
+      <line x1="70" y1="40" x2="70" y2="14" stroke="#ff9f43" stroke-width="2"/>
+      <polygon points="34,100 70,40 106,100" fill="rgba(255,159,67,0.16)" stroke="#ff9f43" stroke-width="1.6"/>
+      <circle id="spP" cx="92" cy="30" r="4" fill="#ff9f43" opacity="0.2"/>
+      <text x="70" y="116" fill="#e7edf4" font-size="10" text-anchor="middle">Pyramidal cell</text>
+      <path d="M106 78 L 180 64" stroke="#ff9f43" stroke-width="2" fill="none" marker-end="url(#nah)"/>
+      <text x="140" y="62" fill="#ffcf9e" font-size="9" text-anchor="middle">glutamate</text>
+      <circle cx="214" cy="70" r="22" fill="rgba(108,196,255,0.16)" stroke="#6cc4ff" stroke-width="1.6"/>
+      ${rec}
+      <text x="190" y="42" fill="#ffcf9e" font-size="8.5" text-anchor="end">NMDA receptors</text>
+      <circle id="spI" cx="242" cy="44" r="4" fill="#6cc4ff" opacity="0.2"/>
+      <text x="214" y="108" fill="#e7edf4" font-size="10" text-anchor="middle">Parvalbumin interneuron</text>
+      <path id="inh" d="M200 88 C 178 112, 136 114, 108 98" stroke="#4aa8ff" stroke-width="4" fill="none"/>
+      <line id="inhbar" x1="103" y1="91" x2="111" y2="104" stroke="#4aa8ff" stroke-width="3"/>
+      ${bar(126, 'NMDA receptor function', 'nbN', 1)}${bar(142, 'Interneuron firing', 'nbI', 1)}${bar(158, 'Pyramidal firing · glutamate', 'nbP', 0.25)}
+    </svg>
+    <div class="foot">These interneurons depend on NMDA receptor drive, so blocking it quietens them before the pyramidal cells. Ketamine reproduces the patients' hippocampal pattern in mice (Schobel 2013).</div>`;
+  return { html, tick(m, now) {
+    const q = id => document.getElementById(id);
+    document.querySelectorAll('#nmdasvg .plug').forEach(p => p.setAttribute('opacity', (1 - m.nmda).toFixed(2)));
+    q('nbN')?.setAttribute('width', (130 * m.nmda).toFixed(1)); q('nbI')?.setAttribute('width', (130 * m.pvEff).toFixed(1)); q('nbP')?.setAttribute('width', (130 * m.hp).toFixed(1));
+    const w = (1 + 4 * m.pvEff).toFixed(1); q('inh')?.setAttribute('stroke-width', w); q('inh')?.setAttribute('opacity', (0.35 + 0.65 * m.pvEff).toFixed(2)); q('inhbar')?.setAttribute('opacity', (0.35 + 0.65 * m.pvEff).toFixed(2));
+    const blink = (rate, ph) => (Math.sin(now / 1000 * rate * 6.28 + ph) > 0.7 ? 1 : 0.15).toFixed(2);
+    q('spP')?.setAttribute('opacity', blink(0.8 + 5 * m.hp, 0)); q('spI')?.setAttribute('opacity', blink(0.5 + 6 * m.pvEff, 1.3));
+  } };
+}
 function terminalInset(S) {
   const ves = [...Array(6)].map((_, i) => `<circle cx="${72 + i * 31}" cy="${60 + (i % 2) * 9}" r="9" fill="rgba(255,211,77,0.22)" stroke="#ffd34d" stroke-width="1.4"/><rect x="${68 + i * 31}" y="${48 + (i % 2) * 9}" width="8" height="3" rx="1" fill="#8d9bad"/>`).join('');
   const rel = [...Array(16)].map((_, i) => `<circle r="2.2" fill="#ffd34d" cx="${52 + i * 12.5}" cy="100" opacity="0"/>`).join('');
   const recs = [...Array(9)].map((_, i) => `<path d="M${46 + i * 26} 126 v-5 m0 0 l-4 -5 m4 5 l4 -5" stroke="#4aa8ff" stroke-width="1.7" fill="none"/>`).join('');
   const bar = (y, lab) => `<text x="12" y="${y + 7}" fill="#c9d4e2" font-size="10">${lab}</text><rect x="118" y="${y}" width="160" height="8" rx="4" fill="rgba(141,155,173,0.2)"/><rect class="bf" x="118" y="${y}" width="0" height="8" rx="4" fill="#ffd34d"/><line x1="198" y1="${y - 2}" x2="198" y2="${y + 10}" stroke="#e7edf4" stroke-width="1.2" stroke-dasharray="2 2"/>`;
-  const html = `<div class="t">Inside one terminal · caudate head</div>
+  const html = `<div class="t">A nigral dopamine terminal in the caudate head</div>
     <svg viewBox="0 0 290 190" id="term">
       <path d="M24 94 C24 32 56 10 145 10 C234 10 266 32 266 94" fill="rgba(141,155,173,0.10)" stroke="#8d9bad" stroke-width="1.4"/>
+      <line x1="145" y1="10" x2="145" y2="0" stroke="#8d9bad" stroke-width="1.4"/><text x="151" y="7" fill="#8d9bad" font-size="8.5">axon from the substantia nigra</text>
       <text x="44" y="32" fill="#c9d4e2" font-size="10">tyrosine → L-DOPA → dopamine</text>
       <text x="145" y="86" fill="#8d9bad" font-size="9" text-anchor="middle">grey tags = vesicle transporter: normal</text>
       ${ves}<g id="relg">${rel}</g>
@@ -814,7 +846,7 @@ function compareInset(S) {
 const STORIES = [
 // ---------------------------------------------------------------- psychosis
 { id: 'psy', name: 'Psychosis: the gain story', color: '#ffb454', hemi: 'L', view: MED,
-  desc: 'Hippocampus → accumbens → pallidum → midbrain → associative striatum: how a quiet cue gets amplified. Ten scenes.',
+  desc: 'Hippocampus → accumbens → pallidum → midbrain → associative striatum: how a quiet cue gets amplified. Eleven scenes.',
   nodes: {
     ilc: { key: 'Subgenual_frontal_cortex', label: 'Medial prefrontal' },
     dl:  { key: 'Middle_frontal_gyrus', ghost: true, label: 'Dorsolateral prefrontal' },
@@ -844,23 +876,25 @@ const STORIES = [
   ],
   ring: 'ahp',
   shieldOn: [['Caudate_nucleus', 8, p => p[1] > 2], ['Nucleus_accumbens', 4, null], ['Putamen', 4, p => p[1] > 0]],
-  vars: { pv: 1, ctl: 1, d2: 0, tr: 0, cs: 4, hpx: -1 },
+  vars: { pv: 1, ctl: 1, d2: 0, tr: 0, cs: 4, hpx: -1, nmda: 1 },
   discrete: ['hpx'],
   states: [
-    { id: 'healthy', label: 'Healthy', vars: { pv: 1, ctl: 1, d2: 0, tr: 0, cs: 4 } },
-    { id: 'psychosis', label: 'Psychosis', vars: { pv: 0.15, ctl: 0.45, d2: 0, cs: 4 } },
-    { id: 'treated', label: 'On antipsychotic', vars: { pv: 0.15, ctl: 0.45, d2: 1, cs: 4 } },
+    { id: 'healthy', label: 'Healthy', vars: { pv: 1, ctl: 1, d2: 0, tr: 0, cs: 4, nmda: 1 } },
+    { id: 'psychosis', label: 'Psychosis', vars: { pv: 0.15, ctl: 0.45, d2: 0, cs: 4, nmda: 1 } },
+    { id: 'treated', label: 'On antipsychotic', vars: { pv: 0.15, ctl: 0.45, d2: 1, cs: 4, nmda: 1 } },
   ],
-  // cs = how many hops of the cascade have propagated (0–4); scene 5 walks it up one hop at a time
+  // cs = how many hops of the cascade have propagated (0–4); scene 6 walks it up one hop at a time
+  // nmda = NMDA receptor function on the interneurons (1 normal); scene 4 turns it down
   model(v) {
     const H0 = 0.25, nac0 = 0.3 + 0.6 * H0, vp0 = cl01(1.05 - 0.8 * nac0);
-    let hp = cl01(0.25 + 0.6 * (1 - v.pv) + 0.15 * (1 - v.ctl)); if (v.hpx >= 0) hp = v.hpx;
+    const pvEff = v.pv * (0.3 + 0.7 * v.nmda);
+    let hp = cl01(0.25 + 0.6 * (1 - pvEff) + 0.15 * (1 - v.ctl)); if (v.hpx >= 0) hp = v.hpx;
     const nacF = 0.3 + 0.6 * hp, vpF = cl01(1.05 - 0.8 * nacF), popF = Math.min(0.97, Math.max(0.05, 0.4 + 1.3 * (0.69 - vpF)));
     const c = k => cl01(v.cs - k), L = (a, b, t) => a + (b - a) * t;
     let pop = L(0.4, popF, c(3)); if (v.tr > 0) pop = L(pop, 0.42, v.tr);
     const eff = L(pop, 0.45 + (pop - 0.4) * 0.25, v.d2);
     return { hp, hpOut: L(H0, hp, c(0)), nac: L(nac0, nacF, c(0)), nacOut: L(nac0, nacF, c(1)), vp: L(vp0, vpF, c(1)), stream: L(vp0, vpF, c(2)),
-      pop, eff, ctl: v.ctl, pv: v.pv, d2: v.d2, tr: v.tr, assocDA: eff, limbicDA: 0.4 + 0.35 * (eff - 0.4) };
+      pop, eff, ctl: v.ctl, pv: v.pv, pvEff, nmda: v.nmda, d2: v.d2, tr: v.tr, assocDA: eff, limbicDA: 0.4 + 0.35 * (eff - 0.4) };
   },
   gauge: { gain: m => m.eff, raw: m => m.pop, pop: m => m.pop },
   salience(kind, m) {
@@ -886,6 +920,7 @@ const STORIES = [
   insets: {
     chips: () => ({ html: '<div class="t">What strains the interneurons</div><div class="chips"><span class="chip">Redox load</span><span class="chip">NMDA receptor hypofunction</span><span class="chip">Stress</span></div>' }),
     terminal: terminalInset,
+    nmda: nmdaInset,
   },
   scenes: [
     { title: 'Orient', dur: 7, state: 'healthy', cam: { dir: MED }, show: [], hud: { dial: false, grid: false },
@@ -900,6 +935,13 @@ const STORIES = [
       show: ['ctx-cd', 'sn-cd', 'vta-nac'], focus: ['ctx-cd', 'sn-cd', 'ctx', 'cd', 'sn'], labels: ['ctx', 'cd'], hud: { dial: true, grid: true },
       caption: 'Healthy gain: only what matters gets amplified.',
       beats: [{ at: 0.8, token: { icon: 'wave', from: 'ctx', to: 'cd', kind: 'relevant', flash: 'sn-cd' } }, { at: 4.8, token: { icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', flash: 'sn-cd' } }] },
+    { title: 'NMDA receptor hypofunction', dur: 12, state: 'healthy', set: { cs: 0, nmda: 1 }, cam: { fit: ['ahp', 're'], r: 22, dir: [-1, 0.22, 0.32] },
+      show: ['ilc-re', 're-hp'], focus: ['ahp'], labels: ['ahp'], hud: { dial: false, grid: true, ring: true }, inset: 'nmda',
+      caption: 'Parvalbumin interneurons need NMDA receptor drive to keep firing.',
+      beats: [
+        { at: 2.5, tween: { nmda: [0.2, 4] }, caption: 'Block the NMDA receptors (ketamine, or the illness) and the interneurons go quiet first.' },
+        { at: 7, caption: 'Pyramidal cells are released: glutamate rises and the hippocampus heats.' },
+        { at: 10, caption: 'Blocking a glutamate receptor ends up raising glutamate. The midbrain hasn’t noticed yet.' }] },
     { title: 'The interneurons falter', dur: 10, state: 'healthy', set: { cs: 0 }, cam: { fit: ['ahp', 're'], r: 22, dir: [-1, 0.22, 0.32] },
       show: ['ilc-re', 're-hp', 'hp-nac'], focus: ['ilc-re', 're-hp', 'ahp', 're', 'ilc'], labels: ['ahp', 're'], hud: { dial: true, grid: true, ring: true }, inset: 'chips',
       caption: 'Anterior hippocampus runs hot.',
@@ -914,9 +956,10 @@ const STORIES = [
         { at: 9.2, tween: { cs: [4, 2] }, fx: { ledger: 4 }, focus: ['vta-nac', 'vta', 'nac'], cam: { fit: ['vta', 'nac', 'vp'], dir: MED, r: 24 }, caption: 'More dopamine neurons awake.' }] },
     { title: 'Spiral up to the associative striatum', dur: 10, state: 'psychosis', cam: { fit: ['vta', 'nac', 'sn', 'cd'], dir: MED },
       show: ['vta-nac', 'nac-sn', 'sn-cd'], focus: ['vta-nac', 'vta', 'nac'], labels: ['vta', 'nac'], hud: { dial: true, grid: true, tint: true },
-      caption: 'The excess lands in the associative striatum.',
-      beats: [{ at: 3, focus: ['nac-sn', 'nac', 'sn'], labels: ['sn'], tags: { 'nac-sn': 'untested link' } }, { at: 6, focus: ['sn-cd', 'sn', 'cd'], labels: ['cd'] }] },
-    { title: 'Inside the terminal', dur: 10, state: 'psychosis', cam: { target: 'cd', r: 18, dir: [-0.7, 0.55, 0.55] },
+      caption: 'Ventral tegmental dopamine floods the accumbens.',
+      beats: [{ at: 3, focus: ['nac-sn', 'nac', 'sn'], labels: ['sn'], tags: { 'nac-sn': 'untested link' }, caption: 'The accumbens is a relay, not a source: it projects back onto nigral dopamine cells.' },
+        { at: 6.2, focus: ['sn-cd', 'sn', 'cd'], labels: ['cd'], caption: 'Nigral neurons carry the excess into the caudate head. It lands in the associative striatum.' }] },
+    { title: 'Inside a nigral dopamine terminal', dur: 10, state: 'psychosis', cam: { target: 'cd', r: 18, dir: [-0.7, 0.55, 0.55] },
       show: ['sn-cd'], labels: ['cd'], hud: { tint: true }, inset: 'terminal',
       caption: 'More dopamine made and released — the vesicles themselves are normal.' },
     { title: 'Aberrant salience', dur: 13, state: 'psychosis', cam: { dir: LAT, fit: ['ctx', 'cd', 'md', 'dl'] },
@@ -1073,7 +1116,7 @@ const STORIES = [
     { title: 'Psychosis spillover', dur: 10, state: 'mania', set: { m: 0.95 }, cam: { dir: MED, fit: ['vta', 'nac', 'sn', 'cd', 'ctx'] },
       show: ['vta-nac', 'nac-sn', 'sn-cd', 'ctx-cd'], labels: ['nac', 'cd'], tags: { 'nac-sn': 'untested link' }, hud: { dial: true, grid: true, mood: true, tint: true }, inset: 'evidence',
       caption: 'Same amplifier, overflowing into the associative striatum.',
-      controls: [{ type: 'button', label: 'See it in the psychosis story', do: () => startStory('psy', 7) }],
+      controls: [{ type: 'button', label: 'See it in the psychosis story', do: () => startStory('psy', 8) }],
       beats: [{ at: 3, token: { icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', persist: true, flash: 'sn-cd' } }] },
     { title: 'The switch to depression', dur: 16, state: 'dep', set: { amy: 0.3, m: 0, ev: 0 }, cam: { dir: MED_UP, fit: ['ifg', 'lofc', 'amy', 'nac', 'vta', 'smn', 'dmn'] },
       show: ['ifg-amy', 'ofc-nac', 'amy-vp', 'nac-vp', 'vp-vta', 'vta-nac'], focus: ['amy-vp', 'vp-vta', 'amy', 'vp', 'vta'], labels: ['amy', 'vp', 'vta'],
@@ -2245,7 +2288,7 @@ function applyLook(dt, now) {
   }
   if (story.hud.tint) tintStriatum(m, now); else if (tintOn) untint();
   if (story.ring.length) {
-    const pvN = (story.vars.pv ?? 1) * 8, on = !!story.hud.ring;
+    const pvN = (story.m.pvEff ?? story.vars.pv ?? 1) * 8, on = !!story.hud.ring;
     story.ring.forEach((s, i) => {
       const alive = i < pvN - 0.5 || (i < pvN + 0.5 && Math.sin(now / 90 + i * 3) > 0);
       const tgt = on && alive ? 0.95 : 0; s.material.opacity += (tgt - s.material.opacity) * k * 1.6; s.visible = s.material.opacity > 0.02;

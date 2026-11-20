@@ -257,7 +257,7 @@ function applyLook(dt, now) {
   }
   if (story.hud.tint) tintStriatum(m, now); else if (tintOn) untint();
   if (story.ring.length) {
-    const pvN = (story.vars.pv ?? 1) * 8, on = !!story.hud.ring;
+    const pvN = (story.m.pvEff ?? story.vars.pv ?? 1) * 8, on = !!story.hud.ring;
     story.ring.forEach((s, i) => {
       const alive = i < pvN - 0.5 || (i < pvN + 0.5 && Math.sin(now / 90 + i * 3) > 0);
       const tgt = on && alive ? 0.95 : 0; s.material.opacity += (tgt - s.material.opacity) * k * 1.6; s.visible = s.material.opacity > 0.02;
