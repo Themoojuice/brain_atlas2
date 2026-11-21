@@ -7,15 +7,19 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const easeIO = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
+// Colour and end cap come from the sign; the line pattern comes from the evidence (ev): solid = shown in patients,
+// dashed = animal models, dotted = proposed. 'fc' is undirected functional coupling (flows both ways, no cap).
 const SIGN = {
-  '+':    { col: '#ff9f43', cap: 'arrow' },               // excitatory (glutamate)
-  '-':    { col: '#4aa8ff', cap: 'bar' },                 // inhibitory (GABA)
-  da:     { col: '#ffd34d', cap: 'arrow', packets: true },// dopamine
-  ctl:    { col: '#b48cff', cap: 'arrow', dash: true },   // net top-down regulation
-  spiral: { col: '#c9b27a', cap: 'arrow', dash: true },   // proposed / untested link
-  clock:  { col: '#3fd0c9', cap: 'arrow', dash: true },   // circadian input, schematic
-  '5ht':  { col: '#ff8fb1', cap: 'arrow', packets: true },// serotonin
+  '+':    { col: '#ff9f43', cap: 'arrow', label: 'Excitatory (glutamate)' },
+  '-':    { col: '#4aa8ff', cap: 'bar', label: 'Inhibitory (GABA)' },
+  da:     { col: '#ffd34d', cap: 'arrow', packets: true, label: 'Dopamine' },
+  ctl:    { col: '#b48cff', cap: 'arrow', label: 'Top-down regulation (net effect)' },
+  spiral: { col: '#c9b27a', cap: 'arrow', label: 'Striatonigral relay (spiral)' },
+  clock:  { col: '#3fd0c9', cap: 'arrow', label: 'Circadian input (schematic)' },
+  '5ht':  { col: '#ff8fb1', cap: 'arrow', packets: true, label: 'Serotonin' },
+  fc:     { col: '#7fe7ff', cap: 'none', bi: true, label: 'Functional coupling (no direction)' },
 };
+const EV_PAT = { human: 0, rodent: 1, proposed: 2 };
 const ICONS = {
   wave: '<svg viewBox="0 0 24 24"><circle cx="11" cy="5.5" r="2.6"/><path d="M11 8.5v7.5M11 16l-3 5M11 16l3 5M11 11l-4 2.5M11 11l5-4.5"/></svg>',
   car: '<svg viewBox="0 0 24 24"><path d="M3 15.5h18v-3.5l-2.2-4.2H6.2L4 12H3z"/><circle cx="7.5" cy="16.5" r="1.9"/><circle cx="16.5" cy="16.5" r="1.9"/></svg>',
@@ -38,20 +42,24 @@ const pv3 = new THREE.Vector3();
 // ---------- building the 3D layer ----------
 function nodePos(n) { return mni2three(n.mni || centroid(n.key, story.def.hemi || 'L')); }
 function makeLabel(text, cls = '') { const el = document.createElement('div'); el.className = 'slab ' + cls; el.textContent = text; $('#labels').append(el); return el; }
-function edgeMat(sign, len) {
+function edgeMat(sign, len, ev) {
   const S = SIGN[sign];
   return new THREE.ShaderMaterial({
     uniforms: { ph: { value: 0 }, col: { value: new THREE.Color(S.col) }, len: { value: len }, act: { value: 0.5 }, w: { value: 1 }, vis: { value: 0 },
-      dash: { value: S.dash ? 1 : 0 }, pk: { value: S.packets ? 1 : 0 }, fl: { value: 0 }, neg: { value: 0 } },
+      pat: { value: EV_PAT[ev] ?? 0 }, bi: { value: S.bi ? 1 : 0 }, pk: { value: S.packets ? 1 : 0 }, fl: { value: 0 }, neg: { value: 0 }, fault: { value: 0 }, tm: { value: 0 } },
     vertexShader: 'uniform float w; varying vec2 vUv; void main(){ vUv = uv; vec3 p = position + normal * (w - 1.0) * 0.7; gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }',
-    fragmentShader: `uniform float ph; uniform vec3 col; uniform float len; uniform float act; uniform float vis; uniform float dash; uniform float pk; uniform float fl; uniform float neg; varying vec2 vUv;
+    fragmentShader: `uniform float ph; uniform vec3 col; uniform float len; uniform float act; uniform float vis; uniform float pat; uniform float bi; uniform float pk; uniform float fl; uniform float neg; uniform float fault; uniform float tm; varying vec2 vUv;
+      float shape(float x, float k) { return k > 0.5 ? smoothstep(0.0, 0.05, x) * (1.0 - smoothstep(0.05, 0.2, x)) : smoothstep(0.0, 0.12, x) * (1.0 - smoothstep(0.12, 0.6, x)); }
       void main(){
-        float s = vUv.x * len;
-        float x = fract(s / (pk > 0.5 ? 15.0 : 9.0) - ph);
-        float p = pk > 0.5 ? smoothstep(0.0, 0.05, x) * (1.0 - smoothstep(0.05, 0.2, x)) : smoothstep(0.0, 0.12, x) * (1.0 - smoothstep(0.12, 0.6, x));
+        float s = vUv.x * len, per = pk > 0.5 ? 15.0 : 9.0;
+        float p = shape(fract(s / per - ph), pk);
+        if (bi > 0.5) p = 0.8 * max(p, shape(fract(s / per + ph), pk));
         float a = 0.2 + 0.3 * act + (0.3 + 0.9 * act) * p + 0.9 * fl;
-        if (dash > 0.5 && fract(s / 4.0) > 0.55) a *= 0.12;
+        if (pat > 0.5 && pat < 1.5 && fract(s / 5.0) > 0.58) a *= 0.08;       // dashed: animal models
+        if (pat > 1.5 && fract(s / 2.4) > 0.34) a *= 0.08;                    // dotted: proposed
         vec3 c = mix(col, vec3(0.32, 0.42, 0.58), neg);
+        c = mix(c, vec3(1.0, 0.28, 0.22), 0.75 * fault);                     // dysconnected: red, flickering
+        a *= 1.0 - 0.5 * fault * step(0.5, fract(tm * 6.0 + s * 0.11));
         gl_FragColor = vec4(c * (0.45 + 1.25 * p * (0.35 + act) + 1.2 * fl), a * vis);
       }`,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
@@ -68,15 +76,17 @@ function buildStory(def) {
   for (const e of def.edges) {
     const a = story.nodes.get(e.from), b = story.nodes.get(e.to), S = SIGN[e.sign];
     const curve = new THREE.CatmullRomCurve3([a.pos, ...(e.via || []).map(v => mni2three(v)), b.pos], false, 'centripetal');
-    const len = curve.getLength(), mat = edgeMat(e.sign, len);
+    const len = curve.getLength(), mat = edgeMat(e.sign, len, e.ev);
     const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(40, Math.round(len * 1.4)), 0.7, 8, false), mat);
     tube.renderOrder = 5; tube.visible = false; story.group.add(tube);
-    const cap = new THREE.Mesh(S.cap === 'bar' ? new THREE.CylinderGeometry(2.3, 2.3, 0.9, 20) : new THREE.ConeGeometry(1.7, 3.8, 14),
+    const cap = S.cap === 'none' ? null : new THREE.Mesh(S.cap === 'bar' ? new THREE.CylinderGeometry(2.3, 2.3, 0.9, 20) : new THREE.ConeGeometry(1.7, 3.8, 14),
       new THREE.MeshBasicMaterial({ color: S.col, transparent: true, opacity: 0, depthWrite: false }));
     const tEnd = clamp(1 - ((b.def.r || 1.5) * 2.4) / len, 0.6, 0.97);
-    cap.position.copy(curve.getPointAt(tEnd));
-    cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), curve.getTangentAt(tEnd).normalize());
-    cap.renderOrder = 6; cap.visible = false; story.group.add(cap);
+    if (cap) {
+      cap.position.copy(curve.getPointAt(tEnd));
+      cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), curve.getTangentAt(tEnd).normalize());
+      cap.renderOrder = 6; cap.visible = false; story.group.add(cap);
+    }
     story.edges.set(e.id, { id: e.id, def: e, curve, len, tube, mat, cap, vis: 0, ph: Math.random(), act: 0, tag: makeLabel('', 'tag') });
   }
   // parvalbumin interneuron ring
@@ -88,28 +98,31 @@ function buildStory(def) {
       s.position.set(c.x + Math.cos(a) * 7, c.y + Math.sin(a) * 6, c.z + Math.sin(a * 2) * 2); s.renderOrder = 7; s.visible = false; story.group.add(s); story.ring.push(s);
     }
   }
-  // D2 receptor shields: small hexagon caps on the striatal surface
+  // drug caps on the striatal surface: one set per drug variable (blue hexagons = D2 blockade, green rounds = muscarinic)
   story.shields = [];
-  if (def.shieldOn) {
+  const capsets = def.capsets || (def.shieldOn ? [{ var: 'd2', shape: 'hex', stroke: '#9fd3ff', fill: 'rgba(74,168,255,0.55)', on: def.shieldOn }] : []);
+  capsets.forEach((cs, ci) => {
     const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d');
-    g.strokeStyle = '#9fd3ff'; g.fillStyle = 'rgba(74,168,255,0.55)'; g.lineWidth = 5; g.beginPath();
-    for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; g[k ? 'lineTo' : 'moveTo'](32 + 26 * Math.cos(a), 32 + 26 * Math.sin(a)); }
-    g.closePath(); g.fill(); g.stroke();
+    g.strokeStyle = cs.stroke; g.fillStyle = cs.fill; g.lineWidth = 5; g.beginPath();
+    if (cs.shape === 'hex') { for (let k = 0; k < 6; k++) { const a = Math.PI / 6 + k * Math.PI / 3; g[k ? 'lineTo' : 'moveTo'](32 + 26 * Math.cos(a), 32 + 26 * Math.sin(a)); } g.closePath(); }
+    else g.arc(32, 32, 24, 0, Math.PI * 2);
+    g.fill(); g.stroke();
+    if (cs.text) { g.fillStyle = '#0a0f16'; g.font = 'bold 22px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(cs.text, 32, 33); }
     const tex = new THREE.CanvasTexture(cv);
     let n = 0;
-    for (const [key, count, test] of def.shieldOn) {
+    for (const [key, count, test] of cs.on) {
       const mesh = (byKey.get(key) || []).find(mm => mm.userData.hemi === (def.hemi || 'L')); if (!mesh) continue;
       const pos = mesh.geometry.attributes.position, nor = mesh.geometry.attributes.normal, cand = [];
-      for (let i = 0; i < pos.count; i += 3) { const v = new THREE.Vector3().fromBufferAttribute(pos, i); if (!test || test(three2mni(v))) cand.push(i); }
-      const R = rng(77 + n++);
+      for (let i = ci; i < pos.count; i += 3) { const v = new THREE.Vector3().fromBufferAttribute(pos, i); if (!test || test(three2mni(v))) cand.push(i); }
+      const R = rng(77 + 31 * ci + n++);
       for (let k = 0; k < count && cand.length; k++) {
         const i = cand.splice(Math.floor(R() * cand.length), 1)[0];
         const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false }));
         sp.position.fromBufferAttribute(pos, i).addScaledVector(new THREE.Vector3().fromBufferAttribute(nor, i), 1.6);
-        sp.scale.setScalar(0.01); sp.renderOrder = 8; sp.userData.delay = k * 0.06; story.group.add(sp); story.shields.push(sp);
+        sp.scale.setScalar(0.01); sp.renderOrder = 8; sp.userData.delay = k * 0.06; sp.userData.v = cs.var; story.group.add(sp); story.shields.push(sp);
       }
     }
-  }
+  });
 }
 function clearStory3D() {
   for (const o of [...story.group.children]) { o.geometry?.dispose(); if (o.material) { o.material.map?.dispose?.(); o.material.dispose(); } story.group.remove(o); }
@@ -130,15 +143,18 @@ function clearTokens() { for (const tk of story.tokens) { tk.el.remove(); tk.rin
 story.spawn = spawnToken;
 story.flashEdge = (id, mag, neg = false) => { story.flash[id] = Math.max(story.flash[id] || 0, mag); story.flashNeg[id] = neg ? 1 : 0; };
 story.setState = id => { story.stateId = id; syncBar(); };
+story.setCaption = text => setCaption(text);
 
 // ---------- vars, tweens, scenes ----------
-function tweenVar(k, to, dur = 1.2) {
+function tweenVar(k, to, dur = 1.2, delay = 0, from) {
   story.tweens = story.tweens.filter(tw => tw.k !== k);
+  if (from !== undefined) story.vars[k] = from;
   if (dur <= 0 || reduceMotion || story.instant || (story.def.discrete || []).includes(k)) { story.vars[k] = to; return; }
-  story.tweens.push({ k, from: story.vars[k] ?? 0, to, t0: performance.now(), dur: dur * 1000 });
+  story.tweens.push({ k, from: story.vars[k] ?? 0, to, t0: performance.now() + delay * 1000, dur: dur * 1000 });
 }
+story.tween = tweenVar;
 function stepTweens(now) {
-  story.tweens = story.tweens.filter(tw => { const e = clamp((now - tw.t0) / tw.dur); story.vars[tw.k] = lerp(tw.from, tw.to, easeIO(e)); return e < 1; });
+  story.tweens = story.tweens.filter(tw => { if (now < tw.t0) return true; const e = clamp((now - tw.t0) / tw.dur); story.vars[tw.k] = lerp(tw.from, tw.to, easeIO(e)); return e < 1; });
 }
 function applyState(id, dur = 0.9) {
   const st = story.def.states.find(s => s.id === id); if (!st) return;
@@ -165,6 +181,12 @@ function gotoScene(i, opts = {}) {
   story.focus = sc.focus || null; story.labelSet = new Set(sc.labels || []); story.tags = { ...(sc.tags || {}) };
   story.fx = { ...(sc.fx || {}) }; story.hud = { ...(def.hud || {}), ...(sc.hud || {}) };
   story.flash = {}; story.flashNeg = {};
+  if (story.sceneLevelKeys && story.sceneLevelKeys.size) {
+    for (const k of story.sceneLevelKeys) state.level.set(k, story.baseLevels.get(k));
+    for (const [k, lv] of Object.entries(sc.levels || {})) state.level.set(k, lv);
+    applyMaterials();
+  }
+  paintYeo(story.hud.yeo || 0);
   clearTokens(); setCaption(sc.caption); renderExtra(sc); renderInset(sc.inset || null); syncBar();
   story.camNow = sc.cam || { dir: def.view }; story.framePending = true;
   const anim = !opts.instant;
@@ -183,7 +205,7 @@ function applyBeat(b) {
   if (b.set) Object.assign(story.vars, b.set);
   if (b.fx) Object.assign(story.fx, b.fx);
   if (b.hud) Object.assign(story.hud, b.hud);
-  if (b.state) story.stateId = b.state, syncBar();
+  if (b.state !== undefined) { story.stateId = b.state; syncBar(); }
   if (b.token) spawnToken(b.token);
   if (b.inset !== undefined) renderInset(b.inset);
   if (b.do) b.do(story);
@@ -231,19 +253,21 @@ function storyFrame(now) {
 function applyLook(dt, now) {
   const m = story.m, def = story.def, k = 1 - Math.exp(-dt * 5);
   for (const E of story.edges.values()) {
-    const e = E.def, on = shownE(e.id), tgt = on ? (focusedId(e.id) ? 1 : 0.2) : 0;
+    const e = E.def, on = shownE(e.id) && (!e.gate || e.gate(m, story)), tgt = on ? (focusedId(e.id) ? 1 : 0.2) : 0;
     E.vis += (tgt - E.vis) * k;
     E.act += (clamp(e.act ? e.act(m) : 0.5) - E.act) * k;
     const w = e.w ? e.w(m) : 0.55 + 1.15 * E.act;
     let fl = story.flash[e.id] || 0; if (fl) story.flash[e.id] = Math.max(0, fl - dt * 1.3);
     if (!reduceMotion) E.ph += dt * (0.15 + 1.5 * E.act);
     const u = E.mat.uniforms; u.ph.value = E.ph; u.act.value = E.act; u.w.value = w; u.vis.value = E.vis; u.fl.value = Math.min(1, fl); u.neg.value = story.flashNeg[e.id] || 0;
-    const vis = E.vis > 0.01; E.tube.visible = E.cap.visible = vis;
-    E.cap.material.opacity = 0.85 * E.vis; E.cap.scale.setScalar(0.75 + 0.45 * w);
+    u.fault.value = e.fault ? clamp(e.fault(m)) : 0; u.tm.value = reduceMotion ? 0 : now / 1000;
+    const vis = E.vis > 0.01; E.tube.visible = vis;
+    if (E.cap) { E.cap.visible = vis; E.cap.material.opacity = 0.85 * E.vis; E.cap.scale.setScalar(0.75 + 0.45 * w); }
   }
   for (const N of story.nodes.values()) {
     let touched = false; for (const E of story.edges.values()) if ((E.def.from === N.id || E.def.to === N.id) && shownE(E.def.id)) { touched = true; break; }
-    const tgt = (touched || story.labelSet.has(N.id)) && !N.def.noDot ? (focusedId(N.id) ? 0.9 : 0.35) : 0;
+    const gated = N.def.gate && !N.def.gate(m, story);
+    const tgt = (touched || story.labelSet.has(N.id)) && !N.def.noDot && !gated ? (focusedId(N.id) ? 0.9 : 0.35) : 0;
     N.vis += (tgt - N.vis) * k; N.dot.material.opacity = N.vis; N.dot.visible = N.vis > 0.01;
   }
   const look = def.look ? def.look(m, story) : {};
@@ -256,6 +280,7 @@ function applyLook(dt, now) {
     if (L.op !== undefined && mat.transparent) mat.opacity = L.op;
   }
   if (story.hud.tint) tintStriatum(m, now); else if (tintOn) untint();
+  if (story.painted) for (const mesh of story.painted.meshes) if (mesh.material.transparent) mesh.material.opacity = 0.34;
   if (story.ring.length) {
     const pvN = (story.m.pvEff ?? story.vars.pv ?? 1) * 8, on = !!story.hud.ring;
     story.ring.forEach((s, i) => {
@@ -265,11 +290,27 @@ function applyLook(dt, now) {
     });
   }
   if (story.shields.length) {
-    const d2 = story.hud.shields ? (story.vars.d2 ?? 0) : 0;
-    story.shields.forEach(sp => { const tgt = clamp(d2 * 1.25 - sp.userData.delay) * 3.4; sp.scale.setScalar(Math.max(0.01, sp.scale.x + (tgt - sp.scale.x) * k * 1.5)); sp.visible = sp.scale.x > 0.05; });
+    story.shields.forEach(sp => { const lv = story.hud.shields ? (story.vars[sp.userData.v] ?? 0) : 0, tgt = clamp(lv * 1.25 - sp.userData.delay) * 3.4; sp.scale.setScalar(Math.max(0.01, sp.scale.x + (tgt - sp.scale.x) * k * 1.5)); sp.visible = sp.scale.x > 0.05; });
   }
 }
 let tintOn = false;
+// paint one Yeo network on the (ghosted) cortex for a scene; everything else grey
+function paintYeo(id) {
+  if ((story.painted?.id || 0) === id) return;
+  for (const mesh of story.painted?.meshes || []) { const mat = mesh.material; mat.vertexColors = false; mat.needsUpdate = true; mat.color.set(mesh.userData.st.color); }
+  story.painted = null;
+  if (!id) { applyMaterials(); return; }
+  const list = [], c = new THREE.Color();
+  for (const mesh of meshes) {
+    const { st, net } = mesh.userData; if (!(CORTEX_GROUPS.has(st.group) || st.key === 'Parahippocampal_and_ambient_gyri')) continue;
+    const mat = mesh.material, arr = mesh.geometry.attributes.color.array;
+    if (!mat.vertexColors) { mat.vertexColors = true; mat.needsUpdate = true; }
+    mat.color.set(0xffffff);
+    for (let i = 0; i < net.length; i++) { c.set(net[i] === id ? NETS[id].color : '#3a414d'); arr[i * 3] = c.r; arr[i * 3 + 1] = c.g; arr[i * 3 + 2] = c.b; }
+    mesh.geometry.attributes.color.needsUpdate = true; list.push(mesh);
+  }
+  story.painted = { id, meshes: list };
+}
 // Oklab mixing: lavender → gold passes through a neutral grey instead of pink
 function toLab(c) { const l = Math.cbrt(0.4122214708 * c.r + 0.5363325363 * c.g + 0.0514459929 * c.b), m = Math.cbrt(0.2119034982 * c.r + 0.6806995451 * c.g + 0.1073969566 * c.b), s = Math.cbrt(0.0883024619 * c.r + 0.2817188376 * c.g + 0.6299787005 * c.b);
   return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s]; }
@@ -277,27 +318,35 @@ function fromLab([L, A, B], out) { const l = (L + 0.3963377774 * A + 0.215803757
   return out.setRGB(clamp(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s), clamp(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s), clamp(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s), THREE.LinearSRGBColorSpace); }
 const TERR_LAB = TERR.map(toLab), GOLD_LAB = toLab(GOLD);
 const terrCache = new Map();
+// Striatal parcels per vertex from the Melbourne Subcortex Atlas (Tian 2020, scale III, sampled at build time).
+// Assigning parcels to limbic / associative / sensorimotor territories is a judgment, stated in the Key.
+const TIAN = man.tian ? new Map(Object.entries(man.tian.meshes).map(([i, b64]) => [meshes[+i], Uint8Array.from(atob(b64), c => c.charCodeAt(0))])) : new Map();
+const TIAN_TERR = { 'NAc-shell': 0, 'NAc-core': 0, 'CAU-VA': 0, 'PUT-VA': 0, 'CAU-DA': 1, 'CAU-body': 1, 'CAU-tail': 1, 'PUT-DA': 1, 'PUT-VP': 2, 'PUT-DP': 2 };
+const PARCEL_SHADE = [1, 0.86, 1.12];
 function territories(mesh) {
   if (terrCache.has(mesh)) return terrCache.get(mesh);
-  const p = mesh.geometry.attributes.position, key = mesh.userData.key, out = new Uint8Array(p.count), v = new THREE.Vector3();
+  const p = mesh.geometry.attributes.position, key = mesh.userData.key, ter = new Uint8Array(p.count), shade = new Float32Array(p.count).fill(1), v = new THREE.Vector3();
+  const lab = TIAN.get(mesh);
   for (let i = 0; i < p.count; i++) {
-    const [, y, z] = three2mni(v.fromBufferAttribute(p, i));
-    out[i] = key === 'Nucleus_accumbens' ? 0 : key === 'Caudate_nucleus' ? (z < 2 && y > 8 ? 0 : 1) : (y < -2 ? 2 : z < -3 ? 0 : 1);
+    const L = lab ? lab[i] : 0;
+    if (L) { const nm = man.tian.names[L - 1].replace(/-(lh|rh)$/, ''); ter[i] = TIAN_TERR[nm] ?? 1; shade[i] = PARCEL_SHADE[L % 3]; continue; }
+    const [, y, z] = three2mni(v.fromBufferAttribute(p, i));      // fallback: coordinate rule
+    ter[i] = key === 'Nucleus_accumbens' ? 0 : key === 'Caudate_nucleus' ? (z < 2 && y > 8 ? 0 : 1) : (y < -2 ? 2 : z < -3 ? 0 : 1);
   }
-  terrCache.set(mesh, out); return out;
+  const out = { ter, shade }; terrCache.set(mesh, out); return out;
 }
 function tintStriatum(m, now) {
   tintOn = true;
   const lv = [m.limbicDA ?? 0.4, m.assocDA ?? 0.4, 0.3], pulse = 0.88 + 0.12 * Math.sin(now / 300);
   for (const mesh of storyMeshes) {
     if (!TINT_KEYS.has(mesh.userData.key)) continue;
-    const mat = mesh.material, ter = territories(mesh), arr = mesh.geometry.attributes.color.array;
+    const mat = mesh.material, { ter, shade } = territories(mesh), arr = mesh.geometry.attributes.color.array;
     if (!mat.vertexColors) { mat.vertexColors = true; mat.needsUpdate = true; }
     mat.color.set(0xffffff);
     for (let i = 0; i < ter.length; i++) {
       // reach pure gold at high dopamine (mixing gold with the blue-ish base in linear space reads as peach)
       const g = clamp((lv[ter[i]] - 0.38) / 0.3), A = TERR_LAB[ter[i]];
-      fromLab([A[0] + (GOLD_LAB[0] - A[0]) * g, A[1] + (GOLD_LAB[1] - A[1]) * g, A[2] + (GOLD_LAB[2] - A[2]) * g], tmpC).multiplyScalar(g > 0.05 ? pulse : 1);
+      fromLab([A[0] + (GOLD_LAB[0] - A[0]) * g, A[1] + (GOLD_LAB[1] - A[1]) * g, A[2] + (GOLD_LAB[2] - A[2]) * g], tmpC).multiplyScalar((g > 0.05 ? pulse : 1) * (g > 0.6 ? 1 : shade[i]));
       arr[i * 3] = tmpC.r; arr[i * 3 + 1] = tmpC.g; arr[i * 3 + 2] = tmpC.b;
     }
     mesh.geometry.attributes.color.needsUpdate = true;
@@ -317,7 +366,7 @@ const PLAY_SVG = '<svg viewBox="0 0 20 20"><path d="M6 4l10 6-10 6z"/></svg>', P
 function initHud() {
   const P = (a, R, cx = 54, cy = 52) => [cx + R * Math.cos(a), cy - R * Math.sin(a)];
   const arc = (a0, a1, col) => { const [x0, y0] = P(a0, 42), [x1, y1] = P(a1, 42); return `<path d="M${x0.toFixed(1)} ${y0.toFixed(1)} A42 42 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}" stroke="${col}" stroke-width="7" fill="none"/>`; };
-  $('#dial').innerHTML = `<div class="t">Dopamine gain</div><svg viewBox="0 0 108 60">${arc(Math.PI, 0.62 * Math.PI, '#4aa8ff')}${arc(0.62 * Math.PI, 0.38 * Math.PI, '#5d6878')}${arc(0.38 * Math.PI, 0, '#ffd34d')}
+  $('#dial').innerHTML = `<div class="t">Dopamine gain<span class="ill">illustrative units</span></div><svg viewBox="0 0 108 60">${arc(Math.PI, 0.62 * Math.PI, '#4aa8ff')}${arc(0.62 * Math.PI, 0.38 * Math.PI, '#5d6878')}${arc(0.38 * Math.PI, 0, '#ffd34d')}
     <line id="draw" x1="54" y1="52" x2="54" y2="12" stroke="#e7edf4" stroke-width="2" stroke-dasharray="3 3" opacity="0"/>
     <line id="dneedle" x1="54" y1="52" x2="54" y2="16" stroke="#e7edf4" stroke-width="3" stroke-linecap="round"/><circle cx="54" cy="52" r="4.5" fill="#e7edf4"/></svg><div id="dword" class="mono" style="font-size:10.5px;margin-top:-1px;line-height:1.25"></div>`;
   hud.needle = $('#dneedle'); hud.raw = $('#draw'); hud.word = $('#dword'); hud.P = P;
@@ -343,11 +392,11 @@ function initHud() {
   hud.bias = $('#bias'); hud.threads = $('#threads'); hud.leaders = $('#leaders'); hud.gridlead = $('#gridlead');
   if (!hud.ro && typeof ResizeObserver !== 'undefined') {
     hud.ro = new ResizeObserver(() => { document.body.style.setProperty('--sb-h', `${Math.round($('#storybar').getBoundingClientRect().height)}px`); _fbc = null; resize(); });
-    for (const sel of ['#storybar', '#inset', '#hudrow']) hud.ro.observe($(sel));
+    for (const sel of ['#storybar', '#inset', '#hudrow', '#keycard']) hud.ro.observe($(sel));
   }
 }
 function clearHud() {
-  for (const id of ['#dial', '#ledger', '#moodbar', '#seesaw', '#grid', '#clockico', '#daystrip']) $(id).classList.remove('on');
+  for (const id of ['#dial', '#ledger', '#moodbar', '#seesaw', '#grid', '#clockico', '#daystrip', '#badge', '#hitring']) $(id).classList.remove('on');
   $('#hudsvg').innerHTML = ''; $('#tokens').innerHTML = ''; $('#labels').innerHTML = '';
 }
 // push overlapping labels apart vertically, keep them inside the uncovered strip
@@ -405,7 +454,7 @@ function updateHud(dt, now) {
   const items = [];
   for (const N of story.nodes.values()) {
     if (!N.label) continue;
-    const s = proj(N.pos), on = story.labelSet.has(N.id) && s.ok; N.label.classList.toggle('on', on);
+    const s = proj(N.pos), on = story.labelSet.has(N.id) && s.ok && !(N.def.gate && !N.def.gate(m, story)); N.label.classList.toggle('on', on);
     if (on) { const [w, h] = measure(N.label); items.push({ el: N.label, ax: s.x, ay: s.y, w, h, below: (N.def.lo || [0, 0])[1] > 0 }); }
   }
   for (const E of story.edges.values()) {
@@ -475,6 +524,11 @@ function updateHud(dt, now) {
       g.fillStyle = '#35587d'; g.fillRect(x0, 0, nx - x0, chh); g.fillStyle = '#0b1119'; g.fillRect(nx, 0, x1 - nx, chh);
     }
   }
+  const btxt = def.badge ? def.badge(m, story) : story.fx.badge, bd = $('#badge');
+  bd.classList.toggle('on', !!btxt); if (btxt && bd.textContent !== btxt) bd.textContent = btxt;
+  const hr = $('#hitring'), hn = story.fx.hit && story.nodes.get(story.fx.hit);
+  hr.classList.toggle('on', !!hn);
+  if (hn) { const s = proj(hn.pos); hr.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px)`; const sp = hr.querySelector('span'); if (sp.textContent !== (story.fx.hitLabel || '')) sp.textContent = story.fx.hitLabel || ''; }
   if (insetOn && story.insetTick) story.insetTick(m, now);
   if (def.liveCaption && story.scene.live) { const c = def.liveCaption(story.vars, story.scene.live); if (c !== hud.lastLive) { hud.lastLive = c; setCaption(c); } }
   $('#sbprog i').style.width = sc_progress();
@@ -483,12 +537,41 @@ function updateHud(dt, now) {
 function sc_progress() { const sc = story.scene; return sc.free ? '100%' : `${clamp(story.t / sc.dur) * 100}%`; }
 
 // ---------- story bar ----------
-function setCaption(text) { $('#sbcap').textContent = text || ''; }
+function setCaption(text) {
+  $('#sbcap').textContent = text || '';
+  if (story.narrate && text && window.speechSynthesis && !story.instant) {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text), vs = speechSynthesis.getVoices();
+    u.voice = vs.find(v => v.lang === 'en-AU') || vs.find(v => v.lang === 'en-GB') || vs.find(v => v.lang.startsWith('en')) || null;
+    u.rate = 1.02; speechSynthesis.speak(u);
+  }
+}
+if (!window.speechSynthesis) $('#sbvoice').hidden = true;
+$('#sbvoice').addEventListener('click', () => {
+  story.narrate = !story.narrate; $('#sbvoice').setAttribute('aria-pressed', story.narrate);
+  if (story.narrate) setCaption($('#sbcap').textContent); else speechSynthesis.cancel();
+});
+function keyHtml(def) {
+  const used = [...new Set(def.edges.map(e => e.sign))];
+  const line = (pat, col = '#c9d4e2') => `<svg viewBox="0 0 34 10"><line x1="1" y1="5" x2="33" y2="5" stroke="${col}" stroke-width="3" ${pat === 1 ? 'stroke-dasharray="6 4"' : pat === 2 ? 'stroke-dasharray="2 4" stroke-linecap="round"' : ''}/></svg>`;
+  return `<div class="t">Edge colour = what the connection carries</div>${used.map(k => `<div class="kr">${line(0, SIGN[k].col)}${SIGN[k].label}</div>`).join('')}
+    <div class="t">Line style = evidence for this link's role in illness</div>
+    <div class="kr">${line(0)}Shown in patients (imaging, PET)</div><div class="kr">${line(1)}Animal models</div><div class="kr">${line(2)}Proposed, untested</div>
+    <div class="t">Striatal territories</div>
+    <div class="kr"><span class="sw" style="background:#3fd0a6"></span>Limbic</div><div class="kr"><span class="sw" style="background:#a98bff"></span>Associative</div><div class="kr"><span class="sw" style="background:#5b7cff"></span>Sensorimotor</div><div class="kr"><span class="sw" style="background:#ffc21a"></span>Gold = dopamine excess</div>
+    <div class="note">Parcels: Melbourne Subcortex Atlas (Tian 2020, scale III). Which parcel counts as which territory is my judgment.</div>
+    <div class="t">Dials and grids</div><div class="note">Illustrative units, not measurements. Dopamine neuron population activity (the dot grid) has only been measured in rodents.</div>`;
+}
+$('#sbkey').addEventListener('click', () => {
+  const kc = $('#keycard'), open = kc.hidden;
+  if (open) kc.innerHTML = keyHtml(story.def);
+  kc.hidden = !open; $('#sbkey').setAttribute('aria-pressed', open); requestAnimationFrame(resize);
+});
 function syncBar() {
   const def = story.def; if (!def) return;
   const sc = story.scene;
   $('#sbtitle').textContent = sc.title;
-  $('#sbcount').textContent = `${story.i + 1} / ${def.scenes.length}`;
+  $('#sbcount').textContent = `${sc.chapter ? sc.chapter + ' · ' : ''}${story.i + 1} / ${def.scenes.length}`;
   const seg = $('#sbstate');
   if (seg.dataset.story !== def.id) { seg.innerHTML = def.states.map(s => `<button data-s="${s.id}">${s.label}</button>`).join(''); seg.dataset.story = def.id; }
   $$('#sbstate button').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === story.stateId));
@@ -564,7 +647,9 @@ function startStory(id, i = 0, opts = {}) {
   const ghostK = new Set([...Object.values(def.nodes).filter(n => n.key && n.ghost).map(n => n.key), ...(def.ghostCast || [])]);
   setLevels(all, 0); setLevels(cortex, 1); setLevels([...ghostK], 1); setLevels([...solid], 2);
   state.hemi = def.hemi || 'L'; state.preset = null;
-  storyMeshes = meshes.filter(mm => solid.has(mm.userData.key) || ghostK.has(mm.userData.key));
+  story.baseLevels = new Map(state.level);
+  story.sceneLevelKeys = new Set(def.scenes.flatMap(sc => Object.keys(sc.levels || {})));
+  storyMeshes = meshes.filter(mm => solid.has(mm.userData.key) || ghostK.has(mm.userData.key) || story.sceneLevelKeys.has(mm.userData.key));
   document.body.classList.add('story'); $('#storybar').hidden = false;
   if (innerWidth <= 760) $('#panel').classList.add('min');
   buildStory(def); initHud();
@@ -577,6 +662,9 @@ function endStory(restore = true) {
   if (!story.def) return;
   for (const mesh of storyMeshes) { const mat = mesh.material; mat.color.set(mesh.userData.st.color); mat.emissive.set(0xffe6bf); mat.emissiveIntensity = 0; mat.userData.sl = false; }
   if (tintOn) untint();
+  paintYeo(0); story.sceneLevelKeys = null;
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  $('#keycard').hidden = true; $('#sbkey').setAttribute('aria-pressed', 'false');
   clearTokens(); clearStory3D(); clearHud(); renderInset(null);
   story.def = null; story.scene = null; storyMeshes = [];
   document.body.classList.remove('story'); $('#storybar').hidden = true;

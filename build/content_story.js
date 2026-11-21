@@ -81,15 +81,44 @@ function compareInset(S) {
   } };
 }
 
-const STORIES = [
 // ---------------------------------------------------------------- psychosis
+// Subiculum → accumbens fibres run in the fornix: waypoints are the left fornix centreline from the HCP842 tractography mesh
+// (fimbria → crus → body over the thalamus → column), then the precommissural branch to the accumbens.
+const FORNIX = [[-27.5, -24.3, -10.6], [-26.6, -31.7, -5.4], [-23.0, -37.1, 3.2], [-15.9, -36.4, 9.1], [-6.3, -30.3, 13.6], [-2.2, -21.6, 16.4], [-0.5, -10.1, 16.0], [-1.0, -2.9, 11.5], [-0.9, 2.9, 1.1], [-4, 7, -5]];
+// Four illustrative patients: each loses a different node, all end with a high gain (Segal 2023 is the principle, not these four)
+const PATIENTS = [
+  { label: 'interneurons fail', node: 'ahp', k: 'pv', v: 0 },
+  { label: 'prefrontal control fails', node: 'ilc', k: 'ctl', v: 0 },
+  { label: 'pallidal output falls', node: 'vp', k: 'vpx', v: 0.55 },
+  { label: 'dopamine neurons over-excitable', node: 'vta', k: 'vtax', v: 0.38 },
+];
+const NORMAL = { pv: 1, ctl: 1, nmda: 1, vpx: 1, vtax: 0 };
+function patient(S, i) {
+  const p = PATIENTS[i % PATIENTS.length];
+  for (const [k, v] of Object.entries(NORMAL)) if (k !== p.k) S.tween(k, v, 0.6);
+  S.tween(p.k, p.v, 1.6, 0.9, NORMAL[p.k]);
+  S.fx.pn = (i % PATIENTS.length) + 1; S.fx.hit = p.node; S.fx.hitLabel = `Patient ${S.fx.pn}: ${p.label}`;
+  S.setCaption ? S.setCaption(`Patient ${S.fx.pn}: ${p.label}.`) : null;
+}
+// Network spread, illustrative: hop count from the hippocampus along major connections (not a fitted model)
+const SPREAD = [['Hippocampus', 0], ['Amygdala', 1], ['Parahippocampal_and_ambient_gyri', 1], ['Nucleus_accumbens', 1.1], ['Anterior_temporal_lobe_medial_part', 1.2],
+  ['Subgenual_frontal_cortex', 2], ['Pre-subgenual_frontal_cortex', 2.1], ['Medial_orbital_gyrus', 2.1], ['Insula', 2.2], ['Superior_temporal_gyrus_anterior_part', 2.2], ['Cingulate_gyrus_anterior_part', 2.4], ['Thal_MD', 2.3],
+  ['Superior_temporal_gyrus_posterior_part', 3], ['Middle_frontal_gyrus', 3.1], ['Inferior_frontal_gyrus', 3], ['Cingulate_gyrus_posterior_part', 3.2], ['Middle_and_inferior_temporal_gyrus', 3], ['Lateral_orbital_gyrus', 3]];
+const SPREAD_TRACTS = [['Fornix', 0.6], ['Uncinate', 1.6], ['Cingulum', 2.2]];
+const SPREAD_DEEP = new Set(['Hippocampus', 'Nucleus_accumbens', 'Thal_MD']);
+const SPREAD_LEVELS = Object.fromEntries([...SPREAD.map(([k]) => [k, SPREAD_DEEP.has(k) ? 2 : 1]), ...SPREAD_TRACTS.map(([k]) => [k, 1])]);
+const EVIDENCE_HTML = (t, body) => ({ kind: 'html', html: `<div class="t">${t}</div>${body}` });
+
+const STORIES = [
 { id: 'psy', name: 'Psychosis: the gain story', color: '#ffb454', hemi: 'L', view: MED,
-  desc: 'Hippocampus → accumbens → pallidum → midbrain → associative striatum: how a quiet cue gets amplified. Eleven scenes.',
+  desc: 'Fifteen scenes in two chapters: the dopamine cascade (hippocampus → pallidum → midbrain → associative striatum), then the network view (coupling, staging, heterogeneity, spread).',
   nodes: {
     ilc: { key: 'Subgenual_frontal_cortex', label: 'Medial prefrontal' },
     dl:  { key: 'Middle_frontal_gyrus', ghost: true, label: 'Dorsolateral prefrontal' },
+    vmp: { key: 'Medial_orbital_gyrus', ghost: true, label: 'Ventromedial prefrontal', lo: [0, 12], nofit: true },
     re:  { mni: [-1, -10, 4], label: 'Nucleus reuniens (approx.)', r: 1.3, dot: '#b48cff' },
     ahp: { key: 'Hippocampus', mni: [-25, -13, -20], label: 'Anterior hippocampus', hot: true },
+    fxb: { mni: [-4, -26, 15], label: 'Fornix', noDot: true, nofit: true },
     nac: { key: 'Nucleus_accumbens', label: 'Accumbens', lo: [-6, 0] },
     vp:  { key: 'Ventral_pallidum', label: 'Ventral pallidum', lo: [0, 12] },
     vta: { key: 'VTA', label: 'Ventral tegmental area' },
@@ -98,41 +127,52 @@ const STORIES = [
     md:  { key: 'Thal_MD', label: 'Mediodorsal thalamus', lo: [0, 12] },
     ctx: { key: 'Middle_and_inferior_temporal_gyrus', ghost: true, label: 'Temporal cortex' },
   },
+  // ev = evidence for this link's role in psychosis: human (patients), rodent (animal models), proposed (untested)
   edges: [
-    { id: 'ilc-re', from: 'ilc', to: 're', via: [[-3, 8, -2]], sign: 'ctl', act: m => m.ctl },
-    { id: 're-hp', from: 're', to: 'ahp', via: [[-10, -14, -4], [-20, -16, -12]], sign: 'ctl', act: m => m.ctl },
-    { id: 'hp-nac', from: 'ahp', to: 'nac', via: [[-18, -2, -15]], sign: '+', act: m => m.hpOut },
-    { id: 'nac-vp', from: 'nac', to: 'vp', sign: '-', act: m => m.nacOut },
-    { id: 'vp-vta', from: 'vp', to: 'vta', via: [[-9, -7, -10]], sign: '-', act: m => m.stream },
-    { id: 'vta-nac', from: 'vta', to: 'nac', via: [[-6, -4, -12]], sign: 'da', act: m => m.pop },
-    { id: 'nac-sn', from: 'nac', to: 'sn', via: [[-11, -6, -15]], sign: 'spiral', act: m => m.pop * 0.9 },
-    { id: 'sn-cd', from: 'sn', to: 'cd', via: [[-12, -6, -2], [-13, 4, 4]], sign: 'da', act: m => m.assocDA },
-    { id: 'ctx-cd', from: 'ctx', to: 'cd', via: [[-40, -12, -8], [-24, 2, 4]], sign: '+', act: () => 0.45 },
-    { id: 'cd-md', from: 'cd', to: 'md', via: [[-10, -4, 6]], sign: '+', act: m => m.eff },
-    { id: 'md-dl', from: 'md', to: 'dl', via: [[-12, -2, 22], [-24, 18, 28]], sign: '+', act: m => m.eff },
-    { id: 'dl-cd', from: 'dl', to: 'cd', via: [[-22, 22, 16]], sign: '+', act: m => 0.45 + 0.3 * m.eff },
+    { id: 'ilc-re', from: 'ilc', to: 're', via: [[-3, 8, -2]], sign: 'ctl', ev: 'rodent', act: m => m.ctl },
+    { id: 're-hp', from: 're', to: 'ahp', via: [[-10, -14, -4], [-20, -16, -12]], sign: 'ctl', ev: 'rodent', act: m => m.ctl },
+    { id: 'hp-nac', from: 'ahp', to: 'nac', via: FORNIX, sign: '+', ev: 'rodent', act: m => m.hpOut },
+    { id: 'nac-vp', from: 'nac', to: 'vp', sign: '-', ev: 'rodent', act: m => m.nacOut },
+    { id: 'vp-vta', from: 'vp', to: 'vta', via: [[-9, -7, -10]], sign: '-', ev: 'rodent', act: m => m.stream },
+    { id: 'vta-nac', from: 'vta', to: 'nac', via: [[-6, -4, -12]], sign: 'da', ev: 'rodent', act: m => m.pop },
+    { id: 'nac-sn', from: 'nac', to: 'sn', via: [[-11, -6, -15]], sign: 'spiral', ev: 'proposed', act: m => m.pop * 0.9 },
+    { id: 'sn-cd', from: 'sn', to: 'cd', via: [[-12, -6, -2], [-13, 4, 4]], sign: 'da', ev: 'human', act: m => m.assocDA, fault: m => m.fs },
+    { id: 'ctx-cd', from: 'ctx', to: 'cd', via: [[-40, -12, -8], [-24, 2, 4]], sign: '+', ev: 'human', act: () => 0.45 },
+    { id: 'cd-md', from: 'cd', to: 'md', via: [[-10, -4, 6]], sign: '+', ev: 'human', act: m => m.eff, fault: m => m.fs },
+    { id: 'md-dl', from: 'md', to: 'dl', via: [[-12, -2, 22], [-24, 18, 28]], sign: '+', ev: 'human', act: m => m.eff, fault: m => m.fcx },
+    { id: 'dl-cd', from: 'dl', to: 'cd', via: [[-22, 22, 16]], sign: '+', ev: 'human', act: m => 0.45 + 0.3 * m.eff, fault: m => m.fcx },
+    { id: 'fcD', from: 'dl', to: 'cd', via: [[-26, 24, 20]], sign: 'fc', ev: 'human', act: m => m.fcD / 1.6, w: m => 0.5 + 0.9 * m.fcD },
+    { id: 'fcV', from: 'vmp', to: 'nac', via: [[-10, 26, -14]], sign: 'fc', ev: 'human', act: m => m.fcV / 1.6, w: m => 0.5 + 0.9 * m.fcV },
   ],
   ring: 'ahp',
-  shieldOn: [['Caudate_nucleus', 8, p => p[1] > 2], ['Nucleus_accumbens', 4, null], ['Putamen', 4, p => p[1] > 0]],
-  vars: { pv: 1, ctl: 1, d2: 0, tr: 0, cs: 4, hpx: -1, nmda: 1 },
-  discrete: ['hpx'],
-  states: [
-    { id: 'healthy', label: 'Healthy', vars: { pv: 1, ctl: 1, d2: 0, tr: 0, cs: 4, nmda: 1 } },
-    { id: 'psychosis', label: 'Psychosis', vars: { pv: 0.15, ctl: 0.45, d2: 0, cs: 4, nmda: 1 } },
-    { id: 'treated', label: 'On antipsychotic', vars: { pv: 0.15, ctl: 0.45, d2: 1, cs: 4, nmda: 1 } },
+  capsets: [
+    { var: 'd2', shape: 'hex', stroke: '#9fd3ff', fill: 'rgba(74,168,255,0.55)', on: [['Caudate_nucleus', 8, p => p[1] > 2], ['Nucleus_accumbens', 4, null], ['Putamen', 4, p => p[1] > 0]] },
+    { var: 'musc', shape: 'round', stroke: '#a9f0c4', fill: 'rgba(95,211,138,0.6)', text: 'M', on: [['Caudate_nucleus', 6, p => p[1] > 2], ['Putamen', 4, p => p[1] > 0]] },
   ],
-  // cs = how many hops of the cascade have propagated (0–4); scene 6 walks it up one hop at a time
-  // nmda = NMDA receptor function on the interneurons (1 normal); scene 4 turns it down
+  vars: { pv: 1, ctl: 1, d2: 0, tr: 0, cs: 4, hpx: -1, nmda: 1, vpx: 1, vtax: 0, musc: 0, fcD: 1, fcV: 1, rel: 0, fs: 0, fcx: 0, yrs: 0 },
+  discrete: ['hpx', 'rel'],
+  states: [
+    { id: 'healthy', label: 'Healthy', vars: { pv: 1, ctl: 1, d2: 0, tr: 0, cs: 4, nmda: 1, vpx: 1, vtax: 0, musc: 0, fcD: 1, fcV: 1, rel: 0 } },
+    { id: 'psychosis', label: 'Psychosis', vars: { pv: 0.15, ctl: 0.45, d2: 0, cs: 4, nmda: 1, vpx: 1, vtax: 0, musc: 0, fcD: 0.35, fcV: 1.6, rel: 0 } },
+    { id: 'treated', label: 'On antipsychotic', vars: { pv: 0.15, ctl: 0.45, d2: 1, cs: 4, nmda: 1, vpx: 1, vtax: 0, fcD: 0.35, fcV: 1.6, rel: 0 } },
+  ],
+  // cs = hops of the cascade propagated (0–4); scene 6 walks it up one hop at a time
+  // nmda = NMDA receptor function on the interneurons; vpx / vtax = direct pallidal and midbrain hits (patients scene)
+  // musc = muscarinic agonist (less dopamine released); d2 = D2 blockade; fcD / fcV = dorsal / ventral frontostriatal coupling
+  // fs / fcx = subcortical / cortical dysconnectivity (staging); yrs = 0–1 along the illustrative spread timeline
   model(v) {
     const H0 = 0.25, nac0 = 0.3 + 0.6 * H0, vp0 = cl01(1.05 - 0.8 * nac0);
     const pvEff = v.pv * (0.3 + 0.7 * v.nmda);
-    let hp = cl01(0.25 + 0.6 * (1 - pvEff) + 0.15 * (1 - v.ctl)); if (v.hpx >= 0) hp = v.hpx;
-    const nacF = 0.3 + 0.6 * hp, vpF = cl01(1.05 - 0.8 * nacF), popF = Math.min(0.97, Math.max(0.05, 0.4 + 1.3 * (0.69 - vpF)));
+    let hp = cl01(0.25 + 0.5 * (1 - pvEff) + 0.5 * (1 - v.ctl)); if (v.hpx >= 0) hp = v.hpx;
+    const nacF = 0.3 + 0.6 * hp, vpF = cl01(1.05 - 0.8 * nacF) * v.vpx;
+    const popF = Math.min(0.97, Math.max(0.05, 0.4 + 1.3 * (0.69 - vpF) + v.vtax));
     const c = k => cl01(v.cs - k), L = (a, b, t) => a + (b - a) * t;
     let pop = L(0.4, popF, c(3)); if (v.tr > 0) pop = L(pop, 0.42, v.tr);
-    const eff = L(pop, 0.45 + (pop - 0.4) * 0.25, v.d2);
+    let eff = L(pop, 0.45 + (pop - 0.4) * 0.25, v.d2);
+    eff = L(eff, 0.45 + (eff - 0.4) * 0.3, v.musc);
     return { hp, hpOut: L(H0, hp, c(0)), nac: L(nac0, nacF, c(0)), nacOut: L(nac0, nacF, c(1)), vp: L(vp0, vpF, c(1)), stream: L(vp0, vpF, c(2)),
-      pop, eff, ctl: v.ctl, pv: v.pv, pvEff, nmda: v.nmda, d2: v.d2, tr: v.tr, assocDA: eff, limbicDA: 0.4 + 0.35 * (eff - 0.4) };
+      pop, eff, ctl: v.ctl, pv: v.pv, pvEff, nmda: v.nmda, d2: v.d2, musc: v.musc, tr: v.tr, assocDA: eff, limbicDA: 0.4 + 0.35 * (eff - 0.4),
+      fcD: v.fcD, fcV: v.fcV, rel: v.rel, fs: v.fs, fcx: v.fcx, yrs: v.yrs };
   },
   gauge: { gain: m => m.eff, raw: m => m.pop, pop: m => m.pop },
   salience(kind, m) {
@@ -140,9 +180,17 @@ const STORIES = [
     if (kind === 'neutral') return m.tr > 0.5 ? 1.9 : 0.55 + cl01((m.eff - 0.5) * 5) * 1.5;
     return 1;
   },
-  look(m) {
+  badge(m, S) {
+    const b = S.scene.badge;
+    if (b === 'patients') return S.fx.pn ? `Patient ${S.fx.pn} of 4 · one circuit` : null;
+    if (b === 'years') return (m.yrs < 0.15 ? 'Prodrome' : m.yrs < 0.42 ? 'First episode' : m.yrs < 0.72 ? 'About 5 years in' : 'About 10 years in') + ' · illustrative order';
+    if (b === 'stage') return m.fcx > 0.5 ? 'Established schizophrenia' : m.fs > 0.5 ? 'First episode, antipsychotic-naive' : 'Healthy';
+    if (b === 'gradient') return m.rel > 0.5 ? 'Unaffected first-degree relative' : m.fcD < 0.7 ? 'First-episode psychosis' : 'Healthy';
+    return null;
+  },
+  look(m, S) {
     const heat = cl01((m.hp - 0.28) / 0.55);
-    return {
+    const L = {
       Hippocampus: { heat, glow: 0.12 + 0.6 * heat, ec: '#ff8a3d' },
       Nucleus_accumbens: { glow: 0.6 * cl01((m.nac - 0.42) / 0.4), ec: '#ff9f43' },
       Ventral_pallidum: { glow: 0.75 * m.vp, ec: '#7cc4ff' },
@@ -151,9 +199,19 @@ const STORIES = [
       Caudate_nucleus: { glow: 0.5 * cl01((m.assocDA - 0.45) / 0.35), ec: '#ffc21a' },
       Subgenual_frontal_cortex: { glow: 0.45 * m.ctl, ec: '#b48cff' },
       Middle_frontal_gyrus: { glow: 0.3 * m.eff, ec: '#ff9f43', op: 0.12 + 0.1 * m.eff },
+      Medial_orbital_gyrus: { glow: 0.45 * cl01(m.fcV - 0.8), ec: '#7fe7ff', op: 0.12 + 0.12 * cl01(m.fcV - 0.8) },
       Middle_and_inferior_temporal_gyrus: { glow: 0.15, ec: '#ff9f43', op: 0.13 },
       Thal_MD: { glow: 0.4 * cl01((m.eff - 0.4) / 0.4), ec: '#ff9f43' },
     };
+    if (S.hud.spread) {
+      const y = m.yrs * 3.6;
+      for (const [k, d] of SPREAD) {
+        const loss = cl01((y - d) / 1.2), front = cl01(1 - Math.abs(y - d - 0.3) / 0.6), prev = L[k] || {};
+        L[k] = { ...prev, heat: 0, dim: 0.7 * loss, glow: Math.max(0.8 * front, 0.1 * (1 - loss) * (prev.glow || 0)), ec: '#ff5a4f', op: 0.13 + 0.35 * Math.max(front, 0.55 * loss) };
+      }
+      for (const [k, d] of SPREAD_TRACTS) { const front = cl01(1 - Math.abs(y - d) / 0.8); L[k] = { glow: 0.9 * front, ec: '#ff8a6b', op: 0.1 + 0.55 * front }; }
+    }
+    return L;
   },
   insets: {
     chips: () => ({ html: '<div class="t">What strains the interneurons</div><div class="chips"><span class="chip">Redox load</span><span class="chip">NMDA receptor hypofunction</span><span class="chip">Stress</span></div>' }),
@@ -161,46 +219,47 @@ const STORIES = [
     nmda: nmdaInset,
   },
   scenes: [
-    { title: 'Orient', dur: 7, state: 'healthy', cam: { dir: MED }, show: [], hud: { dial: false, grid: false },
+    { title: 'Orient', chapter: 'Cascade', dur: 7, state: 'healthy', cam: { dir: MED }, show: [], hud: { dial: false, grid: false },
       caption: 'Six stops: prefrontal cortex, hippocampus, accumbens, pallidum, midbrain, striatum.',
       beats: [{ at: 0.3, labels: ['ilc', 'dl'] }, { at: 1.3, labels: ['ahp'] }, { at: 2.2, labels: ['nac'] }, { at: 3.0, labels: ['vp'] }, { at: 3.8, labels: ['vta', 'sn'] }, { at: 4.7, labels: ['cd', 'md'] }] },
-    { title: 'Healthy baseline', dur: 10, state: 'healthy', cam: { dir: MED },
+    { title: 'Healthy baseline', chapter: 'Cascade', dur: 10, state: 'healthy', cam: { dir: MED },
       show: ['ilc-re', 're-hp', 'hp-nac', 'nac-vp', 'vp-vta', 'vta-nac'], focus: ['ilc-re', 're-hp', 'ilc', 're', 'ahp'], labels: ['ilc', 're', 'ahp'],
       hud: { dial: true, grid: true, ring: true },
       caption: 'Medial prefrontal cortex reaches the hippocampus through nucleus reuniens; interneurons hold it quiet.',
       beats: [{ at: 5, focus: ['vp-vta', 'vp', 'vta'], labels: ['vp', 'vta'], caption: 'The pallidum keeps most dopamine neurons silent — a reserve, not a deficit.' }] },
-    { title: 'A cue that matters, and one that doesn’t', dur: 10, state: 'healthy', cam: { dir: LAT, fit: ['ctx', 'cd', 'vta', 'sn'] },
+    { title: 'A cue that matters, and one that doesn’t', chapter: 'Cascade', dur: 10, state: 'healthy', cam: { dir: LAT, fit: ['ctx', 'cd', 'vta', 'sn'] },
       show: ['ctx-cd', 'sn-cd', 'vta-nac'], focus: ['ctx-cd', 'sn-cd', 'ctx', 'cd', 'sn'], labels: ['ctx', 'cd'], hud: { dial: true, grid: true },
       caption: 'Healthy gain: only what matters gets amplified.',
       beats: [{ at: 0.8, token: { icon: 'wave', from: 'ctx', to: 'cd', kind: 'relevant', flash: 'sn-cd' } }, { at: 4.8, token: { icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', flash: 'sn-cd' } }] },
-    { title: 'NMDA receptor hypofunction', dur: 12, state: 'healthy', set: { cs: 0, nmda: 1 }, cam: { fit: ['ahp', 're'], r: 22, dir: [-1, 0.22, 0.32] },
+    { title: 'NMDA receptor hypofunction', chapter: 'Cascade', dur: 12, state: 'healthy', set: { cs: 0, nmda: 1 }, cam: { fit: ['ahp', 're'], r: 22, dir: [-1, 0.22, 0.32] },
       show: ['ilc-re', 're-hp'], focus: ['ahp'], labels: ['ahp'], hud: { dial: false, grid: true, ring: true }, inset: 'nmda',
       caption: 'Parvalbumin interneurons need NMDA receptor drive to keep firing.',
       beats: [
         { at: 2.5, tween: { nmda: [0.2, 4] }, caption: 'Block the NMDA receptors (ketamine, or the illness) and the interneurons go quiet first.' },
         { at: 7, caption: 'Pyramidal cells are released: glutamate rises and the hippocampus heats.' },
         { at: 10, caption: 'Blocking a glutamate receptor ends up raising glutamate. The midbrain hasn’t noticed yet.' }] },
-    { title: 'The interneurons falter', dur: 10, state: 'healthy', set: { cs: 0 }, cam: { fit: ['ahp', 're'], r: 22, dir: [-1, 0.22, 0.32] },
+    { title: 'The interneurons falter', chapter: 'Cascade', dur: 10, state: 'healthy', set: { cs: 0 }, cam: { fit: ['ahp', 're'], r: 22, dir: [-1, 0.22, 0.32] },
       show: ['ilc-re', 're-hp', 'hp-nac'], focus: ['ilc-re', 're-hp', 'ahp', 're', 'ilc'], labels: ['ahp', 're'], hud: { dial: true, grid: true, ring: true }, inset: 'chips',
       caption: 'Anterior hippocampus runs hot.',
       beats: [{ at: 0.6, tween: { pv: [0.15, 6], ctl: [0.45, 6] }, state: 'psychosis' }] },
-    { title: 'The cascade', dur: 13, state: 'psychosis', set: { cs: 0 }, cam: { fit: ['ahp', 'nac'], dir: MED, r: 22 },
-      show: ['hp-nac', 'nac-vp', 'vp-vta', 'vta-nac'], focus: ['hp-nac', 'ahp', 'nac'], labels: ['ahp', 'nac'], hud: { dial: true, grid: true, ledger: true }, fx: { ledger: 0 },
-      caption: 'Subiculum excites accumbens.',
+    { title: 'The cascade', chapter: 'Cascade', dur: 13, state: 'psychosis', set: { cs: 0 }, cam: { fit: ['ahp', 'nac', 'fxb'], dir: MED, r: 22 }, levels: { Fornix: 1 },
+      show: ['hp-nac', 'nac-vp', 'vp-vta', 'vta-nac'], focus: ['hp-nac', 'ahp', 'nac'], labels: ['ahp', 'nac', 'fxb'], tags: { 'hp-nac': 'via the fornix' },
+      hud: { dial: true, grid: true, ledger: true }, fx: { ledger: 0 },
+      caption: 'Subiculum excites accumbens, through the fornix.',
       beats: [
         { at: 0.4, tween: { cs: [1, 2] }, fx: { ledger: 1 } },
         { at: 3.2, tween: { cs: [2, 2] }, fx: { ledger: 2 }, focus: ['nac-vp', 'nac', 'vp'], labels: ['vp'], cam: { fit: ['nac', 'vp'], dir: MED, r: 20 }, caption: 'Accumbens inhibits pallidum.' },
         { at: 6.2, tween: { cs: [3, 2] }, fx: { ledger: 3 }, focus: ['vp-vta', 'vp', 'vta'], labels: ['vta'], cam: { fit: ['vp', 'vta'], dir: MED, r: 20 }, caption: 'The brake lifts.' },
         { at: 9.2, tween: { cs: [4, 2] }, fx: { ledger: 4 }, focus: ['vta-nac', 'vta', 'nac'], cam: { fit: ['vta', 'nac', 'vp'], dir: MED, r: 24 }, caption: 'More dopamine neurons awake.' }] },
-    { title: 'Spiral up to the associative striatum', dur: 10, state: 'psychosis', cam: { fit: ['vta', 'nac', 'sn', 'cd'], dir: MED },
+    { title: 'Spiral up to the associative striatum', chapter: 'Cascade', dur: 10, state: 'psychosis', cam: { fit: ['vta', 'nac', 'sn', 'cd'], dir: MED },
       show: ['vta-nac', 'nac-sn', 'sn-cd'], focus: ['vta-nac', 'vta', 'nac'], labels: ['vta', 'nac'], hud: { dial: true, grid: true, tint: true },
       caption: 'Ventral tegmental dopamine floods the accumbens.',
       beats: [{ at: 3, focus: ['nac-sn', 'nac', 'sn'], labels: ['sn'], tags: { 'nac-sn': 'untested link' }, caption: 'The accumbens is a relay, not a source: it projects back onto nigral dopamine cells.' },
         { at: 6.2, focus: ['sn-cd', 'sn', 'cd'], labels: ['cd'], caption: 'Nigral neurons carry the excess into the caudate head. It lands in the associative striatum.' }] },
-    { title: 'Inside a nigral dopamine terminal', dur: 10, state: 'psychosis', cam: { target: 'cd', r: 18, dir: [-0.7, 0.55, 0.55] },
+    { title: 'Inside a nigral dopamine terminal', chapter: 'Cascade', dur: 10, state: 'psychosis', cam: { target: 'cd', r: 18, dir: [-0.7, 0.55, 0.55] },
       show: ['sn-cd'], labels: ['cd'], hud: { tint: true }, inset: 'terminal',
       caption: 'More dopamine made and released — the vesicles themselves are normal.' },
-    { title: 'Aberrant salience', dur: 13, state: 'psychosis', cam: { dir: LAT, fit: ['ctx', 'cd', 'md', 'dl'] },
+    { title: 'Aberrant salience', chapter: 'Cascade', dur: 13, state: 'psychosis', cam: { dir: LAT, fit: ['ctx', 'cd', 'md', 'dl'] },
       show: ['ctx-cd', 'sn-cd', 'cd-md', 'md-dl', 'dl-cd'], focus: ['ctx-cd', 'sn-cd', 'ctx', 'cd'], labels: ['ctx', 'cd'], hud: { dial: true, grid: true, tint: true },
       caption: 'The same passing car comes back.',
       beats: [
@@ -208,21 +267,58 @@ const STORIES = [
         { at: 3.4, caption: 'Nothing changed outside. The gain did.', focus: null, labels: ['md', 'dl'], token: { icon: 'plate', from: 'ctx', to: 'cd', kind: 'neutral', persist: true, soff: [98, -66], flash: 'sn-cd' } },
         { at: 5.4, token: { icon: 'radio', from: 'ctx', to: 'cd', kind: 'neutral', persist: true, soff: [-94, -76], flash: 'sn-cd' } },
         { at: 7.8, fx: { threads: true }, caption: 'Linked up, they become an explanation: the delusion.' }] },
-    { title: 'On an antipsychotic', dur: 11, state: 'treated', set: { d2: 0 }, cam: { dir: MED },
+    { title: 'Turning the gain down', chapter: 'Cascade', dur: 16, state: 'treated', set: { d2: 0, musc: 0 }, cam: { dir: MED },
       show: ['hp-nac', 'nac-vp', 'vp-vta', 'vta-nac', 'sn-cd', 'ctx-cd'], labels: ['ahp', 'cd'], hud: { dial: true, grid: true, tint: true, shields: true },
       caption: 'D2 receptors in the striatum are blocked.',
-      controls: [{ type: 'toggle', var: 'tr', label: 'Treatment-resistant variant', after: S => S.flashEdge('sn-cd', 0) }, { type: 'button', label: 'Send a neutral cue', do: S => S.spawn({ icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', flash: 'sn-cd' }) }],
-      beats: [{ at: 0.8, tween: { d2: [1, 1.6] } }, { at: 3.4, token: { icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', flash: 'sn-cd' } }, { at: 6.4, caption: 'Antipsychotics turn down the speaker, not the source.' }] },
-    { title: 'Free play', free: true, dur: 0, state: 'psychosis', set: { hpx: 0.84 }, cam: { dir: MED }, show: 'all', labels: ['ahp', 'vta', 'cd'],
+      controls: [{ type: 'toggle', var: 'd2', label: 'D2 blocker' }, { type: 'toggle', var: 'musc', label: 'Muscarinic agonist' }, { type: 'toggle', var: 'tr', label: 'Treatment-resistant variant' },
+        { type: 'button', label: 'Send a neutral cue', do: S => S.spawn({ icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', flash: 'sn-cd' }) }],
+      beats: [{ at: 0.8, tween: { d2: [1, 1.6] } }, { at: 3.4, token: { icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', flash: 'sn-cd' } }, { at: 6.4, caption: 'Antipsychotics turn down the speaker, not the source.' },
+        { at: 9, tween: { d2: [0, 1.2], musc: [1, 1.6] }, caption: 'A muscarinic agonist (xanomeline) acts upstream: less dopamine released, receptors left alone.' },
+        { at: 11, token: { icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', flash: 'sn-cd' } },
+        { at: 13.4, caption: 'US-approved in 2024 with trospium; I couldn’t confirm TGA registration, so check the ARTG.' }] },
+    { title: 'The corticostriatal gradient', chapter: 'Network view', dur: 15, state: 'healthy', cam: { dir: [0.4, 0.15, 1], fit: ['dl', 'cd', 'vmp', 'nac'] },
+      show: ['fcD', 'fcV'], labels: ['dl', 'cd', 'vmp', 'nac'], hud: { dial: true, tint: true }, badge: 'gradient',
+      inset: EVIDENCE_HTML('Evidence', 'Fornito 2013: 19 first-episode patients, 25 unaffected relatives, 26 controls. Resting-state coupling, so no direction is implied.'),
+      caption: 'Prefrontal cortex and striatum are coupled: dorsal with dorsal, ventral with ventral.',
+      controls: [{ type: 'presets', items: [{ label: 'Healthy', set: { fcD: 1, fcV: 1, pv: 1, ctl: 1, rel: 0 } }, { label: 'First episode', set: { fcD: 0.35, fcV: 1.6, pv: 0.15, ctl: 0.45, rel: 0 } }, { label: 'Unaffected relative', set: { fcD: 0.55, fcV: 1.35, pv: 1, ctl: 1, rel: 1 } }] }],
+      beats: [
+        { at: 3, tween: { fcD: [0.35, 2], fcV: [1.6, 2], pv: [0.15, 2], ctl: [0.45, 2] }, state: 'psychosis', caption: 'First-episode psychosis: dorsal coupling weakens, ventral coupling strengthens.' },
+        { at: 7.5, tween: { fcD: [0.55, 1.5], fcV: [1.35, 1.5], pv: [1, 1.5], ctl: [1, 1.5] }, set: { rel: 1 }, state: null, caption: 'Unaffected first-degree relatives carry the same gradient, with normal gain: a risk marker, not the illness.' },
+        { at: 12, tween: { fcD: [0.35, 1.5], fcV: [1.6, 1.5], pv: [0.15, 1.5], ctl: [0.45, 1.5] }, set: { rel: 0 }, state: 'psychosis', caption: 'Psychosis adds the dopamine excess on top of an inherited wiring gradient.' }] },
+    { title: 'Which comes first?', chapter: 'Network view', dur: 15, state: 'psychosis', set: { fs: 0, fcx: 0 }, cam: { dir: MED, fit: ['sn', 'cd', 'md', 'dl'] },
+      show: ['sn-cd', 'cd-md', 'md-dl', 'dl-cd'], labels: ['sn', 'cd', 'md', 'dl'], hud: { dial: true }, badge: 'stage',
+      inset: EVIDENCE_HTML('Evidence', 'Sabaroedin 2023: 46 antipsychotic-naive first-episode patients, 36 with established illness; modelled effective connectivity (model-dependent). In healthy people, dopamine synthesis tracked nigrostriatal and striatothalamic connectivity.'),
+      caption: 'Effective connectivity: which way the influence runs, modelled from resting scans.',
+      controls: [{ type: 'presets', items: [{ label: 'First episode', set: { fs: 1, fcx: 0 } }, { label: 'Established', set: { fs: 1, fcx: 1 } }] }],
+      beats: [
+        { at: 2.5, tween: { fs: [1, 1.5] }, caption: 'Antipsychotic-naive first episode: the faults sit below the cortex — midbrain and thalamus.' },
+        { at: 7, tween: { fcx: [1, 1.5] }, caption: 'Established schizophrenia: the cortex joins in.' },
+        { at: 11, caption: 'So in humans, “frontal control fails first” may run in the wrong order. Hold that link loosely.' }] },
+    { title: 'Different lesions, same circuit', chapter: 'Network view', dur: 21, state: 'healthy', cam: { dir: MED, fit: ['ilc', 'ahp', 'nac', 'vp', 'vta', 'fxb'] },
+      show: ['ilc-re', 're-hp', 'hp-nac', 'nac-vp', 'vp-vta', 'vta-nac'], labels: ['ilc', 'ahp', 'vp', 'vta'], hud: { dial: true, grid: true, ring: true }, badge: 'patients',
+      inset: EVIDENCE_HTML('Evidence', 'Segal 2023: across 1,294 people with six diagnoses, a given region was abnormal in fewer than 7% of people with the same diagnosis, yet the abnormalities fell within shared circuits in up to 56%. The four patients here illustrate the principle.'),
+      caption: 'Four patients, four different broken parts.',
+      controls: [{ type: 'button', label: 'Next patient', do: S => patient(S, S.fx.pn || 0) }],
+      beats: [{ at: 0.5, do: S => patient(S, 0) }, { at: 5.1, do: S => patient(S, 1) }, { at: 9.7, do: S => patient(S, 2) }, { at: 14.3, do: S => patient(S, 3) },
+        { at: 18.6, caption: 'Different lesions, same circuit: the gain still rises.' }] },
+    { title: 'Spread along the wiring', chapter: 'Network view', dur: 16, state: 'psychosis', set: { yrs: 0 }, cam: { dir: LAT, fit: ['ahp', 'ilc', 'dl', 'ctx', 'md'] },
+      levels: SPREAD_LEVELS, show: ['hp-nac'], labels: ['ahp', 'ilc', 'dl', 'ctx'], tags: { 'hp-nac': 'fornix' }, hud: { spread: true }, badge: 'years',
+      inset: EVIDENCE_HTML('Illustration', 'The principle: disease spreads along axonal pathways, shaped by network wiring (Fornito, Zalesky &amp; Breakspear 2015). The order here is hops from the hippocampus, not a fitted model.'),
+      caption: 'Prodrome: the hippocampus first.',
+      controls: [{ type: 'range', var: 'yrs', label: 'Years', min: 0, max: 1 }],
+      beats: [{ at: 0.6, tween: { yrs: [1, 13] } }, { at: 4, caption: 'First episode: its direct neighbours — amygdala, parahippocampal gyrus, accumbens.' },
+        { at: 8, caption: 'Years in: medial prefrontal, insula and temporal cortex, along the fornix, uncinate and cingulum.' },
+        { at: 12, caption: 'The order follows wiring, not distance. Speculative for schizophrenia specifically.' }] },
+    { title: 'Free play', chapter: 'Free play', free: true, dur: 0, state: 'psychosis', set: { hpx: 0.84 }, cam: { dir: MED }, show: ['ilc-re', 're-hp', 'hp-nac', 'nac-vp', 'vp-vta', 'vta-nac', 'nac-sn', 'sn-cd', 'ctx-cd', 'cd-md', 'md-dl', 'dl-cd'], labels: ['ahp', 'vta', 'cd'],
       hud: { dial: true, grid: true, tint: true, ring: true, shields: true },
       caption: 'Drag the hippocampus. Watch the midbrain.',
-      controls: [{ type: 'range', var: 'hpx', label: 'Hippocampal drive', min: 0.2, max: 1 }, { type: 'toggle', var: 'd2', label: 'Antipsychotic' },
+      controls: [{ type: 'range', var: 'hpx', label: 'Hippocampal drive', min: 0.2, max: 1 }, { type: 'toggle', var: 'd2', label: 'D2 blocker' }, { type: 'toggle', var: 'musc', label: 'Muscarinic agonist' },
         { type: 'button', label: 'Send a neutral cue', do: S => S.spawn({ icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', flash: 'sn-cd' }) }] },
   ] },
 
 // ---------------------------------------------------------------- affective
 { id: 'aff', name: 'Mood: the affective disruption story', color: '#3fd0c9', hemi: 'L', view: MED_LOW,
-  desc: 'Prefrontal brakes, amygdala, pallidal gate and a circadian clock: how a mood loop runs away in either direction. Nine scenes.',
+  desc: 'Prefrontal brakes, amygdala, pallidal gate and a circadian clock: how a mood loop runs away in either direction. Ten scenes.',
   nodes: {
     ifg:  { key: 'Inferior_frontal_gyrus', ghost: true, label: 'Ventrolateral prefrontal' },
     lofc: { key: 'Lateral_orbital_gyrus', ghost: true, label: 'Orbitofrontal' },
@@ -240,24 +336,27 @@ const STORIES = [
     smn:  { key: 'Precentral_gyrus', ghost: true, label: 'Sensorimotor network', noDot: true, nofit: true },
     sal:  { key: 'Insula', ghost: true, label: 'Salience network', noDot: true, nofit: true },
     dmn:  { key: 'Cingulate_gyrus_posterior_part', ghost: true, label: 'Default mode network', noDot: true, nofit: true },
+    acc:  { key: 'Cingulate_gyrus_anterior_part', ghost: true, label: 'Anterior cingulate', noDot: true, nofit: true },
+    hab:  { key: 'Habenula', label: 'Lateral habenula', lo: [0, 12], nofit: true, gate: m => m.habl > 0.5 },
   },
   ghostCast: ['Postcentral_gyrus', 'Cingulate_gyrus_anterior_part', 'Medial_orbital_gyrus'],
   edges: [
-    { id: 'ifg-amy', from: 'ifg', to: 'amy', via: [[-36, 8, -12]], sign: 'ctl', act: m => m.brake },
-    { id: 'ofc-nac', from: 'lofc', to: 'nac', via: [[-26, 24, -12]], sign: 'ctl', act: m => m.brake },
-    { id: 'amy-vp', from: 'amy', to: 'vp', via: [[-17, 0, -14]], sign: '+', act: m => m.amy },
-    { id: 'hp-nac', from: 'hp', to: 'nac', via: [[-20, -2, -14]], sign: '+', act: () => 0.3 },
-    { id: 'nac-vp', from: 'nac', to: 'vp', sign: '-', act: m => m.nac },
-    { id: 'vp-vta', from: 'vp', to: 'vta', via: [[-9, -7, -10]], sign: '-', act: m => m.vp },
-    { id: 'vta-nac', from: 'vta', to: 'nac', via: [[-6, -4, -12]], sign: 'da', act: m => m.pop },
-    { id: 'scn-vta', from: 'scn', to: 'vta', via: [[-3, -8, -12]], sign: 'clock', act: m => m.clockEff },
-    { id: 'rph-mpfc', from: 'rph', to: 'mpfc', via: [[0, -14, -6], [-2, 14, -10]], sign: '5ht', act: m => 0.35 + 0.4 * cl01(-m.tilt) },
-    { id: 'nac-sn', from: 'nac', to: 'sn', via: [[-11, -6, -15]], sign: 'spiral', act: m => m.assocDA },
-    { id: 'sn-cd', from: 'sn', to: 'cd', via: [[-12, -6, -2], [-13, 4, 4]], sign: 'da', act: m => m.assocDA },
-    { id: 'ctx-cd', from: 'ctx', to: 'cd', via: [[-40, -12, -8], [-24, 2, 4]], sign: '+', act: () => 0.45 },
+    { id: 'ifg-amy', from: 'ifg', to: 'amy', via: [[-36, 8, -12]], sign: 'ctl', ev: 'human', act: m => m.brake },
+    { id: 'ofc-nac', from: 'lofc', to: 'nac', via: [[-26, 24, -12]], sign: 'ctl', ev: 'human', act: m => m.brake },
+    { id: 'amy-vp', from: 'amy', to: 'vp', via: [[-17, 0, -14]], sign: '+', ev: 'rodent', act: m => m.amy },
+    { id: 'hp-nac', from: 'hp', to: 'nac', via: FORNIX, sign: '+', ev: 'rodent', act: () => 0.3 },
+    { id: 'nac-vp', from: 'nac', to: 'vp', sign: '-', ev: 'rodent', act: m => m.nac },
+    { id: 'vp-vta', from: 'vp', to: 'vta', via: [[-9, -7, -10]], sign: '-', ev: 'rodent', act: m => m.vp },
+    { id: 'vta-nac', from: 'vta', to: 'nac', via: [[-6, -4, -12]], sign: 'da', ev: 'human', act: m => m.pop },
+    { id: 'scn-vta', from: 'scn', to: 'vta', via: [[-3, -8, -12]], sign: 'clock', ev: 'rodent', act: m => m.clockEff },
+    { id: 'rph-mpfc', from: 'rph', to: 'mpfc', via: [[0, -14, -6], [-2, 14, -10]], sign: '5ht', ev: 'proposed', act: m => 0.35 + 0.4 * cl01(-m.tilt) },
+    { id: 'nac-sn', from: 'nac', to: 'sn', via: [[-11, -6, -15]], sign: 'spiral', ev: 'proposed', act: m => m.assocDA },
+    { id: 'sn-cd', from: 'sn', to: 'cd', via: [[-12, -6, -2], [-13, 4, 4]], sign: 'da', ev: 'human', act: m => m.assocDA },
+    { id: 'ctx-cd', from: 'ctx', to: 'cd', via: [[-40, -12, -8], [-24, 2, 4]], sign: '+', ev: 'human', act: () => 0.45 },
+    { id: 'hab-vta', from: 'hab', to: 'vta', via: [[-4, -22, -4]], sign: '-', ev: 'rodent', act: m => m.habAct, gate: m => m.habl > 0.5 },
   ],
   shieldOn: [['Nucleus_accumbens', 5, null], ['Caudate_nucleus', 6, p => p[1] > 2], ['Putamen', 3, p => p[1] > 0]],
-  vars: { clock: 1, brake: 1, amy: 0.3, b: 0.2, m: 0, ev: 1, d2: 0, lith: 0, rth: 0, ps: 0, af: 0, th: 0 },
+  vars: { clock: 1, brake: 1, amy: 0.3, b: 0.2, m: 0, ev: 1, d2: 0, lith: 0, rth: 0, ps: 0, af: 0, th: 0, habl: 0, ket: 0 },
   discrete: ['ev'],
   states: [
     { id: 'eu', label: 'Euthymia', vars: { clock: 1, brake: 1, amy: 0.3, b: 0.2, ev: 1, m: 0, d2: 0, lith: 0, rth: 0 } },
@@ -266,12 +365,14 @@ const STORIES = [
   ],
   model(v, S) {
     const clockEff = Math.min(1, v.clock + (1 - v.clock) * (0.55 * v.rth + 0.45 * v.lith));
-    const pop = Math.min(0.95, Math.max(0.08, 0.4 + 0.45 * (1 - clockEff) * (1 - 0.4 * v.lith) + 0.2 * v.m - 0.5 * Math.max(0, v.amy - 0.3)));
+    // lateral habenula (speculative layer): bursts with amygdala-driven stress, suppresses the midbrain; ketamine quietens the bursting
+    const habAct = (0.25 + 0.6 * cl01((v.amy - 0.3) / 0.6)) * (1 - 0.75 * v.ket);
+    const pop = Math.min(0.95, Math.max(0.05, 0.4 + 0.45 * (1 - clockEff) * (1 - 0.4 * v.lith) + 0.2 * v.m - 0.5 * Math.max(0, v.amy - 0.3) - v.habl * 0.3 * (habAct - 0.25)));
     const eff = pop + v.d2 * (0.45 + (pop - 0.4) * 0.25 - pop);
     const day = (S && S.sim && S.sim.day) || 0;
     return { clockEff, pop, popShow: Math.min(1, Math.max(0, pop + 0.07 * Math.sin(day * Math.PI * 2) * clockEff)), eff,
       vp: cl01(0.69 - (pop - 0.4) / 1.3), nac: 0.3 + 0.5 * pop, limbicDA: eff, assocDA: cl01(0.3 + Math.max(0, eff - 0.72) * 3),
-      tilt: Math.max(-1, Math.min(1, (pop - 0.4) * 1.6 + 0.45 * v.m)), amy: v.amy, brake: v.brake, b: v.b * (1 - 0.6 * v.lith), m: v.m };
+      tilt: Math.max(-1, Math.min(1, (pop - 0.4) * 1.6 + 0.45 * v.m)), amy: v.amy, brake: v.brake, b: v.b * (1 - 0.6 * v.lith), m: v.m, habl: v.habl, habAct };
   },
   gauge: { gain: m => m.eff, raw: m => m.pop, pop: m => m.popShow },
   gridAt: 'vta', biasTo: 'nac',
@@ -310,7 +411,9 @@ const STORIES = [
       Hypothalamus: { glow: 0.25 + 0.3 * Math.sin(day * Math.PI * 2) * m.clockEff, ec: '#3fd0c9' },
       Caudate_nucleus: { glow: 0.6 * cl01((m.assocDA - 0.45) / 0.4), ec: '#ffd34d', op: S.hud.tint ? 0.8 : 0.08 },
       Substantia_nigra: { glow: 0.5 * cl01((m.assocDA - 0.45) / 0.4), ec: '#ffd34d' },
+      Habenula: { glow: m.habl * 0.85 * m.habAct, ec: '#ff6b5b' },
     };
+    if (S.hud.yeo) for (const k of ['Amygdala', 'Nucleus_accumbens', 'VTA', 'Substantia_nigra']) L[k] = { glow: 0.55, ec: '#c43afa' };
     if (net) {
       const smn = mixed ? S.vars.ps : m.tilt, sal = mixed ? S.vars.af : Math.max(0, m.tilt) * 0.9, dmn = mixed ? S.vars.th : -m.tilt;
       L.Precentral_gyrus = L.Postcentral_gyrus = unitLook(smn, NET_COL.smn);
@@ -358,9 +461,10 @@ const STORIES = [
       beats: [{ at: 3, token: { icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', persist: true, flash: 'sn-cd' } }] },
     { title: 'The switch to depression', dur: 16, state: 'dep', set: { amy: 0.3, m: 0, ev: 0 }, cam: { dir: MED_UP, fit: ['ifg', 'lofc', 'amy', 'nac', 'vta', 'smn', 'dmn'] },
       show: ['ifg-amy', 'ofc-nac', 'amy-vp', 'nac-vp', 'vp-vta', 'vta-nac'], focus: ['amy-vp', 'vp-vta', 'amy', 'vp', 'vta'], labels: ['amy', 'vp', 'vta'],
-      tags: { 'amy-vp': 'rodent circuit' },
+      tags: { 'amy-vp': 'rodent circuit', 'hab-vta': 'speculative' },
       hud: { dial: true, grid: true, mood: true, seesaw: true, dat: true }, fx: { bias: true },
       caption: 'A stressor hits the amygdala.',
+      controls: [{ type: 'toggle', var: 'habl', label: 'Habenula layer (speculative)', after: S => S.labelSet.add('hab') }, { type: 'toggle', var: 'ket', label: 'Ketamine' }],
       beats: [
         { at: 0.5, token: { icon: 'bolt', from: 'ctx', to: 'amy', kind: 'stress', dur: 1.4 } },
         { at: 1.8, tween: { amy: [0.9, 2.5] }, caption: 'The amygdala clamps the brake. Rewards stop landing.' },
@@ -384,6 +488,13 @@ const STORIES = [
         { at: 6, tween: { d2: [1, 1.2] }, caption: 'Antipsychotic: the gain is capped and the ratchet stalls.' },
         { at: 9.5, tween: { rth: [1, 1.5] }, caption: 'Rhythm: regular sleep and routine stop the creep.' },
         { at: 12.5, caption: 'Steady the clock, damp the loop, cap the gain.' }] },
+    { title: 'A shared network', dur: 14, state: 'eu', set: { ev: 0 }, cam: { dir: MED_UP, fit: ['ifg', 'lofc', 'amy', 'nac', 'vta', 'smn', 'dmn', 'sal'] },
+      show: [], labels: ['sal', 'acc', 'amy', 'nac'], hud: { yeo: 4 },
+      inset: EVIDENCE_HTML('Evidence', 'Segal 2023: 1,294 people with attention-deficit/hyperactivity disorder, autism, bipolar disorder, depression, obsessive-compulsive disorder or schizophrenia. The salience–ventral attention system was implicated across diagnoses.'),
+      caption: 'Painted purple: the salience–ventral attention network (Yeo 2011).',
+      controls: [{ type: 'button', label: 'See: different lesions, same circuit', do: () => startStory('psy', 12) }],
+      beats: [{ at: 3.5, caption: 'Across six diagnoses, individual abnormalities most often fell within this one system.' },
+        { at: 8, caption: 'Bipolar disorder and schizophrenia both land here: the network that flags what matters.' }] },
     { title: 'Side by side', dur: 16, state: 'eu', set: { ev: 0 }, fx: { swing: true }, cam: { dir: MED, fit: ['vta', 'nac', 'sn', 'cd'] },
       show: ['vta-nac', 'nac-sn', 'sn-cd'], labels: ['nac', 'cd'], hud: { dial: true, grid: true, tint: true }, inset: 'compare',
       caption: 'Stuck gain, wrong territory. Swinging gain, right territory.' },

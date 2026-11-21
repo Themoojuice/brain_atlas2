@@ -771,7 +771,7 @@ let tween = null;
 function sheetH() { return innerWidth <= 760 && getComputedStyle($('#panel')).display !== 'none' ? $('#panel').getBoundingClientRect().height : 0; }
 // The uncovered horizontal strip of the stage: overlays wider than half the stage count as obstructions,
 // above the middle they push the top edge down, below it they pull the bottom edge up.
-const OBSTRUCTIONS = ['#panel', '#info', '#storybar', '#inset', '#quiz', '#hudrow'];
+const OBSTRUCTIONS = ['#panel', '#info', '#storybar', '#inset', '#keycard', '#quiz', '#hudrow'];
 function freeBand() {
   const r = $('#stage').getBoundingClientRect(), H = Math.max(r.height, 1), W = Math.max(r.width, 1);
   let top = innerWidth <= 760 ? 44 : 0, bot = H;

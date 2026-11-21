@@ -8,7 +8,7 @@ A rotatable 3D human brain for learning neuroanatomy, networks, pathways and psy
 - 78 structures in MNI152 space: cortex, deep grey matter, basal forebrain, hypothalamus, habenula, thalamic nuclei, brainstem monoamine nuclei, ventricles and 11 white matter tracts. Each has a plus/minus toggle (solid, ghost, hidden), a teaching note and its source atlas
 - Networks: salience, default mode, central executive, triple network, all seven Yeo networks
 - Pathways: animated schematic circuits (dopamine, Papez, noradrenaline, serotonin, acetylcholine, limbic and motor loops), each framed to fit above the card on phones
-- Animated stories (Pathways tab): **Psychosis: the gain story** (11 scenes) and **Mood: the affective disruption story** (9 scenes). Signed edges (excitatory, inhibitory, dopamine, regulatory), a state switch, a dopamine gain dial, a dopamine-neuron grid, event tokens and free-play sliders, all driven by one small state model per story. Deep link: `#story=psy&scene=5` (add `&pause=1`, `&t=6` to freeze at a moment)
+- Animated stories (Pathways tab): **Psychosis: the gain story** (15 scenes: the dopamine cascade, then a network view covering corticostriatal coupling, illness stage, heterogeneity across patients and spread along the wiring) and **Mood: the affective disruption story** (10 scenes). Edge colour shows what a connection carries; line style shows the evidence (solid = patients, dashed = animal models, dotted = proposed). A Key button explains both, and captions can be read aloud. Deep link: `#story=psy&scene=5` (add `&pause=1`, `&t=6` to freeze at a moment)
 - Drugs: 20 receptor PET maps painted on the brain and on the MRI slice, and 40 drugs linked to their targets
 - Tools: cut planes with the MNI152 MRI and atlas outlines, "Find it" quiz, orientation marker
 
@@ -23,8 +23,9 @@ All atlases are group averages, resampled to MNI152 (FSL 6th generation, 1 mm). 
 - Tracts: HCP842 tractography atlas (Yeh 2018)
 - Networks: Yeo et al. 2011
 - Receptor maps: Hansen et al. 2022 collection (CC BY-NC-SA 4.0) and the original studies named in the page
+- Striatal parcels in the stories: Melbourne Subcortex Atlas, scale III (Tian et al. 2020, [github.com/yetianmed/subcortex](https://github.com/yetianmed/subcortex)). The repository carries no licence file; used here for non-commercial teaching with citation. Assigning parcels to limbic, associative and sensorimotor territories is the author's judgment
 
 Drug affinity tiers are approximate teaching values, not measured constants. Non-commercial teaching use only. This is not a clinical tool and cannot localise anything in an individual patient's scan.
 
 ## Rebuild
-`build/` holds the data scripts (build2.py, build_pet.py), the page template (template_v3.html) and its content files (content.js, content_drugs.js, content_story.js), the story engine (story_engine.js, story.css, story.html), the assembler (assemble_v3.py) and the headless phone/desktop check (qa_story.py). Paths in the scripts point at the original build machine; see the comments for the source repositories.
+`build/` holds the data scripts (build2.py, build_pet.py), the page template (template_v3.html) and its content files (content.js, content_drugs.js, content_story.js), the story engine (story_engine.js, story.css, story.html), the assembler (assemble_v3.py), the version 4 data script (build_v4.py: atlas parcels per striatal vertex and the fornix route) and the headless phone/desktop check (qa_story.py). Paths in the scripts point at the original build machine; see the comments for the source repositories.
