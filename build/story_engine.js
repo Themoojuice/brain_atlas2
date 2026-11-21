@@ -71,8 +71,10 @@ function buildStory(def) {
     const p = nodePos(n);
     const dot = new THREE.Mesh(new THREE.SphereGeometry(n.r || 1.5, 16, 12), new THREE.MeshBasicMaterial({ color: n.dot || '#e7edf4', transparent: true, opacity: 0, depthWrite: false }));
     dot.position.copy(p); dot.renderOrder = 6; dot.visible = false; story.group.add(dot);
-    story.nodes.set(id, { id, def: n, pos: p, dot, label: n.label ? makeLabel(n.label, n.hot ? 'hot' : '') : null, vis: 0 });
+    story.nodes.set(id, { id, def: n, pos: p, dot, label: n.label ? makeLabel(n.label, n.hot ? 'hot' : '') : null, vis: 0, sv: 0 });
   }
+  story.keyNodes = new Map();
+  for (const [id, n] of Object.entries(def.nodes)) if (n.key) story.keyNodes.set(n.key, [...(story.keyNodes.get(n.key) || []), id]);
   for (const e of def.edges) {
     const a = story.nodes.get(e.from), b = story.nodes.get(e.to), S = SIGN[e.sign];
     const curve = new THREE.CatmullRomCurve3([a.pos, ...(e.via || []).map(v => mni2three(v)), b.pos], false, 'centripetal');
@@ -180,6 +182,19 @@ function gotoScene(i, opts = {}) {
   story.show = sc.show === 'all' ? [...story.edges.keys()] : (sc.show || []);
   story.focus = sc.focus || null; story.labelSet = new Set(sc.labels || []); story.tags = { ...(sc.tags || {}) };
   story.fx = { ...(sc.fx || {}) }; story.hud = { ...(def.hud || {}), ...(sc.hud || {}) };
+  if (def.steps) {
+    // Step mode: everything introduced so far stays on screen, dimmed, as context; only this step's focus is bright,
+    // labelled and moving. Instruments ('@mood', '@grid', '@clock', '@bias', '@loop') follow the same rule.
+    const intro = new Set(); for (let j = 0; j <= i; j++) for (const id of def.scenes[j].add || []) intro.add(id);
+    story.intro = intro;
+    story.show = [...story.edges.keys()].filter(id => intro.has(id));
+    story.focus = sc.recap ? null : (sc.focus || sc.add || []);
+    const lab = sc.recap ? [...intro] : story.focus;
+    story.labelSet = new Set([...lab.filter(id => story.nodes.has(id)), ...(sc.labels || [])]);
+    const newNode = !sc.recap && (sc.add || []).find(id => story.nodes.has(id));
+    if (newNode) story.fx.look = newNode;
+    $('#sbnext').classList.remove('ready'); story.waiting = false;
+  }
   story.flash = {}; story.flashNeg = {};
   if (story.sceneLevelKeys && story.sceneLevelKeys.size) {
     for (const k of story.sceneLevelKeys) state.level.set(k, story.baseLevels.get(k));
@@ -188,7 +203,7 @@ function gotoScene(i, opts = {}) {
   }
   paintYeo(story.hud.yeo || 0);
   clearTokens(); setCaption(sc.caption); renderExtra(sc); renderInset(sc.inset || null); syncBar();
-  story.camNow = sc.cam || { dir: def.view }; story.framePending = true;
+  story.camNow = sc.cam || (def.steps && def.cam) || { dir: def.view }; story.framePending = true;
   const anim = !opts.instant;
   requestAnimationFrame(() => { story.framePending = false; resize(); frameCam(story.camNow, anim); });
   story.instant = false;
@@ -244,7 +259,14 @@ function storyFrame(now) {
   stepTweens(now);
   story.m = def.model(story.vars, story);
   if (story.playing && def.tick) def.tick(dt, story.vars, story.m, story);
-  if (story.playing && !sc.free && story.t >= sc.dur + (sc.hold ?? 1.5)) {
+  if (def.steps) {
+    if (story.fx.look && story.t > 2.6) story.fx.look = null;
+    const ready = story.t >= sc.dur + 0.3, last = story.i === def.scenes.length - 1;
+    if (ready !== story.waiting) { story.waiting = ready; $('#sbnext').classList.toggle('ready', ready && !last); }
+    if (story.auto && story.playing && story.t >= Math.max(sc.dur + 1.2, sc.read || 0) && !(story.narrate && window.speechSynthesis && speechSynthesis.speaking)) {
+      if (!last) gotoScene(story.i + 1); else { story.auto = false; syncBar(); }
+    }
+  } else if (story.playing && !sc.free && story.t >= sc.dur + (sc.hold ?? 1.5)) {
     if (story.i < def.scenes.length - 1) gotoScene(story.i + 1); else { story.playing = false; syncBar(); }
   }
   applyLook(dt, now);
@@ -253,31 +275,46 @@ function storyFrame(now) {
 function applyLook(dt, now) {
   const m = story.m, def = story.def, k = 1 - Math.exp(-dt * 5);
   for (const E of story.edges.values()) {
-    const e = E.def, on = shownE(e.id) && (!e.gate || e.gate(m, story)), tgt = on ? (focusedId(e.id) ? 1 : 0.2) : 0;
+    const e = E.def, on = shownE(e.id) && (!e.gate || e.gate(m, story)), ctx = def.steps && !focusedId(e.id), tgt = on ? (focusedId(e.id) ? 1 : (def.steps ? 0.16 : 0.2)) : 0;
     E.vis += (tgt - E.vis) * k;
-    E.act += (clamp(e.act ? e.act(m) : 0.5) - E.act) * k;
+    E.act += ((ctx ? 0.1 : clamp(e.act ? e.act(m) : 0.5)) - E.act) * k;
     const w = e.w ? e.w(m) : 0.55 + 1.15 * E.act;
     let fl = story.flash[e.id] || 0; if (fl) story.flash[e.id] = Math.max(0, fl - dt * 1.3);
-    if (!reduceMotion) E.ph += dt * (0.15 + 1.5 * E.act);
+    if (!reduceMotion && !ctx) E.ph += dt * (0.15 + 1.5 * E.act);
     const u = E.mat.uniforms; u.ph.value = E.ph; u.act.value = E.act; u.w.value = w; u.vis.value = E.vis; u.fl.value = Math.min(1, fl); u.neg.value = story.flashNeg[e.id] || 0;
     u.fault.value = e.fault ? clamp(e.fault(m)) : 0; u.tm.value = reduceMotion ? 0 : now / 1000;
     const vis = E.vis > 0.01; E.tube.visible = vis;
     if (E.cap) { E.cap.visible = vis; E.cap.material.opacity = 0.85 * E.vis; E.cap.scale.setScalar(0.75 + 0.45 * w); }
   }
   for (const N of story.nodes.values()) {
-    let touched = false; for (const E of story.edges.values()) if ((E.def.from === N.id || E.def.to === N.id) && shownE(E.def.id)) { touched = true; break; }
     const gated = N.def.gate && !N.def.gate(m, story);
-    const tgt = (touched || story.labelSet.has(N.id)) && !N.def.noDot && !gated ? (focusedId(N.id) ? 0.9 : 0.35) : 0;
+    let tgt;
+    if (def.steps) {
+      const intro = story.intro.has(N.id) && !gated, svT = intro ? (focusedId(N.id) ? 1 : 0.3) : 0;
+      N.sv += (svT - N.sv) * k * 0.8;
+      tgt = intro && !N.def.noDot ? (focusedId(N.id) ? 0.9 : 0.3) : 0;
+    } else {
+      let touched = false; for (const E of story.edges.values()) if ((E.def.from === N.id || E.def.to === N.id) && shownE(E.def.id)) { touched = true; break; }
+      tgt = (touched || story.labelSet.has(N.id)) && !N.def.noDot && !gated ? (focusedId(N.id) ? 0.9 : 0.35) : 0;
+    }
     N.vis += (tgt - N.vis) * k; N.dot.material.opacity = N.vis; N.dot.visible = N.vis > 0.01;
   }
   const look = def.look ? def.look(m, story) : {};
   for (const mesh of storyMeshes) {
     const key = mesh.userData.key, L = look[key], mat = mesh.material, st = mesh.userData.st, tinted = story.hud.tint && TINT_KEYS.has(key);
+    let sv = 1;
+    if (def.steps && story.keyNodes.has(key)) {
+      // step mode: a structure is hidden until introduced, ghosted as context, near-solid in focus
+      const ids = story.keyNodes.get(key); sv = Math.max(...ids.map(id => story.nodes.get(id).sv));
+      const cortical = ids.some(id => def.nodes[id].ghost);
+      mat.opacity = cortical ? state.ghost + (0.32 - state.ghost) * sv : 0.88 * sv;
+      mesh.visible = (cortical || sv > 0.02) && (state.hemi === 'B' || mesh.userData.hemi === 'M' || mesh.userData.hemi === state.hemi);
+    }
     if (!L) { if (mat.userData.sl) { if (!tinted) mat.color.set(st.color); mat.userData.sl = false; } continue; }
     mat.userData.sl = true;
     if (!tinted) { tmpC.set(st.color); if (L.heat) tmpC.lerp(HEAT, clamp(L.heat)); if (L.dim) tmpC.lerp(DIMC, clamp(L.dim)); mat.color.copy(tmpC); }
-    mat.emissive.set(L.ec || '#ffb454'); mat.emissiveIntensity = Math.max(mat.emissiveIntensity, clamp(L.glow || 0) * 0.9);
-    if (L.op !== undefined && mat.transparent) mat.opacity = L.op;
+    mat.emissive.set(L.ec || '#ffb454'); mat.emissiveIntensity = Math.max(mat.emissiveIntensity, clamp(L.glow || 0) * 0.9 * (def.steps ? sv * sv : 1));
+    if (L.op !== undefined && mat.transparent && !def.steps) mat.opacity = L.op;
   }
   if (story.hud.tint) tintStriatum(m, now); else if (tintOn) untint();
   if (story.painted) for (const mesh of story.painted.meshes) if (mesh.material.transparent) mesh.material.opacity = 0.34;
@@ -362,6 +399,7 @@ function untint() {
 // Desktop: a column down the left edge. Labels are decluttered every frame and keep a leader line to their node.
 const hud = {};
 const isSmall = () => innerWidth <= 760;
+const NEXT_SVG = '<svg viewBox="0 0 20 20"><path d="M15 4v12M4 4l8 6-8 6z"/></svg>';
 const PLAY_SVG = '<svg viewBox="0 0 20 20"><path d="M6 4l10 6-10 6z"/></svg>', PAUSE_SVG = '<svg viewBox="0 0 20 20"><path d="M6 4v12M14 4v12" stroke-width="3"/></svg>';
 function initHud() {
   const P = (a, R, cx = 54, cy = 52) => [cx + R * Math.cos(a), cy - R * Math.sin(a)];
@@ -388,15 +426,16 @@ function initHud() {
   hud.strip = $('#daystrip canvas');
   hud.datLabel = makeLabel('Dopamine transporter ↑ (faster clearance)', 'tag');
   $('#hudsvg').innerHTML = `<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker></defs>
-    <g id="leaders"></g><path id="gridlead" fill="none" stroke="#ffd34d" stroke-width="1.2" stroke-dasharray="3 4" opacity="0"/><path id="bias" fill="none" stroke-linecap="round" marker-end="url(#ah)" opacity="0"/><g id="threads"></g>`;
-  hud.bias = $('#bias'); hud.threads = $('#threads'); hud.leaders = $('#leaders'); hud.gridlead = $('#gridlead');
+    <g id="leaders"></g><path id="gridlead" fill="none" stroke="#ffd34d" stroke-width="1.2" stroke-dasharray="3 4" opacity="0"/><path id="bias" fill="none" stroke-linecap="round" marker-end="url(#ah)" opacity="0"/>
+    <path id="loop" fill="none" stroke="#3fd0c9" stroke-width="2.6" stroke-dasharray="6 5" stroke-linecap="round" marker-end="url(#ah)" opacity="0"/><g id="threads"></g>`;
+  hud.bias = $('#bias'); hud.threads = $('#threads'); hud.leaders = $('#leaders'); hud.gridlead = $('#gridlead'); hud.loop = $('#loop');
   if (!hud.ro && typeof ResizeObserver !== 'undefined') {
     hud.ro = new ResizeObserver(() => { document.body.style.setProperty('--sb-h', `${Math.round($('#storybar').getBoundingClientRect().height)}px`); _fbc = null; resize(); });
     for (const sel of ['#storybar', '#inset', '#hudrow', '#keycard']) hud.ro.observe($(sel));
   }
 }
 function clearHud() {
-  for (const id of ['#dial', '#ledger', '#moodbar', '#seesaw', '#grid', '#clockico', '#daystrip', '#badge', '#hitring']) $(id).classList.remove('on');
+  for (const id of ['#dial', '#ledger', '#moodbar', '#seesaw', '#grid', '#clockico', '#daystrip', '#badge', '#hitring']) $(id).classList.remove('on', 'dim', 'look');
   $('#hudsvg').innerHTML = ''; $('#tokens').innerHTML = ''; $('#labels').innerHTML = '';
 }
 // push overlapping labels apart vertically, keep them inside the uncovered strip
@@ -414,7 +453,14 @@ function declutter(items, fb, W) {
 }
 function measure(el) { if (el._t !== el.textContent) { el._t = el.textContent; el._w = el.offsetWidth; el._h = el.offsetHeight; } return [el._w || 60, el._h || 20]; }
 function updateHud(dt, now) {
-  const r = canvas.getBoundingClientRect(), W = r.width, H = r.height, m = story.m, H2 = story.hud, def = story.def, small = isSmall();
+  const r = canvas.getBoundingClientRect(), W = r.width, H = r.height, m = story.m, def = story.def, small = isSmall();
+  let H2 = story.hud;
+  if (def.steps) {
+    const I = story.intro, F = story.focus, on = k => I.has('@' + k), dim = k => on(k) && F && !F.includes('@' + k);
+    H2 = { ...H2, mood: on('mood'), grid: on('grid'), clock: on('clock') };
+    for (const [id, k] of [['#moodbar', 'mood'], ['#grid', 'grid'], ['#clockico', 'clock']]) $(id).classList.toggle('dim', dim(k));
+    story.instr = { bias: on('bias') ? (dim('bias') ? 0.25 : 1) : 0, loop: on('loop') ? (dim('loop') ? 0.25 : 1) : 0 };
+  }
   const fb = freeBandCached();
   const proj = p => { pv3.copy(p).project(camera); return { x: (pv3.x + 1) / 2 * W, y: (1 - pv3.y) / 2 * H, ok: pv3.z < 1 && pv3.z > -1 }; };
   const k = 1 - Math.exp(-dt * 6);
@@ -436,6 +482,7 @@ function updateHud(dt, now) {
   if (H2.mood) {
     const f = (clamp(story.vars.m ?? 0, -1, 1) + 1) / 2;
     if (small) { hud.knob.style.left = `${f * 100}%`; hud.knob.style.top = '50%'; } else { hud.knob.style.left = '50%'; hud.knob.style.top = `${(1 - f) * 100}%`; }
+    hud.knob.classList.toggle('kick', now - (story.kick || -9999) < 650);
   }
   const ss = $('#seesaw'); ss.classList.toggle('on', !!H2.seesaw);
   if (H2.seesaw) hud.beam.setAttribute('transform', `rotate(${(clamp(m.tilt ?? 0, -1, 1) * 14).toFixed(1)} 90 44)`);
@@ -499,18 +546,27 @@ function updateHud(dt, now) {
   } else if (hud.threads.innerHTML) hud.threads.innerHTML = '';
   // mood bias arrow: from the mood knob back into valuation
   const tgtN = story.nodes.get(def.biasTo || 'nac');
-  if (story.fx.bias && H2.mood && tgtN) {
-    const kr = hud.knob.getBoundingClientRect(), s = proj(tgtN.pos), mv = story.vars.m ?? 0, wgt = clamp((m.b ?? 0.5) * Math.abs(mv));
+  const biasOn = def.steps ? story.instr.bias > 0 : story.fx.bias;
+  if (biasOn && H2.mood && tgtN) {
+    const kr = hud.knob.getBoundingClientRect(), s = proj(tgtN.pos), mv = story.vars.m ?? 0, wgt = def.biasW ? clamp(def.biasW(m, story.vars)) * (def.steps ? story.instr.bias : 1) : clamp((m.b ?? 0.5) * Math.abs(mv));
     const x0 = small ? kr.left - r.left + kr.width / 2 : kr.right - r.left + 4, y0 = small ? kr.bottom - r.top + 4 : kr.top - r.top + kr.height / 2;
     const c1 = small ? [x0, y0 + 90] : [x0 + 90, y0 - 50];
     hud.bias.setAttribute('d', `M${x0.toFixed(1)} ${y0.toFixed(1)} C ${c1[0].toFixed(1)} ${c1[1].toFixed(1)}, ${(s.x - 50).toFixed(1)} ${(s.y - 90).toFixed(1)}, ${(s.x - 6).toFixed(1)} ${(s.y - 14).toFixed(1)}`);
     hud.bias.setAttribute('stroke', mv >= 0 ? '#ffb454' : '#4aa8ff'); hud.bias.setAttribute('stroke-width', (1 + 6 * wgt).toFixed(1)); hud.bias.setAttribute('opacity', (0.25 + 0.7 * wgt).toFixed(2));
   } else hud.bias.setAttribute('opacity', 0);
+  // sleep-loss loop (step mode): from the mood knob round to the clock
+  const scnL = story.nodes.get('scn'), loopA = def.steps ? story.instr.loop : 0;
+  if (loopA && H2.mood && scnL) {
+    const kr = hud.knob.getBoundingClientRect(), s = proj(scnL.pos);
+    const x0 = kr.left - r.left + kr.width / 2, y0 = kr.bottom - r.top + 4, x1 = s.x - 22, y1 = s.y - 8;
+    hud.loop.setAttribute('d', `M${x0.toFixed(1)} ${y0.toFixed(1)} C ${(x0 - 60).toFixed(1)} ${(y0 + 120).toFixed(1)}, ${(x1 - 90).toFixed(1)} ${(y1 - 20).toFixed(1)}, ${x1.toFixed(1)} ${y1.toFixed(1)}`);
+    hud.loop.setAttribute('opacity', (0.95 * loopA).toFixed(2));
+  } else hud.loop?.setAttribute('opacity', 0);
   // clock + day/night strip
   const ck = $('#clockico'), scn = story.nodes.get('scn');
   ck.classList.toggle('on', !!H2.clock && !!scn);
   if (H2.clock && scn) {
-    const s = proj(scn.pos); ck.style.transform = `translate(${(s.x - 34).toFixed(1)}px, ${(s.y - 6).toFixed(1)}px)`;
+    const s = proj(scn.pos); ck.style.transform = def.steps ? `translate(${(s.x - 15).toFixed(1)}px, ${(s.y - 44).toFixed(1)}px)` : `translate(${(s.x - 34).toFixed(1)}px, ${(s.y - 6).toFixed(1)}px)`;
     const day = story.sim.day || 0, jit = (1 - (m.clockEff ?? 1)) * Math.sin(now / 37) * 40;
     hud.hand.setAttribute('transform', `rotate(${((day % 1) * 360 + jit).toFixed(1)} 15 15)`);
   }
@@ -526,8 +582,8 @@ function updateHud(dt, now) {
   }
   const btxt = def.badge ? def.badge(m, story) : story.fx.badge, bd = $('#badge');
   bd.classList.toggle('on', !!btxt); if (btxt && bd.textContent !== btxt) bd.textContent = btxt;
-  const hr = $('#hitring'), hn = story.fx.hit && story.nodes.get(story.fx.hit);
-  hr.classList.toggle('on', !!hn);
+  const hr = $('#hitring'), hn = story.nodes.get(story.fx.hit || story.fx.look || '');
+  hr.classList.toggle('on', !!hn); hr.classList.toggle('look', !story.fx.hit && !!story.fx.look);
   if (hn) { const s = proj(hn.pos); hr.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px)`; const sp = hr.querySelector('span'); if (sp.textContent !== (story.fx.hitLabel || '')) sp.textContent = story.fx.hitLabel || ''; }
   if (insetOn && story.insetTick) story.insetTick(m, now);
   if (def.liveCaption && story.scene.live) { const c = def.liveCaption(story.vars, story.scene.live); if (c !== hud.lastLive) { hud.lastLive = c; setCaption(c); } }
@@ -537,8 +593,14 @@ function updateHud(dt, now) {
 function sc_progress() { const sc = story.scene; return sc.free ? '100%' : `${clamp(story.t / sc.dur) * 100}%`; }
 
 // ---------- story bar ----------
+const HL_RE = /\{([^}|]+)\|(\w+)\}/g;
+const escHtml = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const plainCap = s => (s || '').replace(HL_RE, '$1');
 function setCaption(text) {
-  $('#sbcap').textContent = text || '';
+  story.capNow = text;
+  const hl = story.def?.hl || {}, ev = story.def?.steps && story.scene?.ev;
+  $('#sbcap').innerHTML = escHtml(text || '').replace(HL_RE, (_, w, k) => `<b class="hl" style="color:${hl[k] || 'inherit'}">${w}</b>`) + (ev ? ` <span class="ev">${escHtml(ev)}</span>` : '');
+  text = plainCap(text);
   if (story.narrate && text && window.speechSynthesis && !story.instant) {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text), vs = speechSynthesis.getVoices();
@@ -549,7 +611,7 @@ function setCaption(text) {
 if (!window.speechSynthesis) $('#sbvoice').hidden = true;
 $('#sbvoice').addEventListener('click', () => {
   story.narrate = !story.narrate; $('#sbvoice').setAttribute('aria-pressed', story.narrate);
-  if (story.narrate) setCaption($('#sbcap').textContent); else speechSynthesis.cancel();
+  if (story.narrate) setCaption(story.capNow ?? $('#sbcap').textContent); else speechSynthesis.cancel();
 });
 function keyHtml(def) {
   const used = [...new Set(def.edges.map(e => e.sign))];
@@ -557,9 +619,9 @@ function keyHtml(def) {
   return `<div class="t">Edge colour = what the connection carries</div>${used.map(k => `<div class="kr">${line(0, SIGN[k].col)}${SIGN[k].label}</div>`).join('')}
     <div class="t">Line style = evidence for this link's role in illness</div>
     <div class="kr">${line(0)}Shown in patients (imaging, PET)</div><div class="kr">${line(1)}Animal models</div><div class="kr">${line(2)}Proposed, untested</div>
-    <div class="t">Striatal territories</div>
+    ${def.scenes.some(s => s.hud && s.hud.tint) ? `<div class="t">Striatal territories</div>
     <div class="kr"><span class="sw" style="background:#3fd0a6"></span>Limbic</div><div class="kr"><span class="sw" style="background:#a98bff"></span>Associative</div><div class="kr"><span class="sw" style="background:#5b7cff"></span>Sensorimotor</div><div class="kr"><span class="sw" style="background:#ffc21a"></span>Gold = dopamine excess</div>
-    <div class="note">Parcels: Melbourne Subcortex Atlas (Tian 2020, scale III). Which parcel counts as which territory is my judgment.</div>
+    <div class="note">Parcels: Melbourne Subcortex Atlas (Tian 2020, scale III). Which parcel counts as which territory is my judgment.</div>` : ''}${def.keyExtra || ''}
     <div class="t">Dials and grids</div><div class="note">Illustrative units, not measurements. Dopamine neuron population activity (the dot grid) has only been measured in rodents.</div>`;
 }
 $('#sbkey').addEventListener('click', () => {
@@ -572,10 +634,16 @@ function syncBar() {
   const sc = story.scene;
   $('#sbtitle').textContent = sc.title;
   $('#sbcount').textContent = `${sc.chapter ? sc.chapter + ' · ' : ''}${story.i + 1} / ${def.scenes.length}`;
-  const seg = $('#sbstate');
+  document.body.classList.toggle('steps', !!def.steps);
+  const nb = $('#sbnext');
+  if (def.steps && !nb.dataset.wide) { nb.dataset.wide = '1'; nb.innerHTML = '<span>Next</span>' + NEXT_SVG; nb.setAttribute('aria-label', 'Next step'); }
+  if (!def.steps && nb.dataset.wide) { delete nb.dataset.wide; nb.innerHTML = NEXT_SVG; nb.setAttribute('aria-label', 'Next scene'); }
+  const seg = $('#sbstate'); seg.hidden = !!def.steps;
   if (seg.dataset.story !== def.id) { seg.innerHTML = def.states.map(s => `<button data-s="${s.id}">${s.label}</button>`).join(''); seg.dataset.story = def.id; }
   $$('#sbstate button').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === story.stateId));
-  const pb = $('#sbplay'); pb.innerHTML = story.playing ? PAUSE_SVG : PLAY_SVG; pb.setAttribute('aria-label', story.playing ? 'Pause autoplay' : 'Play');
+  const pb = $('#sbplay');
+  if (def.steps) { pb.innerHTML = story.auto ? PAUSE_SVG : PLAY_SVG; pb.setAttribute('aria-label', story.auto ? 'Stop auto-advance' : 'Auto-advance through the steps'); pb.title = pb.getAttribute('aria-label'); }
+  else { pb.innerHTML = story.playing ? PAUSE_SVG : PLAY_SVG; pb.setAttribute('aria-label', story.playing ? 'Pause autoplay' : 'Play'); pb.title = ''; }
   $('#sbprev').disabled = story.i === 0; $('#sbnext').disabled = story.i === def.scenes.length - 1;
 }
 function renderExtra(sc) {
@@ -620,7 +688,15 @@ $('#sbstate').addEventListener('click', e => {
 $('#sbprev').addEventListener('click', () => gotoScene(story.i - 1));
 $('#sbnext').addEventListener('click', () => gotoScene(story.i + 1));
 $('#sbreplay').addEventListener('click', () => gotoScene(story.i, { play: true }));
-$('#sbplay').addEventListener('click', () => { story.playing = !story.playing; if (story.playing && !story.scene.free && story.t >= story.scene.dur) gotoScene(story.i + 1); syncBar(); });
+$('#sbplay').addEventListener('click', () => {
+  if (story.def?.steps) { story.auto = !story.auto; story.playing = true; if (story.auto && story.waiting && story.i < story.def.scenes.length - 1) gotoScene(story.i + 1); syncBar(); return; }
+  story.playing = !story.playing; if (story.playing && !story.scene.free && story.t >= story.scene.dur) gotoScene(story.i + 1); syncBar();
+});
+// arrow keys step through scenes (not while a slider or text box has focus)
+addEventListener('keydown', e => {
+  if (!story.def || e.altKey || e.ctrlKey || e.metaKey || e.target.closest?.('input, textarea, select')) return;
+  if (e.key === 'ArrowRight') { e.preventDefault(); gotoScene(story.i + 1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); gotoScene(story.i - 1); }
+});
 $('#sbclose').addEventListener('click', () => endStory());
 
 // ---------- inset cards ----------
@@ -645,7 +721,8 @@ function startStory(id, i = 0, opts = {}) {
   story.def = def; story.vars = { ...def.vars }; story.tweens = []; story.flash = {}; story.flashNeg = {};
   const solid = new Set([...Object.values(def.nodes).filter(n => n.key && !n.ghost).map(n => n.key), ...(def.cast || [])]);
   const ghostK = new Set([...Object.values(def.nodes).filter(n => n.key && n.ghost).map(n => n.key), ...(def.ghostCast || [])]);
-  setLevels(all, 0); setLevels(cortex, 1); setLevels([...ghostK], 1); setLevels([...solid], 2);
+  setLevels(all, 0); setLevels(cortex, 1); setLevels([...ghostK], 1); setLevels([...solid], def.steps ? 1 : 2);
+  if (def.steps) { story.auto = false; for (const sc of def.scenes) sc.read = Math.min(8, Math.max(3.2, plainCap(sc.caption).split(/\s+/).length * 0.34)); }
   state.hemi = def.hemi || 'L'; state.preset = null;
   story.baseLevels = new Map(state.level);
   story.sceneLevelKeys = new Set(def.scenes.flatMap(sc => Object.keys(sc.levels || {})));
@@ -654,6 +731,11 @@ function startStory(id, i = 0, opts = {}) {
   if (innerWidth <= 760) $('#panel').classList.add('min');
   buildStory(def); initHud();
   syncAll(); syncStories();
+  if (def.steps) {
+    story.savedGhost = state.ghost; state.ghost = 0.07; story.neutral = [];
+    for (const mesh of meshes) { const k = mesh.userData.key; if (state.level.get(k) === 1 && !story.keyNodes.has(k)) { mesh.material.color.set('#6b7686'); story.neutral.push(mesh); } }
+    applyMaterials();
+  }
   gotoScene(i, { instant: true, play: !opts.paused });
   if (opts.t) fastForward(opts.t);
   syncBar();
@@ -662,11 +744,13 @@ function endStory(restore = true) {
   if (!story.def) return;
   for (const mesh of storyMeshes) { const mat = mesh.material; mat.color.set(mesh.userData.st.color); mat.emissive.set(0xffe6bf); mat.emissiveIntensity = 0; mat.userData.sl = false; }
   if (tintOn) untint();
+  if (story.neutral) { for (const mesh of story.neutral) mesh.material.color.set(mesh.userData.st.color); story.neutral = null; state.ghost = story.savedGhost; }
   paintYeo(0); story.sceneLevelKeys = null;
   if (window.speechSynthesis) speechSynthesis.cancel();
   $('#keycard').hidden = true; $('#sbkey').setAttribute('aria-pressed', 'false');
   clearTokens(); clearStory3D(); clearHud(); renderInset(null);
-  story.def = null; story.scene = null; storyMeshes = [];
+  story.def = null; story.scene = null; storyMeshes = []; story.auto = false; story.intro = null;
+  $('#sbnext').classList.remove('ready'); document.body.classList.remove('steps');
   document.body.classList.remove('story'); $('#storybar').hidden = true;
   if (restore && story.snapshot) { state.level = story.snapshot.level; state.hemi = story.snapshot.hemi; state.preset = story.snapshot.preset; }
   story.snapshot = null; lastNetMode = null;

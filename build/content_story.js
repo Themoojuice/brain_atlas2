@@ -317,8 +317,8 @@ const STORIES = [
   ] },
 
 // ---------------------------------------------------------------- affective
-{ id: 'aff', name: 'Mood: the affective disruption story', color: '#3fd0c9', hemi: 'L', view: MED_LOW,
-  desc: 'Prefrontal brakes, amygdala, pallidal gate and a circadian clock: how a mood loop runs away in either direction. Ten scenes.',
+{ id: 'aff', name: 'Mood: the full picture', color: '#3fd0c9', hemi: 'L', view: MED_LOW,
+  desc: 'All of it at once, in ten autoplay scenes: prefrontal brakes, amygdala, pallidal gate, circadian clock, mixed states, networks and treatment.',
   nodes: {
     ifg:  { key: 'Inferior_frontal_gyrus', ghost: true, label: 'Ventrolateral prefrontal' },
     lofc: { key: 'Lateral_orbital_gyrus', ghost: true, label: 'Orbitofrontal' },
@@ -500,3 +500,197 @@ const STORIES = [
       caption: 'Stuck gain, wrong territory. Swinging gain, right territory.' },
   ] },
 ];
+
+// ---------------------------------------------------------------- affective, one step at a time
+// Sequential version of the mood story. Rules (storyboard: "Mood, one step at a time"):
+// one idea per step; a step adds or changes one thing (two at most); everything introduced earlier stays as dim, still context;
+// instruments follow the same hidden → context → focus rule; the camera holds still; the learner presses Next.
+const AF_EU = { cg: 1, clock: 1, brake: 1, amy: 0.3, ag: 0.3, m: 0, lith: 0, rth: 0, stream: 0 };
+const AF_MANIA = { ...AF_EU, cg: 0.3, clock: 0.3, brake: 0.55 };
+const AF_DEP = { ...AF_EU, amy: 0.9, ag: 0.9, brake: 0.55 };
+const afStep = (title, o) => { const { base, ...rest } = o; return { title, dur: 4.5, ...rest, set: { ...(base || AF_EU), ...(o.set || {}) } }; };
+// An outcome travels orbitofrontal → accumbens. r is the objective outcome (coin = win, cloud = letdown).
+// On arrival: felt value = r + bias × mood; positive surprises are scaled by dopamine gain, letdowns by a weight
+// that grows with amygdala drive (0.6 → 1.2). Mood integrates the felt surprise. Token size = felt surprise; dashed ring = the same outcome at baseline.
+function afOutcome(S, r, o = {}) {
+  S.spawn({ icon: r >= 0 ? 'coin' : 'cloud', from: 'lofc', to: 'nac', via: [[-18, 20, -13]], dur: o.dur || 1.3, life: o.life ?? 1.8, kind: r >= 0 ? 'rewardPos' : 'rewardNeg',
+    onArrive: (S2, tk) => {
+      const mm = S2.def.model(S2.vars, S2), V = S2.vars, felt = r + mm.b * V.m;
+      const d = felt > 0 ? felt * (0.3 + 1.2 * mm.eff) : felt * (0.6 + 0.6 * mm.amyN);
+      if (!o.noMood) { V.m = Math.max(-1, Math.min(1, V.m * 0.93 + 0.55 * d)); S2.kick = performance.now(); }
+      tk.target = 0.6 + Math.min(1.4, 2.4 * Math.abs(d)); tk.kind = felt >= 0 ? 'rewardPos' : 'rewardNeg';
+      if (S2.fx.ghost) tk.ghost = 0.6 + Math.min(1.4, 2.4 * Math.abs(r > 0 ? r * 0.78 : r * 0.6));
+      S2.flashEdge('vta-nac', cl01(Math.abs(d) * 1.8 + 0.25), d < 0);
+    } });
+}
+const afWin = (r, o) => S => afOutcome(S, r, o);
+// Every stream replays the same zero-mean run of outcomes, so euthymia, mania and depression face the same world;
+// only how it is felt differs.
+const AF_SEQ = [0.3, -0.25, 0.15, -0.35, 0.25, -0.1, 0.35, -0.2, 0.05, -0.15, 0.2, -0.3];
+
+STORIES.splice(1, 0, { id: 'affs', name: 'Mood, one step at a time', color: '#9be38a', hemi: 'L', view: MED_LOW, steps: true,
+  desc: 'How a mood episode builds, in 37 short steps you move through yourself: one idea, one change at a time.',
+  cam: { dir: [-0.9, -0.6, 0.15], fit: ['lofc', 'nac', 'vta', 'vp', 'scn', 'amy', 'ifg'], r: 12, pad: 5 },
+  hl: { out: '#ffb877', nac: '#ffe08a', da: '#ffd34d', mood: '#ffffff', bias: '#ffb454', vp: '#8fcbff', clock: '#5fe0d8', ctl: '#c9adff', amy: '#ff8a7a', mania: '#ffb454', dep: '#8fb8ff', lith: '#a8eb98' },
+  nodes: {
+    lofc: { key: 'Lateral_orbital_gyrus', mni: [-24, 28, -17], ghost: true, label: 'Orbitofrontal cortex' },
+    nac:  { key: 'Nucleus_accumbens', label: 'Accumbens' },
+    vta:  { key: 'VTA', label: 'Ventral tegmental area' },
+    vp:   { key: 'Ventral_pallidum', label: 'Ventral pallidum', lo: [0, 12] },
+    scn:  { key: 'Hypothalamus', mni: [-2, 2, -12], label: 'Body clock (suprachiasmatic)', r: 1.2, dot: '#3fd0c9', lo: [0, 12] },
+    ifg:  { key: 'Inferior_frontal_gyrus', mni: [-40, 26, -4], ghost: true, label: 'Ventrolateral prefrontal' },
+    amy:  { key: 'Amygdala', label: 'Amygdala', lo: [0, 12] },
+    src:  { mni: [-44, 6, -30], noDot: true },
+  },
+  edges: [
+    { id: 'ofc-nac', from: 'lofc', to: 'nac', via: [[-18, 20, -13]], sign: '+', ev: 'human', act: () => 0.45 },
+    { id: 'vta-nac', from: 'vta', to: 'nac', via: [[-6, -4, -12]], sign: 'da', ev: 'human', act: m => m.pop },
+    { id: 'vp-vta', from: 'vp', to: 'vta', via: [[-9, -7, -10]], sign: '-', ev: 'rodent', act: m => m.vpB },
+    { id: 'scn-vta', from: 'scn', to: 'vta', via: [[-3, -8, -12]], sign: 'clock', ev: 'rodent', act: m => m.clockEff },
+    { id: 'ifg-nac', from: 'ifg', to: 'nac', via: [[-26, 20, -4]], sign: 'ctl', ev: 'human', act: m => m.brake },
+    { id: 'amy-vp', from: 'amy', to: 'vp', via: [[-17, 0, -14]], sign: '+', ev: 'rodent', act: m => m.amyN },
+  ],
+  vars: { ...AF_EU },
+  states: [],
+  // cg / ag: the clock's and the amygdala's effect on the dopamine neurons. They are tweened a step after the
+  // clock and amygdala themselves (clock, amy), so cause and effect arrive in separate steps.
+  model(v, S) {
+    const anchor = 0.55 * v.rth + 0.45 * v.lith;
+    const grip = Math.min(1, v.cg + (1 - v.cg) * anchor), clockEff = Math.min(1, v.clock + (1 - v.clock) * anchor);
+    const amyN = cl01((v.amy - 0.3) / 0.6), agN = cl01((v.ag - 0.3) / 0.6);
+    const pop = Math.min(0.95, Math.max(0.05, 0.4 + 0.5 * (1 - grip) * (1 - 0.4 * v.lith) - 0.32 * agN));
+    const day = (S && S.sim && S.sim.day) || 0;
+    return { grip, clockEff, amyN, pop, eff: pop, popShow: cl01(pop + 0.09 * Math.sin(day * Math.PI * 2) * grip),
+      vpB: cl01(0.45 + 0.5 * amyN), b: cl01((0.2 + 1.55 * (1 - v.brake)) * (1 - 0.55 * v.lith)), brake: v.brake, m: v.m };
+  },
+  gauge: { gain: m => m.eff, pop: m => m.popShow },
+  gridAt: 'vta', biasTo: 'nac',
+  biasW: m => 0.12 + 0.88 * m.b,
+  salience(kind) { return kind === 'stress' ? 1.35 : 1; },
+  tick(dt, v, m, S) {
+    const sim = S.sim;
+    sim.day = (sim.day || 0) + dt * (0.22 + 0.6 * (1 - m.clockEff));
+    if (S.fx.swing) {
+      const ph = S.t * 0.42, up = Math.max(0, Math.sin(ph)), dn = Math.max(0, -Math.sin(ph));
+      v.m = 0.85 * Math.sin(ph); v.clock = v.cg = 1 - 0.7 * up; v.amy = v.ag = 0.3 + 0.6 * dn; return;
+    }
+    if (!S.fx.hold) v.m -= v.m * dt * (0.22 + 0.4 * v.lith);          // mood relaxes towards baseline; lithium speeds the return
+    if (S.fx.sleepLoop && v.m > 0.5) { const d = dt * 0.07 * (v.m - 0.4); v.clock = Math.max(0.06, v.clock - d); v.cg = Math.max(0.06, v.cg - d); }
+    if (v.stream > 0.5) { sim.next = (sim.next ?? 0.6) - dt; if (sim.next <= 0) { sim.next = 0.85; sim.k = (sim.k || 0) + 1; afOutcome(S, AF_SEQ[(sim.k - 1) % AF_SEQ.length], { dur: 0.9, life: 0.5 }); } }
+  },
+  look(m, S) {
+    const day = S.sim.day || 0;
+    return {
+      Nucleus_accumbens: { glow: 0.2 + 0.55 * cl01((m.pop - 0.1) / 0.8), ec: '#ffd34d' },
+      VTA: { glow: 0.15 + 0.8 * cl01((m.pop - 0.05) / 0.85), ec: '#ffd34d' },
+      Ventral_pallidum: { glow: 0.2 + 0.7 * m.vpB, ec: '#7cc4ff' },
+      Hypothalamus: { glow: 0.2 + 0.4 * (0.5 + 0.5 * Math.sin(day * Math.PI * 2)) * m.clockEff, ec: '#3fd0c9' },
+      Inferior_frontal_gyrus: { glow: 0.12 + 0.5 * m.brake, ec: '#b48cff' },
+      Lateral_orbital_gyrus: { glow: 0.3, ec: '#ff9f43' },
+      Amygdala: { heat: m.amyN, glow: 0.12 + 0.7 * m.amyN, ec: '#ff6b5b' },
+    };
+  },
+  keyExtra: `<div class="t">Outcomes</div><div class="note">Coin = a win, cloud = a letdown: what actually happened. The rim on arrival shows how it was felt (gold = good, blue = bad) and its size shows how hard. The dashed ring is how the same outcome lands at baseline.</div>
+    <div class="t">Mood bar and arrows</div><div class="note">The mood bar is the running total of felt surprises. The arrow from the mood bar is mood bias: how strongly mood colours the next outcome. The dashed teal arrow is mania cutting sleep.</div>
+    <div class="t">Dim versus bright</div><div class="note">Bright and labelled = this step. Dim and still = introduced earlier, kept for context.</div>`,
+  scenes: [
+    afStep('How to use this', { dur: 1, caption: 'How a mood episode builds, one step at a time. Press {Next|out} (or the right arrow key) to move on.' }),
+
+    afStep('1 · Mood keeps score', { add: ['lofc', 'nac', 'ofc-nac'], ev: 'human imaging',
+      caption: 'Something good happens. The {orbitofrontal cortex|out} passes the outcome to the {accumbens|nac}.',
+      beats: [{ at: 1, do: afWin(0.35, { noMood: true }) }] }),
+    afStep('1 · Mood keeps score', { add: ['vta', 'vta-nac'], ev: 'monkey recordings',
+      caption: '{Dopamine neurons|da} in the ventral tegmental area fire a burst: better than expected. That burst is a {prediction error|da}.',
+      beats: [{ at: 1, do: afWin(0.35, { noMood: true }) }] }),
+    afStep('1 · Mood keeps score', { focus: ['vta', 'vta-nac'], ev: 'monkey recordings',
+      caption: 'A letdown. The same neurons {dip|da} below their resting rate: worse than expected.',
+      beats: [{ at: 1, do: afWin(-0.3, { noMood: true }) }] }),
+    afStep('1 · Mood keeps score', { add: ['@mood'], fx: { hold: true }, ev: 'human experiments',
+      caption: '{Mood|mood} keeps a running total of these surprises. A win nudges it up.',
+      beats: [{ at: 1, do: afWin(0.6) }] }),
+    afStep('1 · Mood keeps score', { focus: ['@mood'], set: { m: 0.26 }, dur: 6, ev: 'human experiments',
+      caption: 'Left alone, {mood|mood} drifts back to baseline.' }),
+    afStep('1 · Mood keeps score', { focus: ['@mood', 'ofc-nac'], set: { stream: 1 }, dur: 8, ev: 'model',
+      caption: 'An ordinary run of ups and downs: {mood|mood} wobbles, then settles. This is euthymia.' }),
+    afStep('1 · Mood keeps score', { add: ['@bias'], focus: ['@bias', '@mood'], set: { m: 0.4 }, fx: { hold: true }, ev: 'human experiments',
+      caption: 'Mood also colours the next outcome. In a good mood, a win lands a little bigger. This is {mood bias|bias}.',
+      beats: [{ at: 1.2, do: afWin(0.35) }] }),
+    afStep('1 · Mood keeps score', { focus: ['@bias', 'ofc-nac'], set: { m: 0.4 }, fx: { hold: true, ghost: true }, ev: 'model',
+      caption: 'The dashed ring shows how the same win lands at baseline. Here the {bias|bias} is weak, so the gap is small.',
+      beats: [{ at: 1, do: afWin(0.35) }] }),
+    afStep('1 · Mood keeps score', { recap: true, dur: 2,
+      caption: '{Outcome|out} → {dopamine surprise|da} → {mood|mood} → {bias|bias} on the next outcome. A loop, but a gentle one.' }),
+
+    afStep('2 · What keeps it gentle', { add: ['@grid'], focus: ['@grid', 'vta'], ev: 'rat recordings',
+      caption: 'How hard each surprise lands depends on how many {dopamine neurons|da} are awake. Call that the {gain|da}.' }),
+    afStep('2 · What keeps it gentle', { add: ['vp', 'vp-vta'], ev: 'rat recordings',
+      caption: 'The {ventral pallidum|vp} keeps most of them quiet. It is a {brake|vp} on the gain.' }),
+    afStep('2 · What keeps it gentle', { add: ['scn', 'scn-vta', '@clock'], focus: ['scn', 'scn-vta', '@clock', '@grid'], dur: 7, ev: 'mouse studies',
+      caption: 'The {body clock|clock} sets their daily rhythm: more of them awake by day, fewer by night.' }),
+    afStep('2 · What keeps it gentle', { add: ['ifg', 'ifg-nac'], focus: ['ifg', 'ifg-nac', '@bias'], set: { m: 0.4 }, fx: { hold: true }, ev: 'proposed link',
+      caption: 'The {ventrolateral prefrontal cortex|ctl} keeps {mood bias|bias} weak, so one good day doesn’t inflate the next.' }),
+    afStep('2 · What keeps it gentle', { recap: true, dur: 2,
+      caption: 'The {pallidum|vp} and the {clock|clock} hold the gain steady. The {prefrontal cortex|ctl} keeps the bias weak.' }),
+
+    afStep('3 · Mania: the loop runs up', { focus: ['scn', 'scn-vta', '@clock'], ev: 'mice, plus clinical observation',
+      caption: 'Nights get short. The {body clock|clock} loses its grip on the dopamine neurons.',
+      beats: [{ at: 0.6, tween: { clock: [0.3, 3] } }] }),
+    afStep('3 · Mania: the loop runs up', { focus: ['@grid', 'vta'], set: { clock: 0.3 }, ev: 'mouse studies',
+      caption: 'Freed from the rhythm, more of them wake. The {gain|da} climbs.',
+      beats: [{ at: 0.5, tween: { cg: [0.3, 3] } }] }),
+    afStep('3 · Mania: the loop runs up', { focus: ['ifg', 'ifg-nac', '@bias'], set: { clock: 0.3, cg: 0.3, m: 0.4 }, fx: { hold: true }, ev: 'human sleep-loss imaging',
+      caption: 'Sleep loss also weakens the {prefrontal brake|ctl}, so {mood bias|bias} grows stronger.',
+      beats: [{ at: 0.5, tween: { brake: [0.55, 3] } }] }),
+    afStep('3 · Mania: the loop runs up', { base: AF_MANIA, focus: ['ofc-nac', '@mood'], set: { m: 0 }, fx: { hold: true, ghost: true }, ev: 'model',
+      caption: 'Now a win lands hard: high gain carries it well past its baseline ring.',
+      beats: [{ at: 1, do: afWin(0.3) }] }),
+    afStep('3 · Mania: the loop runs up', { base: AF_MANIA, focus: ['@bias', '@mood'], set: { m: 0.2 }, fx: { hold: true, ghost: true }, ev: 'model',
+      caption: 'And the higher mood makes the next win feel bigger still.',
+      beats: [{ at: 1, do: afWin(0.3) }] }),
+    afStep('3 · Mania: the loop runs up', { base: AF_MANIA, focus: ['ofc-nac', '@mood'], set: { m: 0.5, stream: 1 }, dur: 8, ev: 'model (Eldar 2016)',
+      caption: 'Each win feeds the next. Momentum builds into {mania|mania}.' }),
+    afStep('3 · Mania: the loop runs up', { base: AF_MANIA, focus: ['ofc-nac'], set: { m: 0.85 }, fx: { hold: true, ghost: true }, ev: 'model',
+      caption: 'Now even a letdown lands as a win.',
+      beats: [{ at: 1, do: afWin(-0.2) }] }),
+    afStep('3 · Mania: the loop runs up', { base: AF_MANIA, add: ['@loop'], focus: ['@loop', '@clock'], set: { m: 0.9 }, fx: { hold: true, sleepLoop: true }, dur: 6, ev: 'clinical observation',
+      caption: 'Mania cuts sleep, which loosens the {clock|clock} further. The circle closes.' }),
+    afStep('3 · Mania: the loop runs up', { base: AF_MANIA, recap: true, set: { m: 0.9 }, fx: { hold: true }, dur: 2,
+      caption: '{Short nights|clock} → {gain up|da} and {bias up|bias} → wins compound → less sleep. That is {mania|mania}.' }),
+
+    afStep('4 · Depression: the loop runs down', { add: ['amy'], ease: 1.2, dur: 5, ev: 'rat studies',
+      caption: 'Back to baseline. Now a heavy stressor hits the {amygdala|amy}.',
+      beats: [{ at: 1.4, token: { icon: 'bolt', from: 'src', to: 'amy', kind: 'stress', dur: 1.3 } }, { at: 2.6, tween: { amy: [0.9, 1.8] } }] }),
+    afStep('4 · Depression: the loop runs down', { add: ['amy-vp'], focus: ['amy', 'amy-vp', 'vp', 'vp-vta'], set: { amy: 0.9 }, ev: 'rat studies',
+      caption: 'The amygdala drives the {ventral pallidum|vp}, tightening the brake.' }),
+    afStep('4 · Depression: the loop runs down', { focus: ['@grid', 'vta'], set: { amy: 0.9 }, ev: 'rat studies',
+      caption: 'Fewer dopamine neurons stay awake. The {gain|da} falls.',
+      beats: [{ at: 0.5, tween: { ag: [0.9, 3] } }] }),
+    afStep('4 · Depression: the loop runs down', { focus: ['ofc-nac', '@mood'], set: { amy: 0.9, ag: 0.9 }, fx: { hold: true, ghost: true }, ev: 'patient studies',
+      caption: 'Wins barely register now, falling short of their baseline ring. This is {anhedonia|dep}.',
+      beats: [{ at: 1, do: afWin(0.3) }] }),
+    afStep('4 · Depression: the loop runs down', { focus: ['ofc-nac', '@mood'], set: { amy: 0.9, ag: 0.9, m: 0.06 }, fx: { hold: true, ghost: true }, ev: 'model',
+      caption: 'Letdowns still land in full, so {mood|mood} starts to sink.',
+      beats: [{ at: 1, do: afWin(-0.3) }] }),
+    afStep('4 · Depression: the loop runs down', { focus: ['ifg', 'ifg-nac', '@bias'], set: { amy: 0.9, ag: 0.9, m: -0.12 }, fx: { hold: true }, ev: 'human imaging',
+      caption: 'The {prefrontal brake|ctl} weakens here too, so a low mood darkens the next outcome.',
+      beats: [{ at: 0.5, tween: { brake: [0.55, 3] } }] }),
+    afStep('4 · Depression: the loop runs down', { base: AF_DEP, focus: ['ofc-nac', '@mood'], set: { m: -0.15, stream: 1 }, dur: 9, ev: 'model',
+      caption: 'Each letdown feeds the next. Momentum builds into {depression|dep}.' }),
+    afStep('4 · Depression: the loop runs down', { base: AF_DEP, recap: true, set: { m: -0.85 }, fx: { hold: true }, dur: 2,
+      caption: '{Stress|amy} → {pallidal brake on|vp} → {gain down|da} → wins fade, letdowns compound. That is {depression|dep}.' }),
+
+    afStep('5 · One loop, two directions', { focus: ['@mood', '@grid'], fx: { swing: true }, dur: 15, ev: 'model',
+      caption: 'One loop, pushed either way. A loose {clock|clock} pushes the gain up; {stress|amy} pushes it down.' }),
+    afStep('5 · One loop, two directions', { focus: ['@bias', 'ifg', 'ifg-nac'], set: { m: 0.4, brake: 0.55 }, fx: { hold: true }, ev: 'computational proposal',
+      caption: 'One proposal: in bipolar disorder the {mood bias|bias} runs strong, so either push can snowball.' }),
+
+    afStep('6 · Steadying the loop', { base: AF_MANIA, focus: ['scn', 'scn-vta', '@clock', '@grid'], set: { m: 0.85 }, fx: { hold: true }, dur: 5, ev: 'clinical trial',
+      caption: 'Regular sleep and daily routine re-anchor the {body clock|clock}, and the gain settles.',
+      beats: [{ at: 0.6, tween: { rth: [1, 3] } }] }),
+    afStep('6 · Steadying the loop', { base: AF_MANIA, focus: ['@mood', '@bias'], set: { m: 0.85, rth: 1 }, dur: 6, ev: 'model; lithium–clock link in mice',
+      caption: '{Lithium|lith} steadies the clock and, in this model, damps the loop so {mood|mood} settles faster.',
+      beats: [{ at: 0.6, tween: { lith: [1, 2] } }] }),
+    afStep('6 · Steadying the loop', { base: AF_MANIA, recap: true, set: { m: 0, rth: 1, lith: 1 }, dur: 2,
+      caption: 'Anchor the {clock|clock}, keep the {bias|bias} weak, and the loop is gentle again.' }),
+  ],
+});
