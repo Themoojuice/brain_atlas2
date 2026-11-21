@@ -28,10 +28,14 @@ const ICONS = {
   coin: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5l1.4 2.9 3.1.4-2.3 2.2.6 3.1-2.8-1.5-2.8 1.5.6-3.1-2.3-2.2 3.1-.4z"/></svg>',
   cloud: '<svg viewBox="0 0 24 24"><path d="M7 17.5h10a4 4 0 0 0 .4-8 5.5 5.5 0 0 0-10.6 1.6A3.3 3.3 0 0 0 7 17.5z"/><path d="M9 20l-1 2M13 20l-1 2"/></svg>',
   bolt: '<svg viewBox="0 0 24 24"><path d="M13 2L5 13.5h6L10 22l8-11.5h-6z"/></svg>',
+  spark: '<svg viewBox="0 0 24 24"><path d="M12 2.5l2.1 6.4 6.4 2.1-6.4 2.1L12 19.5l-2.1-6.4L3.5 11l6.4-2.1z"/></svg>',
+  dip: '<svg viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6"/></svg>',
+  cup: '<svg viewBox="0 0 24 24"><path d="M4.5 9h12v5.5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z"/><path d="M16.5 10.5h1.6a2.4 2.4 0 0 1 0 4.8h-1.9M8 3.5c-.8 1 .8 2 0 3M11.5 3.5c-.8 1 .8 2 0 3"/></svg>',
+  trophy: '<svg viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 3 3.4M17 6h2.5a2.5 2.5 0 0 1-3 3.4M12 14v3.5M8.5 20.5h7M9.5 17.5h5v3h-5z"/></svg>',
 };
 const story = { def: null, i: 0, t: 0, playing: true, vars: {}, tweens: [], m: {}, group: new THREE.Group(), edges: new Map(), nodes: new Map(),
   tokens: [], fx: {}, hud: {}, beatIdx: 0, scene: null, focus: null, show: [], labelSet: new Set(), last: 0, snapshot: null, flash: {}, flashNeg: {},
-  rand: Math.random, sim: {}, stateId: null, tags: {}, camNow: null, framePending: false, instant: false };
+  rand: Math.random, sim: {}, stateId: null, tags: {}, camNow: null, framePending: false, instant: false, kicker: null, capText: '', gateT: 0 };
 scene.add(story.group);
 let storyMeshes = [];
 const TINT_KEYS = new Set(['Caudate_nucleus', 'Putamen', 'Nucleus_accumbens']);
@@ -137,8 +141,11 @@ function spawnToken(t) {
   const curve = new THREE.CatmullRomCurve3([a.pos, ...(t.via || []).map(v => mni2three(v)), b.pos], false, 'centripetal');
   const el = document.createElement('div'); el.className = 'tok'; el.innerHTML = (ICONS[t.icon] || '') + '<span class="bang">!</span>';
   const ring = document.createElement('div'); ring.className = 'ghostring';
-  $('#tokens').append(ring, el);
-  const tok = { dur: 2.2, life: 3, ...t, curve, el, ring, t0: story.t, size: 1, target: 1, arrived: false, off: t.off ? new THREE.Vector3(...t.off) : null, pos: new THREE.Vector3() };
+  $('#tokens').append(el, ring);   // the ghost ring (face-value size) sits on top, so it shows inside a swollen token
+  const tok = { dur: 2.2, life: 3, ...t, curve, el, ring, t0: story.t, size: t.size0 ?? 1, target: 1, arrived: false, off: t.off ? new THREE.Vector3(...t.off) : null, pos: new THREE.Vector3() };
+  if (t.cls) el.classList.add(t.cls);
+  // grow: the token swells (or shrinks) along its path to a size fixed at spawn, e.g. value judged in the current mood
+  if (t.grow && t.sal) tok.pre = t.sal(story, tok);
   story.tokens.push(tok); return tok;
 }
 function clearTokens() { for (const tk of story.tokens) { tk.el.remove(); tk.ring.remove(); } story.tokens = []; }
@@ -202,7 +209,10 @@ function gotoScene(i, opts = {}) {
     applyMaterials();
   }
   paintYeo(story.hud.yeo || 0);
+  story.see = sc.see ? new Set(sc.see) : null; applySee();
+  story.kicker = sc.kicker || null;
   clearTokens(); setCaption(sc.caption); renderExtra(sc); renderInset(sc.inset || null); syncBar();
+  if (!$('#keycard').hidden) $('#keycard').innerHTML = keyHtml(def);
   story.camNow = sc.cam || (def.steps && def.cam) || { dir: def.view }; story.framePending = true;
   const anim = !opts.instant;
   requestAnimationFrame(() => { story.framePending = false; resize(); frameCam(story.camNow, anim); });
@@ -210,7 +220,10 @@ function gotoScene(i, opts = {}) {
   if (opts.play !== undefined) story.playing = opts.play;
 }
 function applyBeat(b) {
+  if (b.kicker !== undefined) story.kicker = b.kicker;
   if (b.caption) setCaption(b.caption);
+  if (b.relabel) story.labelSet = new Set(b.relabel);
+  if (b.see) { story.see = new Set([...(story.see || []), ...b.see]); applySee(); }
   if (b.focus !== undefined) story.focus = b.focus;
   if (b.show) story.show = b.show === 'all' ? [...story.edges.keys()] : b.show;
   if (b.labels) for (const l of b.labels) story.labelSet.add(l);
@@ -224,6 +237,16 @@ function applyBeat(b) {
   if (b.token) spawnToken(b.token);
   if (b.inset !== undefined) renderInset(b.inset);
   if (b.do) b.do(story);
+}
+// reveal mode: a story with reveal:true shows a deep structure only once a scene (or beat) puts its node in `see`;
+// cortical ghosts stay as the context shell
+function applySee() {
+  const def = story.def; if (!def || !def.reveal || !story.see) return;
+  for (const [id, n] of Object.entries(def.nodes)) {
+    if (!n.key || cortex.includes(n.key)) continue;
+    state.level.set(n.key, story.see.has(id) ? (n.ghost ? 1 : 2) : 0);
+  }
+  applyMaterials();
 }
 function fastForward(t) {
   story.instant = true;
@@ -240,7 +263,7 @@ function fastForward(t) {
 }
 function arrive(tk) {
   tk.arrived = true;
-  tk.target = story.def.salience ? story.def.salience(tk.kind, story.m, story) : 1;
+  tk.target = tk.pre ?? (tk.sal ? tk.sal(story, tk) : story.def.salience ? story.def.salience(tk.kind, story.m, story) : 1);
   if (tk.flash) story.flashEdge(tk.flash, clamp(tk.target - 0.55), false);
   if (tk.onArrive) tk.onArrive(story, tk);
 }
@@ -252,7 +275,11 @@ function storyFrame(now) {
   const dt = Math.min(0.1, (now - (story.last || now)) / 1000); story.last = now;
   const def = story.def, sc = story.scene;
   if (story.playing) {
-    story.t += dt;
+    // narration gate: while the voice is still reading, hold before the next captioned beat (or the scene end), at most 12 s
+    let nt = story.t + dt;
+    const nb = (sc.beats || [])[story.beatIdx], lim = nb ? (nb.caption ? nb.at : Infinity) : (sc.free || def.steps ? Infinity : sc.dur + (sc.hold ?? 1.5));
+    if (story.narrate && window.speechSynthesis && speechSynthesis.speaking && nt >= lim && story.gateT < 12) { story.gateT += dt; nt = Math.max(story.t, lim - 0.001); } else if (nt < lim) story.gateT = 0;
+    story.t = nt;
     const beats = sc.beats || [];
     while (story.beatIdx < beats.length && beats[story.beatIdx].at <= story.t) applyBeat(beats[story.beatIdx++]);
   }
@@ -272,6 +299,8 @@ function storyFrame(now) {
   applyLook(dt, now);
   updateHud(dt, now);
 }
+// a story can grey the cortex into a neutral shell (def.shell) so only the structures in play carry colour
+const baseCol = mesh => (story.def && story.def.shell && CORTEX_GROUPS.has(mesh.userData.st.group)) ? story.def.shell : mesh.userData.st.color;
 function applyLook(dt, now) {
   const m = story.m, def = story.def, k = 1 - Math.exp(-dt * 5);
   for (const E of story.edges.values()) {
@@ -310,9 +339,9 @@ function applyLook(dt, now) {
       mat.opacity = cortical ? state.ghost + (0.32 - state.ghost) * sv : 0.88 * sv;
       mesh.visible = (cortical || sv > 0.02) && (state.hemi === 'B' || mesh.userData.hemi === 'M' || mesh.userData.hemi === state.hemi);
     }
-    if (!L) { if (mat.userData.sl) { if (!tinted) mat.color.set(st.color); mat.userData.sl = false; } continue; }
+    if (!L) { if (mat.userData.sl) { if (!tinted) mat.color.set(baseCol(mesh)); mat.userData.sl = false; } continue; }
     mat.userData.sl = true;
-    if (!tinted) { tmpC.set(st.color); if (L.heat) tmpC.lerp(HEAT, clamp(L.heat)); if (L.dim) tmpC.lerp(DIMC, clamp(L.dim)); mat.color.copy(tmpC); }
+    if (!tinted) { tmpC.set(L.col || baseCol(mesh)); if (L.heat) tmpC.lerp(HEAT, clamp(L.heat)); if (L.dim) tmpC.lerp(DIMC, clamp(L.dim)); mat.color.copy(tmpC); }
     mat.emissive.set(L.ec || '#ffb454'); mat.emissiveIntensity = Math.max(mat.emissiveIntensity, clamp(L.glow || 0) * 0.9 * (def.steps ? sv * sv : 1));
     if (L.op !== undefined && mat.transparent && !def.steps) mat.opacity = L.op;
   }
@@ -435,7 +464,7 @@ function initHud() {
   }
 }
 function clearHud() {
-  for (const id of ['#dial', '#ledger', '#moodbar', '#seesaw', '#grid', '#clockico', '#daystrip', '#badge', '#hitring']) $(id).classList.remove('on', 'dim', 'look');
+  for (const id of ['#dial', '#ledger', '#moodbar', '#seesaw', '#grid', '#clockico', '#daystrip', '#badge', '#hitring', '#spotring']) $(id)?.classList.remove('on', 'dim', 'look');
   $('#hudsvg').innerHTML = ''; $('#tokens').innerHTML = ''; $('#labels').innerHTML = '';
 }
 // push overlapping labels apart vertically, keep them inside the uncovered strip
@@ -526,7 +555,7 @@ function updateHud(dt, now) {
     const age = story.t - tk.t0, prog = easeIO(clamp(age / tk.dur));
     tk.curve.getPointAt(prog, tk.pos); if (tk.off) tk.pos.addScaledVector(tk.off, prog);
     if (age >= tk.dur && !tk.arrived) arrive(tk);
-    tk.size += (tk.target - tk.size) * k;
+    if (tk.grow && !tk.arrived && tk.pre !== undefined) tk.size = lerp(tk.size0 ?? 1, tk.pre, prog); else tk.size += (tk.target - tk.size) * k;
     const life = tk.target < 0.8 ? Math.min(tk.life, 0.9) : tk.life;
     const fade = tk.persist ? 1 : clamp(1 - (age - tk.dur - life) / 0.6);
     const s = proj(tk.pos), so = tk.soff || [0, 0]; tk.sx = s.x + so[0] * prog; tk.sy = s.y + so[1] * prog;
@@ -585,6 +614,9 @@ function updateHud(dt, now) {
   const hr = $('#hitring'), hn = story.nodes.get(story.fx.hit || story.fx.look || '');
   hr.classList.toggle('on', !!hn); hr.classList.toggle('look', !story.fx.hit && !!story.fx.look);
   if (hn) { const s = proj(hn.pos); hr.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px)`; const sp = hr.querySelector('span'); if (sp.textContent !== (story.fx.hitLabel || '')) sp.textContent = story.fx.hitLabel || ''; }
+  // spotlight: a calm pulsing ring on the one structure the caption is about
+  const spr = $('#spotring'), spn = story.fx.spot && story.nodes.get(story.fx.spot);
+  if (spr) { const s = spn ? proj(spn.pos) : null; spr.classList.toggle('on', !!(s && s.ok)); if (s && s.ok) spr.style.transform = `translate(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px)`; }
   if (insetOn && story.insetTick) story.insetTick(m, now);
   if (def.liveCaption && story.scene.live) { const c = def.liveCaption(story.vars, story.scene.live); if (c !== hud.lastLive) { hud.lastLive = c; setCaption(c); } }
   $('#sbprog i').style.width = sc_progress();
@@ -598,10 +630,14 @@ const escHtml = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>'
 const plainCap = s => (s || '').replace(HL_RE, '$1');
 function setCaption(text) {
   story.capNow = text;
-  const hl = story.def?.hl || {}, ev = story.def?.steps && story.scene?.ev;
-  $('#sbcap').innerHTML = escHtml(text || '').replace(HL_RE, (_, w, k) => `<b class="hl" style="color:${hl[k] || 'inherit'}">${w}</b>`) + (ev ? ` <span class="ev">${escHtml(ev)}</span>` : '');
-  text = plainCap(text);
-  if (story.narrate && text && window.speechSynthesis && !story.instant) {
+  const hl = story.def?.hl || {}, ev = story.def?.steps && story.scene?.ev, kick = text ? story.kicker : null;
+  $('#sbcap').innerHTML = (kick ? `<span class="st">${escHtml(kick)}</span>` : '') + escHtml(text || '').replace(HL_RE, (_, w, k) => `<b class="hl" style="color:${hl[k] || 'inherit'}">${w}</b>`) + (ev ? ` <span class="ev">${escHtml(ev)}</span>` : '');
+  story.capText = (kick ? kick + '. ' : '') + plainCap(text); story.gateT = 0;
+  if (story.narrate && text && !story.instant) speak(story.capText);
+}
+function speak(text) {
+  if (!window.speechSynthesis || !text) return;
+  {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text), vs = speechSynthesis.getVoices();
     u.voice = vs.find(v => v.lang === 'en-AU') || vs.find(v => v.lang === 'en-GB') || vs.find(v => v.lang.startsWith('en')) || null;
@@ -611,18 +647,20 @@ function setCaption(text) {
 if (!window.speechSynthesis) $('#sbvoice').hidden = true;
 $('#sbvoice').addEventListener('click', () => {
   story.narrate = !story.narrate; $('#sbvoice').setAttribute('aria-pressed', story.narrate);
-  if (story.narrate) setCaption(story.capNow ?? $('#sbcap').textContent); else speechSynthesis.cancel();
+  if (story.narrate) speak(story.capText || plainCap(story.capNow ?? $('#sbcap').textContent)); else speechSynthesis.cancel();
 });
 function keyHtml(def) {
-  const used = [...new Set(def.edges.map(e => e.sign))];
+  const used = [...new Set(def.edges.map(e => e.sign))], sc = story.scene || {};
+  const usesDial = def.steps || def.scenes.some(x => x.hud && (x.hud.dial || x.hud.grid));
+  const head = (sc.ev && !def.steps ? `<div class="t">This scene: evidence</div><div class="note ev">${sc.ev}</div>` : '') + (def.keyIntro || '');
   const line = (pat, col = '#c9d4e2') => `<svg viewBox="0 0 34 10"><line x1="1" y1="5" x2="33" y2="5" stroke="${col}" stroke-width="3" ${pat === 1 ? 'stroke-dasharray="6 4"' : pat === 2 ? 'stroke-dasharray="2 4" stroke-linecap="round"' : ''}/></svg>`;
-  return `<div class="t">Edge colour = what the connection carries</div>${used.map(k => `<div class="kr">${line(0, SIGN[k].col)}${SIGN[k].label}</div>`).join('')}
+  return `${head}<div class="t">Edge colour = what the connection carries</div>${used.map(k => `<div class="kr">${line(0, SIGN[k].col)}${SIGN[k].label}</div>`).join('')}
     <div class="t">Line style = evidence for this link's role in illness</div>
     <div class="kr">${line(0)}Shown in patients (imaging, PET)</div><div class="kr">${line(1)}Animal models</div><div class="kr">${line(2)}Proposed, untested</div>
     ${def.scenes.some(s => s.hud && s.hud.tint) ? `<div class="t">Striatal territories</div>
     <div class="kr"><span class="sw" style="background:#3fd0a6"></span>Limbic</div><div class="kr"><span class="sw" style="background:#a98bff"></span>Associative</div><div class="kr"><span class="sw" style="background:#5b7cff"></span>Sensorimotor</div><div class="kr"><span class="sw" style="background:#ffc21a"></span>Gold = dopamine excess</div>
     <div class="note">Parcels: Melbourne Subcortex Atlas (Tian 2020, scale III). Which parcel counts as which territory is my judgment.</div>` : ''}${def.keyExtra || ''}
-    <div class="t">Dials and grids</div><div class="note">Illustrative units, not measurements. Dopamine neuron population activity (the dot grid) has only been measured in rodents.</div>`;
+    ${usesDial ? `<div class="t">Dials and grids</div><div class="note">Illustrative units, not measurements. Dopamine neuron population activity (the dot grid) has only been measured in rodents.</div>` : ''}`;
 }
 $('#sbkey').addEventListener('click', () => {
   const kc = $('#keycard'), open = kc.hidden;
@@ -638,7 +676,7 @@ function syncBar() {
   const nb = $('#sbnext');
   if (def.steps && !nb.dataset.wide) { nb.dataset.wide = '1'; nb.innerHTML = '<span>Next</span>' + NEXT_SVG; nb.setAttribute('aria-label', 'Next step'); }
   if (!def.steps && nb.dataset.wide) { delete nb.dataset.wide; nb.innerHTML = NEXT_SVG; nb.setAttribute('aria-label', 'Next scene'); }
-  const seg = $('#sbstate'); seg.hidden = !!def.steps;
+  const seg = $('#sbstate'); seg.hidden = !!(def.steps || def.noStates);
   if (seg.dataset.story !== def.id) { seg.innerHTML = def.states.map(s => `<button data-s="${s.id}">${s.label}</button>`).join(''); seg.dataset.story = def.id; }
   $$('#sbstate button').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === story.stateId));
   const pb = $('#sbplay');
@@ -704,6 +742,7 @@ function renderInset(kind) {
   const el = $('#inset'); story.insetTick = null;
   if (!kind) { el.hidden = true; el.innerHTML = ''; requestAnimationFrame(resize); return; }
   const k = typeof kind === 'string' ? kind : kind.kind;
+  el.dataset.kind = k;
   if (k === 'html') el.innerHTML = kind.html;
   else if (story.def.insets && story.def.insets[k]) { const r = story.def.insets[k](story); el.innerHTML = r.html; story.insetTick = r.tick || null; }
   el.hidden = false; requestAnimationFrame(resize);
@@ -731,6 +770,7 @@ function startStory(id, i = 0, opts = {}) {
   if (innerWidth <= 760) $('#panel').classList.add('min');
   buildStory(def); initHud();
   syncAll(); syncStories();
+  if (def.shell) for (const mm of meshes) if (CORTEX_GROUPS.has(mm.userData.st.group)) mm.material.color.set(def.shell);
   if (def.steps) {
     story.savedGhost = state.ghost; state.ghost = 0.07; story.neutral = [];
     for (const mesh of meshes) { const k = mesh.userData.key; if (state.level.get(k) === 1 && !story.keyNodes.has(k)) { mesh.material.color.set('#6b7686'); story.neutral.push(mesh); } }

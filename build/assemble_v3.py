@@ -4,7 +4,7 @@ man = json.load(open('/home/claude/out/manifest.json')); man['pet'] = json.load(
 man['tian'] = json.load(open('/home/claude/out/tian.json'))
 rep = {
   '__MANIFEST__': json.dumps(man, separators=(',', ':')).replace('</', '<\\/'),
-  '__CONTENT__': '\n'.join(open('/home/claude/' + f).read() for f in ['content.js', 'content_drugs.js', 'content_story.js']),
+  '__CONTENT__': '\n'.join(open('/home/claude/' + f).read() for f in ['content.js', 'content_drugs.js', 'content_story.js', 'content_story_aff2.js']),
   '__STORY_ENGINE__': open('/home/claude/story_engine.js').read(),
   '__STORY_CSS__': open('/home/claude/story.css').read(),
   '__STORY_HTML__': open('/home/claude/story.html').read(),

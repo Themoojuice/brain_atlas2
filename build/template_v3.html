@@ -772,27 +772,36 @@ function sheetH() { return innerWidth <= 760 && getComputedStyle($('#panel')).di
 // The uncovered horizontal strip of the stage: overlays wider than half the stage count as obstructions,
 // above the middle they push the top edge down, below it they pull the bottom edge up.
 const OBSTRUCTIONS = ['#panel', '#info', '#storybar', '#inset', '#keycard', '#quiz', '#hudrow'];
+// narrow cards docked to one side (the story inset on desktop) narrow the strip from that side instead
+const SIDE_OBSTRUCTIONS = ['#inset'];
 function freeBand() {
   const r = $('#stage').getBoundingClientRect(), H = Math.max(r.height, 1), W = Math.max(r.width, 1);
-  let top = innerWidth <= 760 ? 44 : 0, bot = H;
+  let top = innerWidth <= 760 ? 44 : 0, bot = H, left = 0, right = W;
   for (const sel of OBSTRUCTIONS) {
     const el = $(sel); if (!el) continue;
     const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden') continue;
     const b = el.getBoundingClientRect(); if (b.height < 1 || b.width < 1) continue;
-    if (Math.min(b.right, r.right) - Math.max(b.left, r.left) < W * 0.5) continue;
+    if (Math.min(b.right, r.right) - Math.max(b.left, r.left) < W * 0.5) {
+      if (SIDE_OBSTRUCTIONS.includes(sel) && b.width < W * 0.5 && b.height > H * 0.15) {
+        const x0 = b.left - r.left, x1 = b.right - r.left;
+        if ((x0 + x1) / 2 > W / 2) right = Math.min(right, x0 - 6); else left = Math.max(left, x1 + 6);
+      }
+      continue;
+    }
     const y0 = b.top - r.top, y1 = b.bottom - r.top;
     if (y1 <= 0 || y0 >= H) continue;
     if ((y0 + y1) / 2 < H / 2) top = Math.max(top, y1 + 6); else bot = Math.min(bot, y0 - 6);
   }
   if (bot - top < H * 0.3) { const mid = (top + bot) / 2; top = Math.max(0, mid - H * 0.15); bot = Math.min(H, top + H * 0.3); }
-  return { top, bot, H, W };
+  if (right - left < W * 0.5) { left = 0; right = W; }
+  return { top, bot, H, W, left, right };
 }
 let _fbc = null, _fbt = 0;
 function freeBandCached() { const n = performance.now(); if (!_fbc || n - _fbt > 250) { _fbc = freeBand(); _fbt = n; } return _fbc; }
 function fitDist(radius) {
   const fb = freeBand(), f = THREE.MathUtils.degToRad(camera.fov);
   const visFrac = Math.max(0.3, (fb.bot - fb.top) / fb.H);
-  const vfov = 2 * Math.atan(Math.tan(f / 2) * visFrac), hfov = 2 * Math.atan(Math.tan(f / 2) * fb.W / fb.H);
+  const vfov = 2 * Math.atan(Math.tan(f / 2) * visFrac), hfov = 2 * Math.atan(Math.tan(f / 2) * (fb.right - fb.left) / fb.H);
   return radius / Math.sin(Math.min(vfov, hfov) / 2);
 }
 function baseDist() { return fitDist(94); }
@@ -1158,8 +1167,8 @@ function resize() {
   if (sz !== lastSize) { renderer.setSize(r.width, r.height, false); lastSize = sz; }
   camera.aspect = r.width / Math.max(r.height, 1);
   // shift the projection centre into the middle of the uncovered strip
-  const fb = freeBand(), d = r.height / 2 - (fb.top + fb.bot) / 2;
-  if (Math.abs(d) > 1) camera.setViewOffset(r.width, r.height, 0, d, r.width, r.height); else camera.clearViewOffset();
+  const fb = freeBand(), d = r.height / 2 - (fb.top + fb.bot) / 2, dx = r.width / 2 - (fb.left + fb.right) / 2;
+  if (Math.abs(d) > 1 || Math.abs(dx) > 1) camera.setViewOffset(r.width, r.height, dx, d, r.width, r.height); else camera.clearViewOffset();
   camera.updateProjectionMatrix();
   document.body.style.setProperty('--sheet-h', `${Math.round(sheetH())}px`);
 }
