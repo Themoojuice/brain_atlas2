@@ -59,7 +59,10 @@ const setAttrs = (el, o) => { if (el) for (const [k, v] of Object.entries(o)) el
 const hash01 = (a, b = 0) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
 // reveal-mode stories: only structures already introduced (in `see`) take their look; L._keep lists keys always allowed
 const seeLook = fn => (m, S) => {
-  const L = fn(m, S); if (!S.def.reveal || !S.see) return L;
+  const L = fn(m, S);
+  // the series paints the hippocampus and striatum a neutral grey, so heat and gold glow read as activity, not atlas colour
+  for (const k of ['Hippocampus', 'Caudate_nucleus', 'Nucleus_accumbens', 'Putamen']) if (L[k] && !L[k].col) L[k] = { col: '#9aa9bb', ...L[k] };
+  if (!S.def.reveal || !S.see) return L;
   const ok = new Set(L._keep || []); for (const id of S.see) { const n = S.def.nodes[id]; if (n && n.key) ok.add(n.key); }
   return Object.fromEntries(Object.entries(L).filter(([k]) => k !== '_keep' && ok.has(k)));
 };
@@ -70,6 +73,11 @@ const seeLook = fn => (m, S) => {
 // fx.doors = causes entering at a station, fx.human = dash the links unproven in people, fx.clips / fx.dial for Part 8.
 const CH_ST = ['IN', 'HP', 'NA', 'VP', 'DA', 'ST'];
 const CH_X = { IN: 14, HP: 62, NA: 118, VP: 174, DA: 232, ST: 288 };
+const CH_CLIPS = {
+  d2: { st: 'ST', x: 288, label: 'D2', col: '#7cc0ff' }, lite: { st: 'ST', x: 284, label: 'light', col: '#bfe3ff' },
+  musc: { st: 'DAST', x: 256, label: 'M1/M4', col: '#5fd38a' }, cloz: { st: 'ST', x: 272, label: 'clozapine ?', col: '#e7edf4' },
+  q: { st: 'HP', label: '?', col: '#ff8fb1' }, kv3: { st: 'IN', x: 22, label: 'Kv3', col: '#c49bff' }, nacy: { st: 'IN', x: 22, label: 'NAC', col: '#7fe0a0' },
+};
 const CH_DOORS = {
   nmda: { st: 'IN', row: 0, label: '▲ NMDA blockers', anchor: 'start', x: 2 },
   epi: { st: 'HP', row: 1, label: '▲ epilepsy, stress', anchor: 'middle' },
@@ -97,7 +105,14 @@ function chainInset(S) {
     ${st('VP', circ('VP', 13, '#7cc4ff'), 'Pallidum', 'the brake')}
     ${st('DA', `<rect class="body" x="213" y="${Y - 19}" width="38" height="38" rx="7" fill="#0d141d" stroke="#ffd34d" stroke-width="2"/>${dots}`, 'Dopamine', 'cells awake')}
     ${st('ST', circ('ST', 12, '#a98bff'), 'Striatum', 'associative')}
-    <g id="chDoors">${doors}</g>
+    <g id="chDoors">${doors}</g><g id="chClips"></g>
+    <g id="chDial" opacity="0"><text class="sub" x="6" y="${Y + 66}">D2 occupancy</text><text id="chOcc" class="lab" x="6" y="${Y + 77}">0%</text>
+      <rect x="66" y="${Y + 60}" width="${232 * 0.65}" height="9" fill="#3a4452"/><rect x="${66 + 232 * 0.65}" y="${Y + 60}" width="${232 * 0.07}" height="9" fill="#3f9e63"/>
+      <rect x="${66 + 232 * 0.72}" y="${Y + 60}" width="${232 * 0.06}" height="9" fill="#c98a2e"/><rect x="${66 + 232 * 0.78}" y="${Y + 60}" width="${232 * 0.22}" height="9" fill="#b9453f"/>
+      <text class="sub" x="${66 + 232 * 0.685}" y="${Y + 79}" text-anchor="middle" fill="#7fe0a0">65</text><text class="sub" x="${66 + 232 * 0.75}" y="${Y + 79}" text-anchor="middle" fill="#ffc46b">72</text><text class="sub" x="${66 + 232 * 0.81}" y="${Y + 79}" text-anchor="middle" fill="#ff8f86">78</text>
+      <path id="chNeedle" d="M0 ${Y + 58} l-4 -7 h8 z" fill="#e7edf4"/><text id="chBand" class="sub" x="182" y="${Y + 79}" text-anchor="end"></text></g>
+    <text id="chRec" class="sub" x="306" y="${Y + 76}" text-anchor="end" opacity="0"></text>
+    <text id="chFail" class="sub" x="156" y="${Y + 76}" text-anchor="middle" fill="#8d9bad" opacity="0">✕ emraclidine   ✕ ulotaront   ✕ iclepertin   (phase 3 failures)</text>
     <text id="chLed" class="lab" x="156" y="${Y + 66}" text-anchor="middle">${LED.map((w, i) => `<tspan class="ld" opacity="0" fill="${i === 0 ? '#ffb36b' : i === 3 ? '#ffd34d' : '#8fc2ff'}">${w} </tspan>`).join('')}</text>
   </svg>`;
   return { html, tick(m, now) {
@@ -130,6 +145,19 @@ function chainInset(S) {
     document.querySelectorAll('#chPk circle').forEach((c, i) => { const p = ((now / 1000) * (0.5 + m.assocDA) + i / 3) % 1; setAttrs(c, { cx: (254 + 19 * p).toFixed(1), cy: 38, opacity: on && i < n ? (1 - p * 0.5).toFixed(2) : 0 }); });
     const led = fx.ledger || 0; document.querySelectorAll('#chLed .ld').forEach((t, i) => t.setAttribute('opacity', i < led ? 1 : 0));
     const ds = fx.doors || []; for (const k of Object.keys(CH_DOORS)) q('chd-' + k)?.setAttribute('opacity', ds.includes(k) ? 1 : 0);
+    // Part 8: where each drug acts, the occupancy bar, receptor numbers
+    const ck = (fx.clips || []).join(',');
+    if (q('chClips').dataset.k !== ck) {
+      q('chClips').dataset.k = ck; const per = {};
+      q('chClips').innerHTML = (fx.clips || []).map(id => { const c = CH_CLIPS[id]; if (!c) return ''; const k = c.st, n = per[k] = (per[k] || 0) + 1, x = (c.x ?? CH_X[k]) + (n - 1) * 26 - (c.st === 'ST' ? (n - 1) * 52 : 0), w = 8 + c.label.length * 6;
+        return `<g transform="translate(${x} 9)"><rect x="${-w / 2}" y="-6" width="${w}" height="13" rx="4" fill="#0d141d" stroke="${c.col}" stroke-width="1.6"/><text x="0" y="4" text-anchor="middle" font-size="9" font-weight="700" fill="${c.col}">${c.label}</text>
+          <line x1="0" y1="7" x2="0" y2="${c.st === 'DAST' ? 24 : 14}" stroke="${c.col}" stroke-width="1.2"/></g>`; }).join('');
+    }
+    const dl = q('chDial'); dl.setAttribute('opacity', fx.dial ? 1 : 0);
+    if (fx.dial) { const o = cl01(m.occ ?? 0); q('chNeedle').setAttribute('transform', `translate(${(66 + 232 * o).toFixed(1)} 0)`); setText(q('chOcc'), `${Math.round(o * 100)}%`);
+      setText(q('chBand'), o < 0.6 ? 'too little' : o < 0.72 ? 'response' : o < 0.78 ? '+ prolactin' : '+ stiffness, tremor'); }
+    const rc = q('chRec'); rc.setAttribute('opacity', fx.recep && !fx.dial ? 1 : 0); if (fx.recep) setText(rc, `D2 receptors ×${(m.rec ?? 1).toFixed(2)}`);
+    q('chFail').setAttribute('opacity', fx.failed ? 1 : 0);
   } };
 }
 
