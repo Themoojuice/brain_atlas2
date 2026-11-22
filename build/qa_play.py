@@ -26,7 +26,7 @@ async def main():
         print('key', (await pg.evaluate("document.querySelector('#keycard').innerText"))[:300].replace('\n', ' | '))
         await pg.evaluate("document.querySelector('#sbnext').click()"); await pg.wait_for_timeout(500)
         print('key next', (await pg.evaluate("document.querySelector('#keycard').innerText"))[:120].replace('\n', ' | '))
-        for sid in ['psy', 'aff']:
+        for sid in ['net', 'p2']:
             await pg.evaluate(f"window.__atlas.startStory('{sid}', 1, {{ paused: true }})"); await pg.wait_for_timeout(500)
             await pg.evaluate("document.querySelector('#keycard').hidden = true; document.querySelector('#sbkey').click()"); await pg.wait_for_timeout(200)
             print(sid, (await pg.evaluate("document.querySelector('#keycard').innerText"))[:160].replace('\n', ' | '), await pg.evaluate("document.querySelector('#sbstate').hidden"))
