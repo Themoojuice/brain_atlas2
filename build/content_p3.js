@@ -6,7 +6,8 @@
 // feel done to you (passivity). Model: PSY_BASE for the gain; prec = precision of the copy; heard = 1 − 0.8 × prec.
 
 const FEED_SEQ = ['bird', 'car', 'cup', 'person', 'plate', 'eye', 'car', 'radio', 'bird', 'plate', 'cup', 'person', 'eye', 'car'];
-const FEED_LAB = { bird: 'bird', car: 'a car', cup: 'coffee', person: 'your name', plate: 'number plate', eye: 'a glance', radio: 'radio' };
+const FEED_LAB = { bird: 'bird', car: 'a car', cup: 'coffee', person: 'your name', plate: 'number plate', eye: 'a glance', radio: 'radio', coin: 'a reward' };
+const FEED_SEQ_R = ['bird', 'coin', 'car', 'cup', 'plate', 'eye', 'coin', 'radio', 'car', 'bird', 'coin', 'plate', 'eye', 'cup'];
 const FEED_REL = { person: 1 };
 const FEED_GAP = 2.4;
 const LOOSE = [['I', 0], ['went', 0], ['to', 0], ['the', 0], ['bank', 0], ['river', 'meaning'], ['shiver', 'sound'], ['cold', 'meaning'], ['gold', 'sound'], ['sold', 'sound']];
@@ -19,6 +20,7 @@ function feedInset(S) {
   <svg viewBox="0 0 312 96" class="cardsvg" id="fdsvg">
     <g id="fdRow">${slot}</g><g id="fdThreads"></g>
     <text id="fdStory" class="lab" x="156" y="88" text-anchor="middle" fill="#ffd34d" font-style="italic"></text>
+    <g id="fdPull" opacity="0"><text class="sub" x="6" y="88">Pull of the reward</text><rect x="92" y="82" width="120" height="7" rx="3.5" fill="rgba(141,155,173,0.22)"/><rect id="fdPullB" x="92" y="82" width="0" height="7" rx="3.5" fill="#ffd34d"/><text id="fdEff" class="lab" x="306" y="88" text-anchor="end"></text></g>
     <g id="fdWords" opacity="0"><text class="sub" x="6" y="22">Tight</text><text class="lab" x="44" y="22" fill="#8d9bad">I went to the bank to pay the rent.</text>
       <text class="sub" x="6" y="76">Loose</text>${words}<g id="lwArcs"></g></g>
   </svg>${QUOTE_DIV}`;
@@ -27,7 +29,9 @@ function feedInset(S) {
     const q = id => document.getElementById(id), fx = S.fx; if (!q('fdsvg')) return;
     setText(q('fdTag'), fx.tag || ''); quoteTick(fx);
     const wordsOn = !!fx.words; q('fdRow').style.opacity = wordsOn ? 0 : 1; q('fdWords').setAttribute('opacity', wordsOn ? 1 : 0); setText(q('fdT'), wordsOn ? 'A train of thought' : 'Today’s feed');
-    setText(q('fdStory'), wordsOn ? '' : (fx.plot || fx.story || ''));
+    setText(q('fdStory'), wordsOn || fx.pull ? '' : (fx.plot || fx.story || ''));
+    q('fdPull').setAttribute('opacity', fx.pull && !wordsOn ? 1 : 0);
+    if (fx.pull) { const pl = cl01(m.pull ?? 0); q('fdPullB').setAttribute('width', (120 * pl).toFixed(1)); setText(q('fdEff'), pl > 0.4 ? 'worth the effort' : 'not worth the effort'); q('fdEff').setAttribute('fill', pl > 0.4 ? '#ffd34d' : '#8d9bad'); }
     if (wordsOn) {
       // loose links: the chain jumps by meaning or sound; one word every 1.3 s
       const n = Math.min(LOOSE.length, 1 + Math.floor(Math.max(0, S.t - 1) / 1.3)); let x = 44, arcs = '';
@@ -40,14 +44,15 @@ function feedInset(S) {
     const T = S.t + 40, cyc = Math.floor(T / FEED_GAP), fr = (T / FEED_GAP) - cyc, sh = easeIO(Math.min(1, fr / 0.3));
     const g = cl01((m.assocDA - 0.45) / 0.35), marked = [];
     for (let j = 0; j < 8; j++) {
-      const id = cyc + j - 1, type = FEED_SEQ[((id % FEED_SEQ.length) + FEED_SEQ.length) % FEED_SEQ.length], x = 34 + (j - sh) * 48;
+      const SEQ = fx.reward ? FEED_SEQ_R : FEED_SEQ, id = cyc + j - 1, type = SEQ[((id % SEQ.length) + SEQ.length) % SEQ.length], x = 34 + (j - sh) * 48;
       const el = q('fi' + j); if (!el) continue;
       const vis = cl01(Math.min((x + 10) / 30, (330 - x) / 40));
       if (el.dataset.t !== type) { el.dataset.t = type; el.querySelector('.ic').innerHTML = ic(type); el.querySelector('text').textContent = FEED_LAB[type]; }
-      const sal = (FEED_REL[type] || 0.06) + (0.2 + 0.8 * hash01(id, 3)) * g, hl = cl01((sal - 0.45) / 0.35);
+      const rel = type === 'coin' ? (m.rew ?? 0.85) : (FEED_REL[type] || 0.06), sal = type === 'coin' ? rel : rel + (0.2 + 0.8 * hash01(id, 3)) * g * (1 - 0.4 * (m.occ || 0)), hl = cl01((sal - 0.45) / 0.35);
       el.setAttribute('transform', `translate(${x.toFixed(1)} 30)`); el.setAttribute('opacity', vis.toFixed(2));
       el.querySelector('.hl').setAttribute('opacity', (0.55 * hl).toFixed(2)); el.querySelector('.bang').setAttribute('opacity', sal > 0.75 ? vis.toFixed(2) : 0);
-      if (sal > 0.75 && !FEED_REL[type] && vis > 0.5) marked.push(x);
+      el.querySelector('rect:nth-of-type(2)').setAttribute('stroke', type === 'coin' ? '#ffb454' : '#8d9bad');
+      if (sal > 0.75 && !FEED_REL[type] && type !== 'coin' && vis > 0.5) marked.push(x);
     }
     let th = '';
     if (fx.threads) for (let i = 0; i + 1 < marked.length; i++) { const a = marked[i], b = marked[i + 1]; th += `<path d="M${a.toFixed(1)} 11 Q ${((a + b) / 2).toFixed(1)} -4 ${b.toFixed(1)} 11" fill="none" stroke="#ffd34d" stroke-width="1.8" stroke-dasharray="4 3"/>`; }

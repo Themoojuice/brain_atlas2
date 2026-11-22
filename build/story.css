@@ -188,3 +188,15 @@ body.steps .ghostring { border: 2px dashed rgba(255,255,255,0.9); }
 #inset .mini3 b { display: block; font-size: 11.5px; color: #e7edf4; margin-bottom: 3px; }
 #inset .mini3 span { display: block; font-size: 10.5px; line-height: 1.3; color: #c9d4e2; }
 #inset .mini3 i { display: block; font-style: normal; font-size: 10px; color: #ffd9a6; margin-top: 4px; }
+#inset .mini2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+#inset .mini2 div { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: rgba(255,255,255,0.03); transition: opacity .4s; }
+#inset .mini2 div.on { border-color: #8fc2ff; }
+#inset .mini2 div.off { opacity: 0.4; }
+#inset .mini2 b { display: block; font-size: 12px; margin-bottom: 2px; }
+#inset .mini2 span { font-size: 11px; color: #c9d4e2; line-height: 1.3; }
+#inset .bars2 div { display: grid; grid-template-columns: 130px 1fr auto; align-items: center; gap: 8px; margin: 5px 0; font-size: 11.5px; }
+#inset .bars2 i { display: block; height: 8px; border-radius: 4px; }
+#inset .bars2 span { font-size: 10.5px; color: var(--muted); }
+#inset .cog .scale { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
+#inset .cog .track { position: relative; height: 10px; border-radius: 5px; background: rgba(141,155,173,0.2); margin: 3px 0 6px; }
+#inset .cog .track i { position: absolute; top: 0; bottom: 0; border-radius: 5px; background: #8fc2ff; }
