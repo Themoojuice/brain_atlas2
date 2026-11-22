@@ -132,3 +132,21 @@ function chainInset(S) {
     const ds = fx.doors || []; for (const k of Object.keys(CH_DOORS)) q('chd-' + k)?.setAttribute('opacity', ds.includes(k) ? 1 : 0);
   } };
 }
+
+// first-person quotes (public domain only): shown under a card, never read aloud. fx.quote = { q, who }
+const QUOTE_DIV = '<div class="qt" id="qtBox" hidden></div>';
+function quoteTick(fx) {
+  const el = document.getElementById('qtBox'); if (!el) return;
+  const q = fx.quote, key = q ? q.q : '';
+  if (el.dataset.k === key) return; el.dataset.k = key;
+  if (!q) { el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false; el.innerHTML = `“${q.q}”<cite>${q.who}</cite>`;
+}
+const PDQ = {
+  perceval_red: { q: '…it was of red silk; the impression came on my mind that it was a token of ill to me', who: 'John Perceval, Narrative, 1840 (public domain)' },
+  kraepelin_ref: { q: 'I feel myself referred to there.', who: 'A patient, in Kraepelin, Dementia Praecox, 1919 translation' },
+  kraepelin_loud: { q: 'I have the feeling, as if some one beside me said out loud what I think.', who: 'A patient, in Kraepelin, 1919 translation' },
+  perceval_hand: { q: 'My hand struck that blow, but it was involuntary on my part, as if my hand had been moved by a violent wind.', who: 'John Perceval, Narrative, 1840 (public domain)' },
+  kraepelin_gap: { q: '…the more tormenting the shorter the moment is between my thoughts and the corresponding utterance of the voices.', who: 'A patient, in Kraepelin, 1919 translation' },
+  perceval_sound: { q: '…the sound remained but the voice was gone', who: 'John Perceval, Narrative, 1840 (public domain)' },
+};
