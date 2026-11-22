@@ -1711,6 +1711,14 @@ const PDQ = {
   perceval_sound: { q: '…the sound remained but the voice was gone', who: 'John Perceval, Narrative, 1840 (public domain)' },
 };
 
+// two-line SVG text: splits at the space nearest the middle when longer than n characters
+function wrapTo(el, text, n, x, dy) {
+  if (!el || el.dataset.t === text) return; el.dataset.t = text;
+  let lines = [text];
+  if (text.length > n) { const mid = text.length / 2; let best = -1; for (let i = 0; i < text.length; i++) if (text[i] === ' ' && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i; if (best > 0) lines = [text.slice(0, best), text.slice(best + 1)]; }
+  el.innerHTML = lines.map((l, i) => `<tspan x="${x}" dy="${i ? dy : 0}">${l.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))}</tspan>`).join('');
+}
+
 // ---------------------------------------------------------------- Part 1 · Where it starts: the overworked interneuron
 // Mental model: the parvalbumin interneuron is the hippocampus's metronome and brake. It fires fast all day, which is
 // expensive, so it runs near its energy and antioxidant limits. Many roads push it over: it dims rather than dies,
@@ -2258,7 +2266,7 @@ STORIES.push({ ...PSY_BASE, id: 'p3', name: 'Part 3 · When everything matters',
 // Model: PSY_BASE for the gain; background marks = 0.06 + 0.6 × excess; the reward's mark = 0.85 × (1 − 0.55 × occupancy);
 // pull = reward − background (both scaled down by D2 block); rhythm sets how many working-memory slots hold.
 
-function wmInset(S) {
+function holdInset(S) {
   const icons = ['coin', 'person', 'bird'].map((k, i) => `<g id="wm${i}" transform="translate(${222 + i * 32} 44)"><rect x="-13" y="-13" width="26" height="26" rx="6" fill="#0d141d" stroke="#8fc2ff" stroke-width="1.5"/>
     <g transform="translate(-9 -9) scale(0.75)" fill="none" stroke="#e7edf4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k].replace(/^<svg[^>]*>|<\/svg>$/g, '')}</g></g>`).join('');
   const html = `<div class="t lt"><span>Holding a thought</span><b id="wmTag"></b></div>
@@ -2327,11 +2335,11 @@ STORIES.push({ ...PSY_BASE, id: 'p4', name: 'Part 4 · What goes missing', color
     L.Caudate_nucleus = { glow: 0.5 * cl01((m.assocDA - 0.45) / 0.35), ec: '#ffc21a' };
     L.VTA = { glow: 0.15 + 0.6 * cl01((m.pop - 0.3) / 0.6), ec: '#ffd34d' };
     L.Substantia_nigra = { glow: 0.5 * cl01((m.assocDA - 0.4) / 0.4), ec: '#ffd34d' };
-    if (S.hud.expr) { L.Precentral_gyrus = { glow: 0.12, ec: '#4a6fa5', op: 0.22 }; L.Cerebellum = { col: '#5d6878', glow: 0.1, ec: '#4a6fa5' }; }
+    if (S.hud.expr) { L.Precentral_gyrus = { glow: 0.12, ec: '#4a6fa5', op: 0.22 }; L.Cerebellum = { col: '#7d8aa0', glow: 0.18, ec: '#4a6fa5' }; }
     if (S.hud.pfc) L.Middle_frontal_gyrus = S.hud.pfc === 'low' ? { glow: 0.12, ec: '#4a6fa5', op: 0.26 } : { glow: 0.12 + 0.5 * m.rhythm, ec: '#6cc4ff', op: 0.3 };
     return L;
   }),
-  insets: { ...PSY_BASE.insets, series: seriesInset, feed: feedInset, wm: wmInset },
+  insets: { ...PSY_BASE.insets, series: seriesInset, feed: feedInset, wm: holdInset },
   scenes: [
     { title: 'Previously / today', chapter: 'Signal and noise', dur: 13, state: 'psychosis', cam: P4_CAM.st, see: [], show: [], labels: [], inset: 'series', fx: {},
       kicker: 'Part 4', caption: 'Part 3 was about what is added. Today: what is taken away.', ev: P4_EV.series,
@@ -2351,7 +2359,7 @@ STORIES.push({ ...PSY_BASE, id: 'p4', name: 'Part 4 · What goes missing', color
     { title: 'Less shown', chapter: 'Signal and noise', dur: 20, state: 'psychosis', cam: P4_CAM.expr, see: [...P4_SEE, 'm1', 'cb'], show: [], labels: ['m1', 'cb'], hud: { expr: true }, inset: LANES('shown'), fx: {},
       kicker: 'Expression', caption: 'Flat expression tracks blood flow in motor cortex and cerebellum.', ev: P4_EV.shown,
       beats: [{ at: 9, kicker: null, caption: 'People often feel more than they can show.' }] },
-    { title: 'Back to the rhythm', chapter: 'Cognition', dur: 22, state: 'psychosis', set: { rhy: 1 }, cam: P4_CAM.pfc, see: ['dl'], show: [], labels: ['dl'], hud: { ring: true, pfc: 'rhythm' }, inset: 'wm', fx: { tag: 'Healthy' },
+    { title: 'Back to the rhythm', chapter: 'Cognition', dur: 22, state: 'psychosis', set: { rhy: 1 }, cam: P4_CAM.pfc, see: ['dl'], show: [], labels: ['dl'], hud: { pfc: 'rhythm' }, inset: 'wm', fx: { tag: 'Healthy' },
       kicker: 'Cognition', caption: 'Part 1’s gamma rhythm holds information in mind.', ev: P4_EV.rhythm,
       beats: [
         { at: 7, tween: { rhy: [0.25, 4] }, fx: { tag: 'Dimmed interneurons' }, kicker: null, caption: 'As the interneurons dim, the rhythm frays, and working memory drops items.' },
@@ -2370,6 +2378,291 @@ STORIES.push({ ...PSY_BASE, id: 'p4', name: 'Part 4 · What goes missing', color
     { title: 'Recap', chapter: 'Look-alikes', dur: 20, state: 'psychosis', set: { occ: 0 }, cam: P4_CAM.st, see: P4_SEE, show: ['vta-nac', 'nac-sn', 'sn-cd'], labels: [], inset: 'feed', fx: { reward: true, pull: true, tag: 'Recap' },
       kicker: 'Recap', caption: 'Positive symptoms: too loud in the wrong place. Negative: real signals drowned, plus look-alikes. Cognitive: the rhythm lost early.', ev: P4_EV.drown,
       beats: [{ at: 12, kicker: 'Next', caption: 'Part 5: the mood loop, and how mania builds.' }] },
+  ],
+});
+
+// ---------------------------------------------------------------- Part 6 · One trunk, three illnesses
+// Mental model: psychosis is one shared trunk (too much dopamine in the associative striatum). Two engines can drive it:
+// the chain (Parts 1–4: steady, with cognitive and negative baggage) gives schizophrenia; the mood loop (Part 5: episodic,
+// psychosis at its peaks) gives bipolar disorder; both give schizoaffective disorder. A stress-hormone route can drive
+// psychotic depression. The pole of the mood engine picks the plot.
+// Model, illustrative units: trunk = max(chain, mood, cortisol) × 0.95; associative dopamine = 0.4 + 0.5 × trunk.
+
+function engineInset(S) {
+  const eng = (id, y, label, sub, col, glyph) => `<g id="en-${id}" class="grp"><rect x="4" y="${y}" width="118" height="26" rx="7" fill="#0d141d" stroke="${col}" stroke-width="1.6"/>
+    <g transform="translate(9 ${y + 4}) scale(0.75)" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${glyph}</g>
+    <text class="lab" x="32" y="${y + 11}">${label}</text><text class="sub" x="32" y="${y + 21}">${sub}</text>
+    <rect x="84" y="${y + 17}" width="32" height="4" rx="2" fill="rgba(141,155,173,0.25)"/><rect class="thr" x="84" y="${y + 17}" width="0" height="4" rx="2" fill="${col}"/>
+    <path class="pipe" d="M122 ${y + 13} C 150 ${y + 13}, 160 52, 182 52" fill="none" stroke="${col}" stroke-width="2"/></g>`;
+  const html = `<div class="t lt"><span>One trunk, two engines</span><b id="enTag"></b></div>
+  <svg viewBox="0 0 312 100" class="cardsvg" id="ensvg">
+    ${eng('chain', 4, 'Chain', 'Parts 1–4', '#ffb454', SERIES_GLYPH.p2)}
+    ${eng('loop', 36, 'Mood loop', 'Part 5', '#ff9f43', SERIES_GLYPH.aff2)}
+    ${eng('cort', 68, 'Stress hormone', 'cortisol', '#7fe0d0', '<path d="M12 3v11M7 9l5 5 5-5M5 20h14"/>')}
+    <rect x="182" y="10" width="16" height="84" rx="6" fill="#0d141d" stroke="#ffd34d" stroke-width="1.6"/>
+    <rect id="enFill" x="184.5" y="92" width="11" height="0" rx="4" fill="#ffd34d"/>
+    <line x1="178" y1="52" x2="202" y2="52" stroke="#e7edf4" stroke-width="1" stroke-dasharray="3 2"/><text class="sub" x="206" y="55">psychosis</text>
+    <text class="sub" x="190" y="8" text-anchor="middle">trunk</text>
+    <text id="enDx" class="lab" x="208" y="24" style="font-size:11px"></text>
+    <text id="enPlot" class="lab" x="208" y="76" fill="#ffd34d" font-style="italic"></text>
+    <g id="enRoots" opacity="0"><path d="M126 17 C 140 17, 140 49, 126 49" fill="none" stroke="#c9d4e2" stroke-width="1.2" stroke-dasharray="2 2"/><text class="sub" x="142" y="30" fill="#c9d4e2">shared</text><text class="sub" x="142" y="40" fill="#c9d4e2">genes</text></g>
+  </svg>`;
+  return { html, tick(m) {
+    const q = id => document.getElementById(id), fx = S.fx; if (!q('ensvg')) return;
+    setText(q('enTag'), fx.tag || '');
+    cardGroups('en-', ['chain', 'loop', 'cort'], fx.en || ['chain', 'loop'], fx.enhi);
+    const lv = { chain: m.chain, loop: m.mood, cort: m.cort };
+    for (const id of ['chain', 'loop', 'cort']) { const g = q('en-' + id); if (!g) continue; g.querySelector('.thr').setAttribute('width', (32 * cl01(lv[id])).toFixed(1)); g.querySelector('.pipe').setAttribute('stroke-width', (0.6 + 4 * cl01(lv[id])).toFixed(2)); g.querySelector('.pipe').setAttribute('opacity', (0.25 + 0.75 * cl01(lv[id])).toFixed(2)); }
+    const h = 80 * cl01(m.trunk); setAttrs(q('enFill'), { y: (92 - h).toFixed(1), height: h.toFixed(1), fill: m.trunk > 0.5 ? '#ffd34d' : '#8d7a3a' });
+    wrapTo(q('enDx'), fx.dx || '', 16, 208, 12); wrapTo(q('enPlot'), m.trunk > 0.5 ? (fx.plot || '') : '', 18, 208, 11);
+    q('enRoots').setAttribute('opacity', fx.roots ? 1 : 0);
+  } };
+}
+
+const P6_CAM = {
+  all: { dir: [-1, 0.1, 0.35], fit: ['ahp', 'nac', 'cd', 'vta', 'hyp'], r: 22, pad: 12 },
+  st: { dir: [-0.75, 0.45, 0.55], fit: ['cd', 'nac', 'sn'], r: 20, pad: 14 },
+  hp: { dir: MED, fit: ['ahp', 'nac', 'cd'], r: 22, pad: 14 },
+};
+const P6_EV = {
+  series: 'Part 6 of the series: how the chain (Parts 1–4) and the mood loop (Part 5) combine.',
+  trunk: 'Striatal dopamine synthesis capacity in bipolar psychosis matched schizophrenia and tracked positive symptoms in both, r 0.52 (Jauhar 2017, ' + doi('10.1001/jamapsychiatry.2017.2943') + '). Confidence moderate to high.',
+  terr: 'Limbic striatal synthesis was not raised in mania or mixed states and was lower in psychotic depression (Jauhar 2025, ' + doi('10.1001/jamapsychiatry.2025.1811') + '). So territory does not split the diagnoses; the engines do. Confidence moderate to high.',
+  chain: 'Teaching synthesis of Parts 1–4: persistent hippocampal drive with interneuron, cognitive and negative-symptom features. Confidence moderate.',
+  loop: 'In bipolar disorder the excess appears with psychotic episodes; the mood engine is reward and regulation circuits with momentum (Phillips &amp; Swartz 2014; Nusslock 2017; Eldar 2016; all in the project library). Synthesis: confidence moderate.',
+  both: 'Schizoaffective disorder: mood episodes plus psychosis that persists without mood symptoms (diagnostic criteria, recalled). No schizoaffective-specific imaging was found: confidence low.',
+  roots: 'Schizophrenia and bipolar disorder share much of their common genetic risk (Grotzinger 2026, ' + doi('10.1038/s41586-025-09820-3') + '; O’Connell 2025, ' + doi('10.1038/s41586-024-08468-9') + '); biologically defined psychosis subgroups cut across diagnoses (Clementz 2022, ' + doi('10.1093/schbul/sbab090') + '). Confidence moderate.',
+  pd: 'Psychotic depression: very high cortisol; blocking glucocorticoid receptors with mifepristone can rapidly ease psychotic symptoms, at least at higher doses (Schatzberg 2015, ' + doi('10.3109/15622975.2014.916414') + '). One main research programme: confidence moderate.',
+  plot: 'Mood-congruent content (grandiose in mania; guilt, ruin, nihilism and Cotard delusions in depression) is a clinical observation; worry drives persecutory content (Freeman 2015, from the project library). Confidence moderate.',
+};
+const P6_SEE = ['ahp', 'nac', 'vta', 'sn', 'cd'];
+const P6_SHOW = ['hp-nac', 'vta-nac', 'nac-sn', 'sn-cd'];
+
+STORIES.push({ id: 'p6', name: 'Part 6 · One trunk, three illnesses', color: '#c49bff', hemi: 'L', view: MED, reveal: true, noStates: true, shell: '#7a8494',
+  desc: 'How the chain and the mood loop make three illnesses: one shared psychosis trunk, two engines, a stress-hormone route in psychotic depression, and the mood pole picking the plot. Ten short scenes.',
+  keyIntro: '<div class="t">The engine card</div><div class="note">Engines on the left feed the trunk on the right; pipe thickness is how hard each drives it. Above the dashed line, the trunk means psychosis. The label on the right is the diagnosis this combination gives; the gold line is the content the mood pole supplies. Illustrative.</div>',
+  nodes: {
+    ahp: { key: 'Hippocampus', mni: [-25, -13, -20], label: 'Anterior hippocampus', hot: true, lo: [0, 12] },
+    fxb: { mni: [-4, -26, 15], label: 'Fornix', noDot: true, nofit: true },
+    nac: { key: 'Nucleus_accumbens', label: 'Accumbens', lo: [-6, 0] },
+    vta: { key: 'VTA', label: 'Ventral tegmental area' },
+    sn: { key: 'Substantia_nigra', label: 'Substantia nigra', lo: [0, 12] },
+    cd: { key: 'Caudate_nucleus', mni: [-12, 12, 6], label: 'Caudate head (associative)' },
+    hyp: { key: 'Hypothalamus', mni: [-3, -2, -12], label: 'Hypothalamus (stress hormones)', lo: [0, 12] },
+    amy: { key: 'Amygdala', label: 'Amygdala', lo: [0, 12] },
+  },
+  edges: [
+    { id: 'hp-nac', from: 'ahp', to: 'nac', via: FORNIX, sign: '+', ev: 'rodent', act: m => 0.2 + 0.8 * m.chain },
+    { id: 'vta-nac', from: 'vta', to: 'nac', via: [[-6, -4, -12]], sign: 'da', ev: 'human', act: m => 0.3 + 0.7 * Math.max(m.chain, m.mood) },
+    { id: 'nac-sn', from: 'nac', to: 'sn', via: [[-11, -6, -15]], sign: 'spiral', ev: 'proposed', act: m => m.trunk },
+    { id: 'sn-cd', from: 'sn', to: 'cd', via: [[-12, -6, -2], [-13, 4, 4]], sign: 'da', ev: 'human', act: m => m.assocDA },
+  ],
+  vars: { chain: 0, loop: 0, osc: 0, amp: 0, cort: 0, fear: 0, ph: 0 },
+  discrete: ['osc'],
+  states: [{ id: 'x', label: 'Model', vars: {} }],
+  model(v) {
+    const mood = v.osc > 0.5 ? (S => S)(v.amp * Math.max(0, Math.sin(v.ph))) : v.loop;
+    const trunk = 0.95 * Math.max(v.chain, mood, v.cort);
+    return { chain: v.chain, mood, cort: v.cort, fear: v.fear, trunk, assocDA: 0.4 + 0.5 * trunk, limbicDA: v.cort > 0.5 ? 0.3 : 0.4, eff: 0.4 + 0.5 * trunk, pop: 0.4 + 0.4 * Math.max(v.chain, mood) };
+  },
+  gauge: { gain: m => m.eff, raw: m => m.eff, pop: m => m.pop },
+  salience: () => 1,
+  tick(dt, v) { if (v.osc > 0.5) v.ph += dt * 0.42; },
+  look: seeLook((m, S) => ({
+    Hippocampus: { heat: cl01((m.chain - 0.2) / 0.6), glow: 0.1 + 0.5 * m.chain, ec: '#ff8a3d' },
+    Nucleus_accumbens: { glow: 0.1 + 0.7 * m.mood, ec: '#ff9f43' },
+    Caudate_nucleus: { glow: 0.6 * cl01((m.assocDA - 0.45) / 0.4), ec: '#ffc21a' },
+    VTA: { glow: 0.15 + 0.6 * cl01((m.pop - 0.4) / 0.4), ec: '#ffd34d' },
+    Substantia_nigra: { glow: 0.5 * cl01((m.assocDA - 0.45) / 0.4), ec: '#ffd34d' },
+    Hypothalamus: { col: '#2d8c88', glow: 0.1 + 0.8 * m.cort, ec: '#7fe0d0' },
+    Amygdala: { heat: m.fear, glow: 0.1 + 0.7 * m.fear, ec: '#ff6b5b' },
+  })),
+  insets: { series: seriesInset, engine: engineInset },
+  scenes: [
+    { title: 'Previously / today', chapter: 'Trunk', dur: 13, state: 'x', set: { chain: 0.9, loop: 0, osc: 0, cort: 0 }, cam: P6_CAM.all, see: [], show: [], labels: [], inset: 'series', fx: {},
+      kicker: 'Part 6', caption: 'Parts 1 to 4 built the chain. Part 5 built the mood loop.', ev: P6_EV.series,
+      beats: [{ at: 6.5, see: P6_SEE, show: P6_SHOW, kicker: 'Today', caption: 'Today: how they make three different illnesses.' }] },
+    { title: 'One trunk', chapter: 'Trunk', dur: 20, state: 'x', set: { chain: 0.9, loop: 0, osc: 0, cort: 0 }, cam: P6_CAM.st, see: P6_SEE, show: P6_SHOW, labels: ['cd'], hud: { tint: true }, inset: 'engine', fx: { en: ['chain', 'loop'], spot: 'cd' },
+      kicker: 'One trunk', caption: 'In schizophrenia and in bipolar psychosis alike, dopamine synthesis in the associative striatum tracks the positive symptoms.', ev: P6_EV.trunk,
+      beats: [{ at: 10, tween: { chain: [0, 2], loop: [0.9, 2] }, kicker: null, caption: 'Whichever engine drives it, psychosis rides on the same trunk.' }] },
+    { title: 'Territory doesn’t split them', chapter: 'Trunk', dur: 18, state: 'x', set: { chain: 0, loop: 0.9, osc: 0, cort: 0 }, cam: P6_CAM.st, see: P6_SEE, show: P6_SHOW, labels: ['nac', 'cd'], hud: { tint: true }, inset: 'engine', fx: { en: ['chain', 'loop'] },
+      kicker: 'Territory', caption: 'The limbic striatum isn’t raised in mania. Both illnesses load the associative part.', ev: P6_EV.terr,
+      beats: [{ at: 8.5, kicker: null, caption: 'So the difference isn’t where dopamine lands. It is what drives it.' }] },
+    { title: 'Engine 1: the chain', chapter: 'Engines', dur: 20, state: 'x', set: { chain: 0, loop: 0, osc: 0, cort: 0 }, cam: P6_CAM.hp, see: P6_SEE, show: P6_SHOW, labels: ['ahp'], inset: 'engine', fx: { en: ['chain', 'loop'], enhi: 'chain', dx: '', spot: 'ahp' },
+      kicker: 'Engine 1', caption: 'The chain: a steadily loud hippocampus keeps the trunk running.', ev: P6_EV.chain,
+      beats: [
+        { at: 2, tween: { chain: [0.9, 3] } },
+        { at: 8, fx: { dx: 'Schizophrenia' }, kicker: null, caption: 'With Part 1’s frayed rhythm and Part 4’s missing signals alongside, that is schizophrenia.' }] },
+    { title: 'Engine 2: the mood loop', chapter: 'Engines', dur: 26, state: 'x', set: { chain: 0.15, loop: 0, osc: 1, amp: 1, ph: -2.63, cort: 0 }, cam: P6_CAM.st, see: P6_SEE, show: P6_SHOW, labels: ['nac'], inset: 'engine', fx: { en: ['chain', 'loop'], enhi: 'loop', dx: 'Bipolar disorder', plot: '“I have been chosen”', spot: 'nac' },
+      kicker: 'Engine 2', caption: 'The mood loop runs in episodes.', ev: P6_EV.loop,
+      controls: [{ type: 'button', label: 'Revisit Part 5 · How mania builds', do: () => startStory('aff2', 15) }],
+      beats: [
+        { at: 7, kicker: null, caption: 'At the peak of mania it overflows into the trunk: psychosis, with grandiose content.' },
+        { at: 16, caption: 'Between episodes the trunk quiets. That is bipolar disorder.' }] },
+    { title: 'Both engines', chapter: 'Engines', dur: 22, state: 'x', set: { chain: 0.7, loop: 0, osc: 1, amp: 1, ph: 0, cort: 0 }, cam: P6_CAM.all, see: P6_SEE, show: P6_SHOW, labels: [], inset: 'engine', fx: { en: ['chain', 'loop'], enhi: ['chain', 'loop'], dx: 'Schizoaffective disorder', plot: '' },
+      kicker: 'Both', caption: 'Both engines at once: mood episodes on top of psychosis that persists when mood is level.', ev: P6_EV.both,
+      beats: [{ at: 10, kicker: null, caption: 'That is schizoaffective disorder. It has no imaging of its own yet; this is inference.' }] },
+    { title: 'Shared roots', chapter: 'Engines', dur: 18, state: 'x', set: { chain: 0.7, loop: 0.6, osc: 0, cort: 0 }, cam: P6_CAM.all, see: P6_SEE, show: P6_SHOW, labels: [], inset: 'engine', fx: { en: ['chain', 'loop'], roots: true, dx: '' },
+      kicker: 'Genes', caption: 'Schizophrenia and bipolar disorder share much of their genetic risk.', ev: P6_EV.roots,
+      beats: [{ at: 8.5, kicker: null, caption: 'And biologically defined subgroups of psychosis cut across the two diagnoses.' }] },
+    { title: 'Psychotic depression', chapter: 'A third route', dur: 24, state: 'x', set: { chain: 0, loop: 0, osc: 0, cort: 0 }, cam: P6_CAM.all, see: [...P6_SEE, 'hyp'], show: P6_SHOW, labels: ['hyp'], hud: { tint: true }, inset: 'engine', fx: { en: ['chain', 'loop', 'cort'], enhi: 'cort', dx: '', plot: '“I deserve what is coming”', spot: 'hyp' },
+      kicker: 'Third route', caption: 'In psychotic depression, stress hormones run very high.', ev: P6_EV.pd,
+      beats: [
+        { at: 2, tween: { cort: [0.85, 3] }, fx: { dx: 'Psychotic depression' } },
+        { at: 9, kicker: null, caption: 'Blocking the cortisol receptor with mifepristone can ease the psychosis quickly, at least at high doses.' },
+        { at: 17, caption: 'The limbic striatum runs low here, and the content is guilty.' }] },
+    { title: 'The pole picks the plot', chapter: 'A third route', dur: 24, state: 'x', set: { chain: 0, loop: 0.9, osc: 0, cort: 0, fear: 0 }, cam: P6_CAM.all, see: [...P6_SEE, 'amy'], show: P6_SHOW, labels: [], inset: 'engine', fx: { en: ['chain', 'loop', 'cort'], dx: 'Mania', plot: '“I have been chosen”' },
+      kicker: 'The plot', caption: 'Mania supplies grandiose content.', ev: P6_EV.plot,
+      beats: [
+        { at: 7, tween: { loop: [0, 1.5], cort: [0.85, 1.5] }, fx: { dx: 'Depression', plot: '“My insides have rotted”' }, caption: 'Depression supplies guilt, ruin, even nihilism: Cotard delusions.' },
+        { at: 14, tween: { cort: [0, 1.5], chain: [0.85, 1.5], fear: [0.9, 1.5] }, relabel: ['amy'], fx: { dx: 'Fear', plot: '“They are onto me”', spot: 'amy' }, caption: 'Fear supplies persecution.' }] },
+    { title: 'Recap', chapter: 'A third route', dur: 18, state: 'x', set: { chain: 0.7, loop: 0, osc: 1, amp: 1, ph: 0, cort: 0, fear: 0 }, cam: P6_CAM.all, see: P6_SEE, show: P6_SHOW, labels: [], inset: 'engine', fx: { en: ['chain', 'loop', 'cort'], dx: '', tag: 'Recap' },
+      kicker: 'Recap', caption: 'One trunk, two engines, three illnesses, and the mood pole picks the plot.', ev: P6_EV.trunk,
+      beats: [{ at: 9, kicker: 'Next', caption: 'Part 7: when movement locks, in any of the three.' }] },
+  ],
+});
+
+// ---------------------------------------------------------------- Part 7 · When movement locks: catatonia
+// Mental model: a jam in the motor loop's brake, set mostly in cortex. The brake can stick on (stupor, mutism, posturing)
+// or slip (purposeless excitement). Weak GABA-A signalling in motor and orbitofrontal cortex is the best-supported culprit,
+// so lorazepam often releases it, at either pole. Dopamine blockade can push the same brake on.
+// Model, illustrative units: brake = 0.4 + 0.5 × GABA-A deficit × (1 − lorazepam) + 0.35 × D2 block, all × (1 − ECT effect);
+// in the excited form the brake swings around its middle instead.
+
+function motorInset(S) {
+  const C = [100, 52], RX = 58, RY = 30, at = a => [C[0] + RX * Math.cos(a), C[1] + RY * Math.sin(a)];
+  const ST = { ctx: -Math.PI / 2, str: 0, gp: Math.PI / 2, th: Math.PI };
+  const node = (id, lab, col) => { const [x, y] = at(ST[id]); return `<g id="mo-${id}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="10" fill="#0d141d" stroke="${col}" stroke-width="1.8"/>
+    <text class="sub" x="${(x + (id === 'str' || id === 'gp' ? 14 : 0)).toFixed(1)}" y="${(y + (id === 'ctx' ? -16 : id === 'th' ? 22 : id === 'gp' ? 4 : 3)).toFixed(1)}" text-anchor="${id === 'str' || id === 'gp' ? 'start' : 'middle'}" fill="#e7edf4">${lab}</text></g>`; };
+  const arc = (a0, a1, col, cap, id) => { let d = ''; for (let i = 0; i <= 20; i++) { const [x, y] = at(a0 + (a1 - a0) * i / 20); d += `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`; }
+    const [ex, ey] = at(a1); return `<path id="${id}" d="${d}" fill="none" stroke="${col}" stroke-width="2"/>${cap === 'bar' ? `<circle id="${id}c" cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="2.5" fill="${col}"/>` : ''}`; };
+  const html = `<div class="t lt"><span>The motor loop</span><b id="moTag"></b></div>
+  <svg viewBox="0 0 312 104" class="cardsvg" id="mosvg">
+    ${arc(ST.ctx + 0.3, ST.str - 0.3, '#ff9f43', 'arrow', 'moA1')}${arc(ST.str + 0.3, ST.gp - 0.3, '#4aa8ff', 'bar', 'moA2')}${arc(ST.gp + 0.3, ST.th - 0.3, '#4aa8ff', 'bar', 'moA3')}${arc(ST.th + 0.3, ST.ctx + 2 * Math.PI - 0.3 - 2 * Math.PI, '#ff9f43', 'arrow', 'moA4')}
+    <path id="moBrake" d="" stroke="#4aa8ff" stroke-width="4" stroke-linecap="round"/>
+    ${node('ctx', 'Cortex: plans', '#ff8a3d')}${node('str', 'Striatum', '#9aa9bb')}${node('gp', 'Pallidum: the brake', '#7cc4ff')}${node('th', 'Thalamus', '#9aa9bb')}
+    <circle id="moGaba" cx="${at(ST.ctx)[0]}" cy="${at(ST.ctx)[1]}" r="14" fill="none" stroke="#7fe0a0" stroke-width="2" stroke-dasharray="3 2"/>
+    <text class="sub" x="228" y="12" text-anchor="middle">brake</text><rect x="222" y="16" width="12" height="70" rx="5" fill="rgba(141,155,173,0.22)"/><rect id="moB" x="222" y="86" width="12" height="0" rx="5" fill="#4aa8ff"/>
+    <line x1="218" y1="${86 - 70 * 0.72}" x2="238" y2="${86 - 70 * 0.72}" stroke="#ff8f86" stroke-width="1" stroke-dasharray="2 2"/>
+    <g id="moFig" stroke="#e7edf4" stroke-width="2.2" stroke-linecap="round" fill="none"><circle id="fgH" cx="278" cy="24" r="6"/><path id="fgB" d=""/></g>
+    <text id="moState" class="lab" x="278" y="98" text-anchor="middle"></text>
+    <g id="moClips"></g>
+  </svg>`;
+  return { html, tick(m) {
+    const q = id => document.getElementById(id), fx = S.fx; if (!q('mosvg')) return;
+    setText(q('moTag'), fx.tag || '');
+    const b = m.brake, h = 70 * cl01(b);
+    setAttrs(q('moB'), { y: (86 - h).toFixed(1), height: h.toFixed(1), fill: b > 0.72 ? '#ff8f86' : '#4aa8ff' });
+    // the pallidal brake on the thalamus thickens as it jams
+    const [bx, by] = at(ST.th - 0.3); q('moBrake').setAttribute('d', `M${(bx - 6).toFixed(1)} ${(by - 6).toFixed(1)} L${(bx + 6).toFixed(1)} ${(by + 6).toFixed(1)}`); q('moBrake').setAttribute('stroke-width', (1.5 + 6 * b).toFixed(1));
+    q('moA3').setAttribute('stroke-width', (1 + 4 * b).toFixed(1)); q('moA4').setAttribute('opacity', (1.2 - b).toFixed(2));
+    setAttrs(q('moGaba'), { opacity: (0.15 + 0.85 * (1 - m.gdEff)).toFixed(2), stroke: m.gdEff > 0.4 ? '#ff8f86' : '#7fe0a0' });
+    // the figure: frozen with a raised arm in stupor, pacing in excitement, at ease otherwise
+    const t = S.t, stu = b > 0.72, exc = m.excNow;
+    let d;
+    if (stu) d = 'M278 30 V58 M278 38 L266 30 L262 18 M278 38 L290 46 M278 58 L271 78 M278 58 L285 78';
+    else { const sw = exc ? Math.sin(t * 9) : 0.25 * Math.sin(t * 1.6), dx = exc ? 3 * Math.sin(t * 4.5) : 0;
+      d = `M${278 + dx} 30 V58 M${278 + dx} 38 L${(266 + dx + 6 * sw).toFixed(1)} ${(50 - 4 * Math.abs(sw)).toFixed(1)} M${278 + dx} 38 L${(290 + dx - 6 * sw).toFixed(1)} ${(50 - 4 * Math.abs(sw)).toFixed(1)} M${278 + dx} 58 L${(272 + dx + 7 * sw).toFixed(1)} 78 M${278 + dx} 58 L${(284 + dx - 7 * sw).toFixed(1)} 78`;
+      q('fgH').setAttribute('cx', (278 + dx).toFixed(1)); }
+    if (stu) q('fgH').setAttribute('cx', 278);
+    q('fgB').setAttribute('d', d);
+    setText(q('moState'), stu ? 'stupor' : exc ? 'excitement' : 'moving freely');
+    q('moState').setAttribute('fill', stu ? '#ff8f86' : exc ? '#ffc46b' : '#c9d4e2');
+    const ck = (fx.clips || []).join(',');
+    if (q('moClips').dataset.k !== ck) { q('moClips').dataset.k = ck;
+      const pos = { lz: [48, 14, 'lorazepam', '#7fe0a0'], d2: [180, 70, 'D2 block', '#7cc0ff'], ect: [182, 97, 'ECT', '#ffd34d'], nmda: [152, 14, 'NMDA', '#ffcf9e'] };
+      q('moClips').innerHTML = (fx.clips || []).map(k => { const [x, y, l, c] = pos[k]; const w = 8 + l.length * 5.6; return `<g transform="translate(${x} ${y})"><rect x="${-w / 2}" y="-7" width="${w}" height="13" rx="4" fill="#0d141d" stroke="${c}" stroke-width="1.5"/><text y="3" text-anchor="middle" font-size="9" font-weight="700" fill="${c}">${l}</text></g>`; }).join(''); }
+  } };
+}
+
+const P7_CAM = {
+  loop: { dir: [-1, 0.35, 0.25], fit: ['m1', 'put', 'gp', 'thal'], r: 28, pad: 12 },
+  ctx: { dir: [0.7, 0.55, 0.45], fit: ['m1', 'pmc', 'ofc'], r: 30, pad: 10 },
+};
+const P7_EV = {
+  series: 'Part 7 of the series. Catatonia is common in mood disorders, also occurs in schizophrenia and medical illness (Walther 2019, from the project research library). Confidence high.',
+  loop: 'The cortico–basal ganglia–thalamic motor loop: cortex excites striatum; striatal output inhibits pallidum; pallidum inhibits thalamus; thalamus excites cortex (standard anatomy; direct and indirect pathways simplified to one brake). Confidence high for the anatomy.',
+  stupor: 'Stupor, mutism, posturing and catalepsy as an over-tight brake is a teaching model inferred mostly from what treats catatonia; little imaging is done during episodes (Haroche 2020, ' + doi('10.1017/S0033291720001853') + '). Confidence low to moderate.',
+  exc: 'One account treats stupor and excitement as two ends of unstable motor control (Seif 2025, narrative review, ' + doi('10.36131/cnfioritieditore20250306') + '). The model can explain either pole, which makes it hard to test: confidence low.',
+  where: 'Reduced GABA-A receptor binding in left sensorimotor cortex in 10 akinetic catatonic patients, tracking motor and affective symptoms (Northoff 1999, ' + doi('10.1136/jnnp.67.4.445') + '). Orbitofrontal hypoactivation, medial prefrontal hyperactivation, poor frontal–motor connectivity (Haroche 2020, ' + doi('10.1017/S0033291720001853') + '); premotor overactivity (Walther 2019). Confidence low to moderate.',
+  lz: 'Benzodiazepines are first line and often work within hours; up to 27% do not respond; zolpidem helped in 28 of 35 reported cases; electroconvulsive therapy works across causes (Gunther 2025; Walther 2019; both from the project research library). Confidence moderate.',
+  d2: 'D2 blockers can precipitate catatonia, and neuroleptic malignant syndrome resembles malignant catatonia; dopamine agonists and amantadine help in drug-induced cases (Seif 2025, case-level evidence). Confidence low to moderate.',
+  nmda: 'Anti-NMDA receptor encephalitis and phencyclidine cause catatonia (Dalmau 2019, ' + doi('10.1016/S1474-4422(19)30244-3') + '), yet amantadine and memantine, NMDA antagonists, are reported to treat it (Seif 2025, case reports). That Part 1’s interneuron route reconciles the two is my judgment: confidence low.',
+};
+const P7_H = { gd: 0, lz: 0, d2: 0, exc: 0, ect: 0 };
+
+STORIES.push({ id: 'p7', name: 'Part 7 · When movement locks', color: '#7fe0d0', hemi: 'L', view: [-1, 0.35, 0.25], reveal: true, noStates: true, shell: '#7a8494',
+  desc: 'Catatonia as a jam in the motor loop’s brake: stupor and excitement, a weak cortical GABA-A signal, the lorazepam test, and the dopamine and NMDA doors. Nine short scenes.',
+  keyIntro: '<div class="t">The motor loop card</div><div class="note">Cortex plans a movement; the basal ganglia gate it; the pallidum brakes the thalamus, which sends it back to cortex. The bar is the brake; above the dashed line, movement locks. The green dashed ring is cortical GABA-A signalling, red when weak. Illustrative units.</div>',
+  nodes: {
+    m1: { key: 'Precentral_gyrus', ghost: true, label: 'Motor cortex' },
+    pmc: { key: 'Superior_frontal_gyrus', ghost: true, mni: [-8, 2, 62], label: 'Premotor cortex', nofit: true },
+    ofc: { key: 'Medial_orbital_gyrus', ghost: true, label: 'Orbitofrontal cortex', nofit: true },
+    put: { key: 'Putamen', mni: [-25, 2, 2], label: 'Striatum (putamen)', lo: [0, 12] },
+    gp: { key: 'Pallidum', label: 'Pallidum', lo: [0, 12] },
+    thal: { key: 'Thal_VL', label: 'Motor thalamus', lo: [0, 12] },
+  },
+  edges: [
+    { id: 'm1-put', from: 'm1', to: 'put', via: [[-34, -8, 30]], sign: '+', ev: 'human', act: () => 0.5 },
+    { id: 'put-gp', from: 'put', to: 'gp', sign: '-', ev: 'proposed', act: m => 0.3 + 0.5 * m.d2 },
+    { id: 'gp-thal', from: 'gp', to: 'thal', via: [[-14, -6, 0]], sign: '-', ev: 'proposed', act: m => m.brake },
+    { id: 'thal-m1', from: 'thal', to: 'm1', via: [[-24, -14, 30]], sign: '+', ev: 'human', act: m => 1.1 - m.brake },
+  ],
+  vars: { ...P7_H },
+  discrete: ['exc'],
+  states: [{ id: 'h', label: 'Healthy', vars: P7_H }],
+  model(v, S) {
+    const gdEff = v.gd * (1 - v.lz) * (1 - 0.8 * v.ect);
+    let brake = 0.4 + 0.5 * gdEff + 0.35 * v.d2 * (1 - 0.5 * v.ect);
+    const swing = v.exc * (1 - v.lz) * (1 - v.ect), excNow = swing > 0.3;
+    if (swing > 0) brake = 0.42 + 0.25 * swing * Math.sin((S?.t || 0) * 2.2);
+    return { brake: cl01(brake), gdEff, d2: v.d2, excNow };
+  },
+  gauge: { gain: () => 0.4, raw: () => 0.4, pop: () => 0.4 },
+  salience: () => 1,
+  look: seeLook((m, S) => ({ _keep: ['Precentral_gyrus', 'Superior_frontal_gyrus', 'Medial_orbital_gyrus'],
+    Precentral_gyrus: { heat: m.gdEff, glow: 0.15 + 0.5 * m.gdEff, ec: m.gdEff > 0.3 ? '#ff6b5b' : '#ffb36b', op: 0.28 },
+    Superior_frontal_gyrus: S.hud.ctx ? { heat: m.gdEff, glow: 0.4 * m.gdEff + 0.1, ec: '#ff6b5b', op: 0.24 } : undefined,
+    Medial_orbital_gyrus: S.hud.ctx ? { dim: 0.6 * m.gdEff, glow: 0.1, ec: '#4a6fa5', op: 0.22 } : undefined,
+    Putamen: { glow: 0.15 + 0.4 * m.d2, ec: '#7cc0ff' },
+    Pallidum: { col: '#5f86b8', glow: 0.1 + 0.8 * m.brake, ec: m.brake > 0.72 ? '#ff8f86' : '#7cc4ff' },
+    Thal_VL: { dim: 0.6 * cl01((m.brake - 0.4) / 0.5), glow: 0.5 * (1 - m.brake), ec: '#ffb36b' },
+  })),
+  insets: { series: seriesInset, motor: motorInset },
+  scenes: [
+    { title: 'Previously / today', chapter: 'The brake', dur: 13, state: 'h', cam: P7_CAM.loop, see: [], show: [], labels: [], inset: 'series', fx: {},
+      kicker: 'Part 7', caption: 'Catatonia crosses all three illnesses, and is most common in mood disorders.', ev: P7_EV.series,
+      beats: [{ at: 6.5, see: ['m1', 'put', 'gp', 'thal'], kicker: 'Today', caption: 'Today: why movement locks, and why lorazepam can unlock it.' }] },
+    { title: 'The motor loop', chapter: 'The brake', dur: 22, state: 'h', cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['m1', 'put', 'gp', 'thal'], inset: 'motor', fx: { tag: 'Healthy' },
+      kicker: 'Motor loop', caption: 'Cortex proposes a movement, the basal ganglia gate it, the thalamus sends it back.', ev: P7_EV.loop,
+      beats: [{ at: 10, relabel: ['gp'], fx: { spot: 'gp' }, kicker: 'The brake', caption: 'The pallidum is the brake on that gate. Just enough, and movement flows.' }] },
+    { title: 'Stuck on: stupor', chapter: 'The brake', dur: 22, state: 'h', cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['gp'], inset: 'motor', fx: { tag: 'Catatonia', spot: 'gp' },
+      kicker: 'Stupor', caption: 'Jam the brake on, and nothing starts.', ev: P7_EV.stupor,
+      beats: [{ at: 2, tween: { gd: [0.85, 3] } }, { at: 9, kicker: null, caption: 'Immobility, mutism, posturing: holding a position for hours.' }] },
+    { title: 'Slipping: excitement', chapter: 'The brake', dur: 20, state: 'h', set: { gd: 0.5, exc: 1 }, cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['gp'], inset: 'motor', fx: { tag: 'Catatonia', spot: 'gp' },
+      kicker: 'Excitement', caption: 'Let the brake slip back and forth, and movement runs without purpose.', ev: P7_EV.exc,
+      beats: [{ at: 9, kicker: null, caption: 'The same illness, the other face.' }] },
+    { title: 'Where the jam is', chapter: 'Cortex', dur: 22, state: 'h', set: { gd: 0.85 }, cam: P7_CAM.ctx, see: ['m1', 'pmc', 'ofc', 'put', 'gp', 'thal'], show: ['m1-put', 'gp-thal', 'thal-m1'], labels: ['m1', 'ofc'], hud: { ctx: true }, inset: 'motor', fx: { tag: 'Stupor' },
+      kicker: 'Cortex', caption: 'The jam seems to sit in cortex. GABA-A binding is lower in sensorimotor cortex in stupor.', ev: P7_EV.where,
+      beats: [{ at: 10, relabel: ['pmc', 'ofc'], kicker: null, caption: 'Orbitofrontal cortex runs low, premotor runs high, and frontal links to motor areas are weak.' }] },
+    { title: 'The lorazepam test', chapter: 'Cortex', dur: 24, state: 'h', set: { gd: 0.85, lz: 0 }, cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['m1'], inset: 'motor', fx: { tag: 'Stupor', clips: [] },
+      kicker: 'Lorazepam', caption: 'Boost GABA-A with lorazepam, and the brake often releases within hours.', ev: P7_EV.lz,
+      beats: [
+        { at: 2, tween: { lz: [1, 3] }, fx: { clips: ['lz'], tag: 'Treated' } },
+        { at: 9, kicker: null, caption: 'It works at either pole, stupor or excitement.' },
+        { at: 15, fx: { clips: ['lz', 'ect'] }, kicker: 'If not', caption: 'Up to a quarter don’t respond. Electroconvulsive therapy works whatever the cause.' }] },
+    { title: 'The dopamine door', chapter: 'Doors', dur: 22, state: 'h', set: { gd: 0.2 }, cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['put'], inset: 'motor', fx: { tag: 'Drug-induced', clips: [], spot: 'put' },
+      kicker: 'Dopamine', caption: 'D2 blockers can push the same brake on.', ev: P7_EV.d2,
+      beats: [
+        { at: 2, tween: { d2: [1, 3] }, fx: { clips: ['d2'] } },
+        { at: 9, kicker: null, caption: 'Neuroleptic malignant syndrome looks like catatonia’s most dangerous form.' },
+        { at: 15.5, caption: 'So, in catatonia, go carefully with D2 blockers. Dopamine-boosting drugs help in drug-induced cases.' }] },
+    { title: 'The NMDA door', chapter: 'Doors', dur: 20, state: 'h', set: { gd: 0.7 }, cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: [], inset: 'motor', fx: { tag: 'Catatonia', clips: ['nmda'] },
+      kicker: 'NMDA', caption: 'Anti-NMDA receptor encephalitis and phencyclidine cause catatonia.', ev: P7_EV.nmda,
+      beats: [{ at: 8, kicker: 'A puzzle', caption: 'Yet NMDA blockers such as amantadine can treat it. Part 1’s interneuron route may square the two.' }] },
+    { title: 'Recap', chapter: 'Doors', dur: 18, state: 'h', set: { gd: 0.85, lz: 1 }, cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: [], inset: 'motor', fx: { tag: 'Recap', clips: ['lz'] },
+      kicker: 'Recap', caption: 'A brake jam set in cortex. Lorazepam first, electroconvulsive therapy if not, and care with D2 blockers.', ev: P7_EV.lz,
+      beats: [{ at: 10, kicker: 'Next', caption: 'Part 8: treatment along the chain.' }] },
   ],
 });
 

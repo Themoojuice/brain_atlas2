@@ -5,7 +5,7 @@
 // Model: PSY_BASE for the gain; background marks = 0.06 + 0.6 × excess; the reward's mark = 0.85 × (1 − 0.55 × occupancy);
 // pull = reward − background (both scaled down by D2 block); rhythm sets how many working-memory slots hold.
 
-function wmInset(S) {
+function holdInset(S) {
   const icons = ['coin', 'person', 'bird'].map((k, i) => `<g id="wm${i}" transform="translate(${222 + i * 32} 44)"><rect x="-13" y="-13" width="26" height="26" rx="6" fill="#0d141d" stroke="#8fc2ff" stroke-width="1.5"/>
     <g transform="translate(-9 -9) scale(0.75)" fill="none" stroke="#e7edf4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[k].replace(/^<svg[^>]*>|<\/svg>$/g, '')}</g></g>`).join('');
   const html = `<div class="t lt"><span>Holding a thought</span><b id="wmTag"></b></div>
@@ -78,7 +78,7 @@ STORIES.push({ ...PSY_BASE, id: 'p4', name: 'Part 4 · What goes missing', color
     if (S.hud.pfc) L.Middle_frontal_gyrus = S.hud.pfc === 'low' ? { glow: 0.12, ec: '#4a6fa5', op: 0.26 } : { glow: 0.12 + 0.5 * m.rhythm, ec: '#6cc4ff', op: 0.3 };
     return L;
   }),
-  insets: { ...PSY_BASE.insets, series: seriesInset, feed: feedInset, wm: wmInset },
+  insets: { ...PSY_BASE.insets, series: seriesInset, feed: feedInset, wm: holdInset },
   scenes: [
     { title: 'Previously / today', chapter: 'Signal and noise', dur: 13, state: 'psychosis', cam: P4_CAM.st, see: [], show: [], labels: [], inset: 'series', fx: {},
       kicker: 'Part 4', caption: 'Part 3 was about what is added. Today: what is taken away.', ev: P4_EV.series,

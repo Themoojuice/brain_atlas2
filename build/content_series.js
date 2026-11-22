@@ -178,3 +178,11 @@ const PDQ = {
   kraepelin_gap: { q: '…the more tormenting the shorter the moment is between my thoughts and the corresponding utterance of the voices.', who: 'A patient, in Kraepelin, 1919 translation' },
   perceval_sound: { q: '…the sound remained but the voice was gone', who: 'John Perceval, Narrative, 1840 (public domain)' },
 };
+
+// two-line SVG text: splits at the space nearest the middle when longer than n characters
+function wrapTo(el, text, n, x, dy) {
+  if (!el || el.dataset.t === text) return; el.dataset.t = text;
+  let lines = [text];
+  if (text.length > n) { const mid = text.length / 2; let best = -1; for (let i = 0; i < text.length; i++) if (text[i] === ' ' && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i; if (best > 0) lines = [text.slice(0, best), text.slice(best + 1)]; }
+  el.innerHTML = lines.map((l, i) => `<tspan x="${x}" dy="${i ? dy : 0}">${l.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))}</tspan>`).join('');
+}
