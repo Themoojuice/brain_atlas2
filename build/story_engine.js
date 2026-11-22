@@ -32,6 +32,13 @@ const ICONS = {
   dip: '<svg viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6"/></svg>',
   cup: '<svg viewBox="0 0 24 24"><path d="M4.5 9h12v5.5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z"/><path d="M16.5 10.5h1.6a2.4 2.4 0 0 1 0 4.8h-1.9M8 3.5c-.8 1 .8 2 0 3M11.5 3.5c-.8 1 .8 2 0 3"/></svg>',
   trophy: '<svg viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 3 3.4M17 6h2.5a2.5 2.5 0 0 1-3 3.4M12 14v3.5M8.5 20.5h7M9.5 17.5h5v3h-5z"/></svg>',
+  bird: '<svg viewBox="0 0 24 24"><path d="M2.5 13.5c3.5-.5 5.5-4 9.5-4 2.2 0 3.4 1.1 4.3 2.2l5.2-1-3.2 3c0 4.2-3.9 7-8.8 7-3.1 0-5.3-1.3-6.3-3.2l3.6-.9"/><circle cx="15.4" cy="11.6" r="0.5"/></svg>',
+  bubble: '<svg viewBox="0 0 24 24"><path d="M4 4.5h16A1.5 1.5 0 0 1 21.5 6v8.5A1.5 1.5 0 0 1 20 16h-9l-5 4.5V16H4a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 4 4.5z"/><path d="M7 9h10M7 12h6"/></svg>',
+  hand: '<svg viewBox="0 0 24 24"><path d="M7.5 12.5V6.8a1.5 1.5 0 0 1 3 0v4.7M10.5 11.5V4.8a1.5 1.5 0 0 1 3 0v6.7M13.5 11.5V5.8a1.5 1.5 0 0 1 3 0v6.4M16.5 12.2V9a1.5 1.5 0 0 1 3 0v5c0 4-3 7-7 7-2.8 0-4.4-1.4-5.8-3.8l-2.4-4a1.5 1.5 0 0 1 2.5-1.6l1.7 2.2"/></svg>',
+  pill: '<svg viewBox="0 0 24 24"><g transform="rotate(-40 12 12)"><rect x="3" y="8.5" width="18" height="7" rx="3.5"/><path d="M12 8.5v7"/></g></svg>',
+  person: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.8"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>',
+  eye: '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.2 10-6.2S22 12 22 12s-3.6 6.2-10 6.2S2 12 2 12z"/><circle cx="12" cy="12" r="2.9"/></svg>',
+  word: '<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h12M3 17h15"/></svg>',
 };
 const story = { def: null, i: 0, t: 0, playing: true, vars: {}, tweens: [], m: {}, group: new THREE.Group(), edges: new Map(), nodes: new Map(),
   tokens: [], fx: {}, hud: {}, beatIdx: 0, scene: null, focus: null, show: [], labelSet: new Set(), last: 0, snapshot: null, flash: {}, flashNeg: {},
@@ -100,7 +107,7 @@ function buildStory(def) {
   if (def.ring) {
     const c = story.nodes.get(def.ring).pos;
     for (let i = 0; i < 8; i++) {
-      const a = i / 8 * Math.PI * 2, s = new THREE.Mesh(new THREE.SphereGeometry(0.9, 10, 8), new THREE.MeshBasicMaterial({ color: '#6cc4ff', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+      const a = i / 8 * Math.PI * 2, s = new THREE.Mesh(new THREE.SphereGeometry(0.9, 10, 8), new THREE.MeshBasicMaterial({ color: '#6cc4ff', transparent: true, opacity: 0, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending }));
       s.position.set(c.x + Math.cos(a) * 7, c.y + Math.sin(a) * 6, c.z + Math.sin(a * 2) * 2); s.renderOrder = 7; s.visible = false; story.group.add(s); story.ring.push(s);
     }
   }

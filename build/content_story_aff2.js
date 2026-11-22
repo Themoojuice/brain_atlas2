@@ -1,4 +1,4 @@
-// ---------------------------------------------------------------- affective disruption, version 2 (first in the Animated stories list)
+// ---------------------------------------------------------------- Part 5 · How mania builds (affective disruption, version 2)
 // One idea per beat. The story builds a single loop (outcome → surprise → mood → tint → back to outcome) with two brakes
 // (prefrontal check, nightly reset), then walks a manic episode through that loop, then treatment, then the reverse pole.
 // The loop card (inset) and the brain show the same thing: the highlighted station is the spotlighted structure.
@@ -129,7 +129,7 @@ const EV = {
   dep: 'In rats, chronic mild stress cut dopamine neuron population activity through a basolateral amygdala → ventral pallidum pathway (Chang &amp; Grace 2014, retrieved earlier). Rodent circuit, low confidence for humans. Bipolar depression shows raised striatal dopamine transporter (Ashok 2017).',
 };
 
-STORIES.unshift({ id: 'aff2', name: 'Affective disruption v2: how mania builds', color: '#ff9f43', hemi: 'L', view: MED_LOW, reveal: true, noStates: true, shell: '#7a8494',
+STORIES.push({ id: 'aff2', name: 'Part 5 · How mania builds', color: '#ff9f43', hemi: 'L', view: MED_LOW, reveal: true, noStates: true, shell: '#7a8494',
   desc: 'A slower, one-idea-at-a-time telling: the mood loop and its two brakes, what bipolar disorder changes, how a lost night tips it into mania, and how treatment turns it down. Twenty short scenes.',
   keyIntro: '<div class="t">The mood loop card</div><div class="note">Outcome → surprise (dopamine burst) → mood → tint, back to the next outcome. Two brakes: prefrontal check and nightly reset. The dot travelling round the ring is the outcome you are watching in the brain. Coin sizes, tank level and the × number are illustrative units.</div>',
   nodes: {
@@ -320,7 +320,7 @@ STORIES.unshift({ id: 'aff2', name: 'Affective disruption v2: how mania builds',
     { title: 'At the peak: psychosis', chapter: 'Mania', dur: 19, state: 'mania', set: { m: 1, spill: 0, leak: 0 }, cam: CAM2.spill,
       see: ['nac', 'vta', 'sn', 'cd'], show: ['vta-nac', 'nac-sn', 'sn-cd'], labels: ['nac', 'cd'], tags: { 'nac-sn': 'untested link' }, fx: { spot: 'cd' }, hud: { tint: true },
       kicker: 'Overflow', caption: 'Push the gain high enough and dopamine spills up into the associative striatum.', ev: EV.spill,
-      controls: [{ type: 'button', label: 'See aberrant salience in the psychosis story', do: () => startStory('psy', 8) }],
+      controls: [{ type: 'button', label: 'See the highlighter in Part 3', do: () => startStory('p3', 4) }],
       beats: [
         { at: 1, tween: { spill: [1, 3.5] } },
         { at: 8, show: ['vta-nac', 'nac-sn', 'sn-cd', 'ctx-cd'], kicker: 'Psychosis', caption: 'Neutral things start to feel loaded with meaning. Grandiose or persecutory delusions ride on top.',

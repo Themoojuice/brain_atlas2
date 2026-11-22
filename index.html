@@ -374,6 +374,17 @@ body.steps .ghostring { border: 2px dashed rgba(255,255,255,0.9); }
 #lpsvg .sub { fill: #8d9bad; font-size: 8.5px; }
 @media (max-width: 760px) { #lpsvg .sub { font-size: 9px; } }
 
+/* ---------- the linear series: shared card styles ---------- */
+#inset[data-kind="micro"], #inset[data-kind="series"], #inset[data-kind="chain"], #inset[data-kind="feed"], #inset[data-kind="sig"], #inset[data-kind="engine"], #inset[data-kind="motor"] { padding: 7px 10px 6px; width: min(420px, calc(100% - 28px)); }
+@media (max-width: 760px) { #inset[data-kind="micro"], #inset[data-kind="series"], #inset[data-kind="chain"], #inset[data-kind="feed"], #inset[data-kind="sig"], #inset[data-kind="engine"], #inset[data-kind="motor"] { width: auto; } }
+.cardsvg text { font-family: var(--font-body); }
+.cardsvg .grp { transition: opacity .45s; }
+.cardsvg .grp.dim { opacity: 0.32; }
+.cardsvg .grp.off { opacity: 0; }
+.cardsvg .lab { fill: #e7edf4; font-size: 10px; font-weight: 600; }
+.cardsvg .sub { fill: #8d9bad; font-size: 8.5px; }
+@media (max-width: 760px) { .cardsvg .sub { font-size: 9px; } }
+
 </style>
 <script type="importmap">
 { "imports": {
@@ -839,10 +850,6 @@ const DRUGS = [
 const cl01 = x => Math.min(1, Math.max(0, x));
 const mixHex = (a, b, t) => { const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16), ch = s => [(s >> 16) & 255, (s >> 8) & 255, s & 255]; const A = ch(pa), B = ch(pb); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * cl01(t)).toString(16).padStart(2, '0')).join(''); };
 const MED = [-1, 0.34, 0.16], LAT = [0.9, 0.42, 0.45], MED_LOW = [-1, -0.42, 0.3], MED_UP = [-1, 0.62, 0.1];
-const NET_COL = { smn: '#6fa8ff', sal: '#c43afa', dmn: '#cd3e4e' };
-const unitLook = (a, col) => a > 0.05 ? { glow: 0.2 + 0.7 * a, ec: col, op: 0.16 + 0.34 * a } : a < -0.05 ? { dim: 0.75 * -a, glow: 0.12 * -a, ec: '#4a6fa5', op: 0.1 } : { op: 0.14 };
-const KRAEPELIN = { '+++': 'Mania', '---': 'Depression', '+-+': 'Depressive or anxious mania', '+--': 'Excited depression', '++-': 'Mania with poverty of thought', '-+-': 'Manic stupor', '--+': 'Depression with flight of ideas', '-++': 'Inhibited mania' };
-const sgn = x => x > 0.2 ? '+' : x < -0.2 ? '-' : '0';
 
 function nmdaInset(S) {
   const rec = [[192, 56], [189, 70], [192, 84]].map(([x, y], i) => `<rect x="${x - 4}" y="${y - 4}" width="2.4" height="8" fill="#ff9f43"/><rect x="${x + 2}" y="${y - 4}" width="2.4" height="8" fill="#ff9f43"/><circle class="plug" cx="${x + 0.2}" cy="${y}" r="2.6" fill="#c9d4e2" opacity="0"/>`).join('');
@@ -898,24 +905,6 @@ function terminalInset(S) {
     document.querySelectorAll('#term .bf').forEach((b, i) => b.setAttribute('width', (160 * cl01(lv + [0, 0.01, 0.04][i])).toFixed(1)));
   } };
 }
-function compareInset(S) {
-  const panel = (x, title, sub, id) => `<g transform="translate(${x} 0)">
-    <text x="72" y="14" fill="#e7edf4" font-size="11.5" font-weight="600" text-anchor="middle">${title}</text>
-    <text x="72" y="27" fill="#8d9bad" font-size="9.5" text-anchor="middle">${sub}</text>
-    <path d="M48 72 A24 24 0 0 1 96 72" stroke="#5d6878" stroke-width="5" fill="none"/>
-    <line id="${id}n" x1="72" y1="72" x2="72" y2="52" stroke="#e7edf4" stroke-width="2.5" stroke-linecap="round"/><circle cx="72" cy="72" r="3" fill="#e7edf4"/>
-    <ellipse id="${id}a" cx="52" cy="98" rx="19" ry="10"/><ellipse id="${id}l" cx="96" cy="104" rx="14" ry="8.5"/>
-    <text x="52" y="122" fill="#c9d4e2" font-size="9" text-anchor="middle">associative</text><text x="98" y="122" fill="#c9d4e2" font-size="9" text-anchor="middle">limbic</text></g>`;
-  const html = `<div class="t">Same amplifier, two failure modes</div><svg viewBox="0 0 290 128">${panel(0, 'Schizophrenia', 'gain stuck high', 'cA')}${panel(146, 'Bipolar disorder', 'gain swings', 'cB')}<line x1="145" y1="6" x2="145" y2="122" stroke="rgba(141,155,173,0.25)"/></svg>
-    <div class="foot">Left is fixed at the psychosis setting; right is live from the brain above.</div>`;
-  const needle = (id, g) => { const a = Math.PI * (1 - cl01(g)), el = document.getElementById(id + 'n'); if (el) { el.setAttribute('x2', (72 + 20 * Math.cos(a)).toFixed(1)); el.setAttribute('y2', (72 - 20 * Math.sin(a)).toFixed(1)); } };
-  const fill = (id, base, lv) => { const el = document.getElementById(id); if (el) el.setAttribute('fill', mixHex(base, '#ffd34d', cl01((lv - 0.4) / 0.45))); };
-  return { html, tick(m) {
-    needle('cA', 0.8); fill('cAa', '#a98bff', 0.82); fill('cAl', '#3fd0a6', 0.5);
-    needle('cB', m.eff); fill('cBa', '#a98bff', m.assocDA); fill('cBl', '#3fd0a6', m.limbicDA);
-  } };
-}
-
 // ---------------------------------------------------------------- psychosis
 // Subiculum → accumbens fibres run in the fornix: waypoints are the left fornix centreline from the HCP842 tractography mesh
 // (fimbria → crus → body over the thalamus → column), then the precommissural branch to the accumbens.
@@ -944,9 +933,7 @@ const SPREAD_DEEP = new Set(['Hippocampus', 'Nucleus_accumbens', 'Thal_MD']);
 const SPREAD_LEVELS = Object.fromEntries([...SPREAD.map(([k]) => [k, SPREAD_DEEP.has(k) ? 2 : 1]), ...SPREAD_TRACTS.map(([k]) => [k, 1])]);
 const EVIDENCE_HTML = (t, body) => ({ kind: 'html', html: `<div class="t">${t}</div>${body}` });
 
-const STORIES = [
-{ id: 'psy', name: 'Psychosis: the gain story', color: '#ffb454', hemi: 'L', view: MED,
-  desc: 'Fifteen scenes in two chapters: the dopamine cascade (hippocampus → pallidum → midbrain → associative striatum), then the network view (coupling, staging, heterogeneity, spread).',
+const PSY_BASE = { hemi: 'L', view: MED,
   nodes: {
     ilc: { key: 'Subgenual_frontal_cortex', label: 'Medial prefrontal' },
     dl:  { key: 'Middle_frontal_gyrus', ghost: true, label: 'Dorsolateral prefrontal' },
@@ -1052,8 +1039,11 @@ const STORIES = [
     chips: () => ({ html: '<div class="t">What strains the interneurons</div><div class="chips"><span class="chip">Redox load</span><span class="chip">NMDA receptor hypofunction</span><span class="chip">Stress</span></div>' }),
     terminal: terminalInset,
     nmda: nmdaInset,
-  },
-  scenes: [
+  }
+};
+// The gain story's scenes. Scenes 1–10 (the cascade) were retired on 22 Nov 2026 in favour of the linear series (Parts 1–8);
+// scenes 11–15 (network view) live on as their own story below.
+const PSY_SCENES = [
     { title: 'Orient', chapter: 'Cascade', dur: 7, state: 'healthy', cam: { dir: MED }, show: [], hud: { dial: false, grid: false },
       caption: 'Six stops: prefrontal cortex, hippocampus, accumbens, pallidum, midbrain, striatum.',
       beats: [{ at: 0.3, labels: ['ilc', 'dl'] }, { at: 1.3, labels: ['ahp'] }, { at: 2.2, labels: ['nac'] }, { at: 3.0, labels: ['vp'] }, { at: 3.8, labels: ['vta', 'sn'] }, { at: 4.7, labels: ['cd', 'md'] }] },
@@ -1149,388 +1139,15 @@ const STORIES = [
       caption: 'Drag the hippocampus. Watch the midbrain.',
       controls: [{ type: 'range', var: 'hpx', label: 'Hippocampal drive', min: 0.2, max: 1 }, { type: 'toggle', var: 'd2', label: 'D2 blocker' }, { type: 'toggle', var: 'musc', label: 'Muscarinic agonist' },
         { type: 'button', label: 'Send a neutral cue', do: S => S.spawn({ icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', flash: 'sn-cd' }) }] },
-  ] },
-
-// ---------------------------------------------------------------- affective
-{ id: 'aff', name: 'Mood: the full picture', color: '#3fd0c9', hemi: 'L', view: MED_LOW,
-  desc: 'All of it at once, in ten autoplay scenes: prefrontal brakes, amygdala, pallidal gate, circadian clock, mixed states, networks and treatment.',
-  nodes: {
-    ifg:  { key: 'Inferior_frontal_gyrus', ghost: true, label: 'Ventrolateral prefrontal' },
-    lofc: { key: 'Lateral_orbital_gyrus', ghost: true, label: 'Orbitofrontal' },
-    amy:  { key: 'Amygdala', label: 'Amygdala (basolateral)', lo: [0, 12] },
-    nac:  { key: 'Nucleus_accumbens', label: 'Accumbens' },
-    vp:   { key: 'Ventral_pallidum', label: 'Ventral pallidum', lo: [0, 12] },
-    vta:  { key: 'VTA', label: 'Ventral tegmental area' },
-    hp:   { key: 'Hippocampus', ghost: true, label: 'Hippocampus', nofit: true },
-    scn:  { key: 'Hypothalamus', mni: [-2, 2, -12], label: 'Suprachiasmatic (approx.)', r: 1.2, dot: '#3fd0c9', lo: [0, 12] },
-    rph:  { key: 'Dorsal_raphe', label: 'Dorsal raphe', lo: [0, 12] },
-    mpfc: { key: 'Pre-subgenual_frontal_cortex', ghost: true, label: 'Medial prefrontal', noDot: true },
-    sn:   { key: 'Substantia_nigra', label: 'Substantia nigra', lo: [0, 12], nofit: true },
-    cd:   { key: 'Caudate_nucleus', ghost: true, mni: [-12, 12, 6], label: 'Caudate head (associative)', nofit: true },
-    ctx:  { key: 'Middle_and_inferior_temporal_gyrus', ghost: true, label: 'Temporal cortex', nofit: true },
-    smn:  { key: 'Precentral_gyrus', ghost: true, label: 'Sensorimotor network', noDot: true, nofit: true },
-    sal:  { key: 'Insula', ghost: true, label: 'Salience network', noDot: true, nofit: true },
-    dmn:  { key: 'Cingulate_gyrus_posterior_part', ghost: true, label: 'Default mode network', noDot: true, nofit: true },
-    acc:  { key: 'Cingulate_gyrus_anterior_part', ghost: true, label: 'Anterior cingulate', noDot: true, nofit: true },
-    hab:  { key: 'Habenula', label: 'Lateral habenula', lo: [0, 12], nofit: true, gate: m => m.habl > 0.5 },
-  },
-  ghostCast: ['Postcentral_gyrus', 'Cingulate_gyrus_anterior_part', 'Medial_orbital_gyrus'],
-  edges: [
-    { id: 'ifg-amy', from: 'ifg', to: 'amy', via: [[-36, 8, -12]], sign: 'ctl', ev: 'human', act: m => m.brake },
-    { id: 'ofc-nac', from: 'lofc', to: 'nac', via: [[-26, 24, -12]], sign: 'ctl', ev: 'human', act: m => m.brake },
-    { id: 'amy-vp', from: 'amy', to: 'vp', via: [[-17, 0, -14]], sign: '+', ev: 'rodent', act: m => m.amy },
-    { id: 'hp-nac', from: 'hp', to: 'nac', via: FORNIX, sign: '+', ev: 'rodent', act: () => 0.3 },
-    { id: 'nac-vp', from: 'nac', to: 'vp', sign: '-', ev: 'rodent', act: m => m.nac },
-    { id: 'vp-vta', from: 'vp', to: 'vta', via: [[-9, -7, -10]], sign: '-', ev: 'rodent', act: m => m.vp },
-    { id: 'vta-nac', from: 'vta', to: 'nac', via: [[-6, -4, -12]], sign: 'da', ev: 'human', act: m => m.pop },
-    { id: 'scn-vta', from: 'scn', to: 'vta', via: [[-3, -8, -12]], sign: 'clock', ev: 'rodent', act: m => m.clockEff },
-    { id: 'rph-mpfc', from: 'rph', to: 'mpfc', via: [[0, -14, -6], [-2, 14, -10]], sign: '5ht', ev: 'proposed', act: m => 0.35 + 0.4 * cl01(-m.tilt) },
-    { id: 'nac-sn', from: 'nac', to: 'sn', via: [[-11, -6, -15]], sign: 'spiral', ev: 'proposed', act: m => m.assocDA },
-    { id: 'sn-cd', from: 'sn', to: 'cd', via: [[-12, -6, -2], [-13, 4, 4]], sign: 'da', ev: 'human', act: m => m.assocDA },
-    { id: 'ctx-cd', from: 'ctx', to: 'cd', via: [[-40, -12, -8], [-24, 2, 4]], sign: '+', ev: 'human', act: () => 0.45 },
-    { id: 'hab-vta', from: 'hab', to: 'vta', via: [[-4, -22, -4]], sign: '-', ev: 'rodent', act: m => m.habAct, gate: m => m.habl > 0.5 },
-  ],
-  shieldOn: [['Nucleus_accumbens', 5, null], ['Caudate_nucleus', 6, p => p[1] > 2], ['Putamen', 3, p => p[1] > 0]],
-  vars: { clock: 1, brake: 1, amy: 0.3, b: 0.2, m: 0, ev: 1, d2: 0, lith: 0, rth: 0, ps: 0, af: 0, th: 0, habl: 0, ket: 0 },
-  discrete: ['ev'],
-  states: [
-    { id: 'eu', label: 'Euthymia', vars: { clock: 1, brake: 1, amy: 0.3, b: 0.2, ev: 1, m: 0, d2: 0, lith: 0, rth: 0 } },
-    { id: 'mania', label: 'Mania', vars: { clock: 0.3, brake: 0.55, amy: 0.3, b: 0.9, ev: 2, m: 0.6 } },
-    { id: 'dep', label: 'Depression', vars: { clock: 0.75, brake: 0.55, amy: 0.9, b: 0.9, ev: 3, m: -0.6 } },
-  ],
-  model(v, S) {
-    const clockEff = Math.min(1, v.clock + (1 - v.clock) * (0.55 * v.rth + 0.45 * v.lith));
-    // lateral habenula (speculative layer): bursts with amygdala-driven stress, suppresses the midbrain; ketamine quietens the bursting
-    const habAct = (0.25 + 0.6 * cl01((v.amy - 0.3) / 0.6)) * (1 - 0.75 * v.ket);
-    const pop = Math.min(0.95, Math.max(0.05, 0.4 + 0.45 * (1 - clockEff) * (1 - 0.4 * v.lith) + 0.2 * v.m - 0.5 * Math.max(0, v.amy - 0.3) - v.habl * 0.3 * (habAct - 0.25)));
-    const eff = pop + v.d2 * (0.45 + (pop - 0.4) * 0.25 - pop);
-    const day = (S && S.sim && S.sim.day) || 0;
-    return { clockEff, pop, popShow: Math.min(1, Math.max(0, pop + 0.07 * Math.sin(day * Math.PI * 2) * clockEff)), eff,
-      vp: cl01(0.69 - (pop - 0.4) / 1.3), nac: 0.3 + 0.5 * pop, limbicDA: eff, assocDA: cl01(0.3 + Math.max(0, eff - 0.72) * 3),
-      tilt: Math.max(-1, Math.min(1, (pop - 0.4) * 1.6 + 0.45 * v.m)), amy: v.amy, brake: v.brake, b: v.b * (1 - 0.6 * v.lith), m: v.m, habl: v.habl, habAct };
-  },
-  gauge: { gain: m => m.eff, raw: m => m.pop, pop: m => m.popShow },
-  gridAt: 'vta', biasTo: 'nac',
-  salience(kind, m) {
-    if (kind === 'rewardPos') return 0.85 + 0.7 * m.eff;
-    if (kind === 'rewardNeg') return 0.85;
-    if (kind === 'neutral') return 0.55 + cl01((m.assocDA - 0.5) * 5) * 1.5;
-    if (kind === 'stress') return 1.35;
-    return 1;
-  },
-  // reward events: an outcome travels orbitofrontal → accumbens; on arrival mood integrates the prediction error
-  tick(dt, v, m, S) {
-    const sim = S.sim;
-    sim.day = (sim.day || 0) + dt * (0.2 + 0.55 * (1 - m.clockEff));
-    if (S.fx.swing) { const ph = S.t * 0.5; v.m = 0.85 * Math.sin(ph); v.amy = 0.3 + 0.5 * Math.max(0, -Math.sin(ph)); v.clock = 0.6; }
-    const ev = Math.round(v.ev); if (!ev) return;
-    sim.next = (sim.next ?? 0.7) - dt; if (sim.next > 0) return;
-    sim.next = Math.max(0.55, 1.5 - 0.7 * Math.abs(v.m));
-    const R = S.rand, r = ev === 1 ? (R() - 0.5) * 0.6 : ev === 2 ? 0.12 + R() * 0.16 : -0.18 - R() * 0.16 + (R() < 0.2 ? 0.3 : 0);
-    S.spawn({ icon: r >= 0 ? 'coin' : 'cloud', from: 'lofc', to: 'nac', dur: 0.9, life: 0.5, kind: r >= 0 ? 'rewardPos' : 'rewardNeg', onArrive: S2 => {
-      const mm = S2.def.model(S2.vars, S2), V = S2.vars;
-      const delta = (r + mm.b * V.m) * (0.5 + mm.eff), decay = 0.86 - 0.14 * V.lith;
-      V.m = Math.max(-1, Math.min(1, V.m * decay + 0.35 * delta));
-      S2.flashEdge('vta-nac', cl01(Math.abs(delta) * 1.8), delta < 0);
-    } });
-  },
-  look(m, S) {
-    const day = (S.sim.day || 0), a = cl01((m.amy - 0.3) / 0.6), mixed = !!S.hud.mixed, net = mixed || !!S.hud.seesaw;
-    const L = {
-      Amygdala: { heat: a, glow: 0.12 + 0.7 * a, ec: '#ff6b5b' },
-      Nucleus_accumbens: { glow: 0.15 + 0.65 * cl01((m.limbicDA - 0.3) / 0.6), ec: '#ffd34d' },
-      Ventral_pallidum: { glow: 0.75 * m.vp, ec: '#7cc4ff' },
-      VTA: { glow: 0.12 + 0.8 * cl01((m.pop - 0.1) / 0.8), ec: '#ffd34d' },
-      Inferior_frontal_gyrus: { glow: 0.35 * m.brake, ec: '#b48cff', op: 0.1 + 0.12 * m.brake },
-      Lateral_orbital_gyrus: { glow: 0.3 * m.brake, ec: '#b48cff', op: 0.1 + 0.12 * m.brake },
-      Hypothalamus: { glow: 0.25 + 0.3 * Math.sin(day * Math.PI * 2) * m.clockEff, ec: '#3fd0c9' },
-      Caudate_nucleus: { glow: 0.6 * cl01((m.assocDA - 0.45) / 0.4), ec: '#ffd34d', op: S.hud.tint ? 0.8 : 0.08 },
-      Substantia_nigra: { glow: 0.5 * cl01((m.assocDA - 0.45) / 0.4), ec: '#ffd34d' },
-      Habenula: { glow: m.habl * 0.85 * m.habAct, ec: '#ff6b5b' },
-    };
-    if (S.hud.yeo) for (const k of ['Amygdala', 'Nucleus_accumbens', 'VTA', 'Substantia_nigra']) L[k] = { glow: 0.55, ec: '#c43afa' };
-    if (net) {
-      const smn = mixed ? S.vars.ps : m.tilt, sal = mixed ? S.vars.af : Math.max(0, m.tilt) * 0.9, dmn = mixed ? S.vars.th : -m.tilt;
-      L.Precentral_gyrus = L.Postcentral_gyrus = unitLook(smn, NET_COL.smn);
-      L.Insula = L.Cingulate_gyrus_anterior_part = unitLook(sal, NET_COL.sal);
-      L.Cingulate_gyrus_posterior_part = L['Pre-subgenual_frontal_cortex'] = unitLook(dmn, NET_COL.dmn);
-    }
-    return L;
-  },
-  liveCaption(v) {
-    const w = x => x > 0.2 ? 'excited' : x < -0.2 ? 'inhibited' : 'neutral', name = KRAEPELIN[sgn(v.ps) + sgn(v.af) + sgn(v.th)] || 'Between states';
-    return `${name}: psychomotor ${w(v.ps)}, affect ${w(v.af)}, thought ${w(v.th)}.`;
-  },
-  mixedHtml(v) {
-    const row = (lab, sub, x) => { const w = Math.abs(x) * 50, left = x < 0 ? 50 - w : 50; return `<span>${lab} <span style="color:var(--muted)">${sub}</span></span><span class="g"><i style="left:${left}%;width:${w}%;background:${x < 0 ? '#4aa8ff' : '#ffb454'}"></i></span>`; };
-    const key = sgn(v.ps) + sgn(v.af) + sgn(v.th), name = KRAEPELIN[key] || 'Between states';
-    return `<div class="t">Three dimensions</div><div class="row3">${row('Psychomotor', 'sensorimotor', v.ps)}${row('Affect', 'salience', v.af)}${row('Thought', 'default mode', v.th)}</div><div class="nm">${name}</div><div class="src">Warm = excited, cool = inhibited, shown on the network that carries each dimension (Martino &amp; Magioncalda 2022). Names from Kraepelin's scheme (recalled).</div>`;
-  },
-  insets: {
-    compare: compareInset,
-    evidence: () => ({ html: '<div class="t">Evidence</div>Bipolar psychosis matches schizophrenia on striatal dopamine synthesis capacity, and it tracks positive symptoms after adjusting for mania (Jauhar 2017).' }),
-  },
-  scenes: [
-    { title: 'Orient', dur: 7, state: 'eu', set: { ev: 0 }, cam: { dir: MED_LOW }, show: [], hud: {},
-      caption: 'The mood engine: prefrontal brakes, amygdala, accumbens, pallidum, midbrain, clock.',
-      beats: [{ at: 0.3, labels: ['ifg', 'lofc'] }, { at: 1.4, labels: ['amy'] }, { at: 2.4, labels: ['nac', 'vp'] }, { at: 3.4, labels: ['vta'] }, { at: 4.4, labels: ['scn', 'rph'] }] },
-    { title: 'Euthymia', dur: 12, state: 'eu', cam: { dir: MED_LOW, fit: ['amy', 'nac', 'vp', 'vta', 'scn'], r: 20 },
-      show: ['ifg-amy', 'ofc-nac', 'amy-vp', 'nac-vp', 'vp-vta', 'vta-nac', 'scn-vta'], labels: ['amy', 'nac', 'vta', 'scn'],
-      hud: { dial: true, grid: true, mood: true, clock: true, strip: true },
-      caption: 'Mood is the running total of surprises — and it decays back.' },
-    { title: 'The trigger', dur: 9, state: 'eu', cam: { dir: MED_LOW, fit: ['amy', 'nac', 'vp', 'vta', 'scn'], r: 20 },
-      show: ['ifg-amy', 'ofc-nac', 'amy-vp', 'nac-vp', 'vp-vta', 'vta-nac', 'scn-vta'], focus: ['scn-vta', 'ifg-amy', 'ofc-nac', 'scn', 'vta', 'ifg', 'lofc', 'amy', 'nac'], labels: ['scn', 'vta'],
-      hud: { dial: true, grid: true, mood: true, clock: true, strip: true },
-      caption: 'Sleep loss knocks the midbrain off its clock.',
-      beats: [{ at: 0.4, tween: { clock: [0.3, 4.5], brake: [0.55, 4.5] } }] },
-    { title: 'Mania: the momentum ratchet', dur: 15, state: 'mania', set: { m: 0.12 }, cam: { dir: MED_UP, fit: ['ifg', 'lofc', 'amy', 'nac', 'vta', 'smn', 'dmn'] },
-      show: ['ofc-nac', 'nac-vp', 'vp-vta', 'vta-nac', 'scn-vta', 'ifg-amy'], focus: ['ofc-nac', 'vta-nac', 'scn-vta', 'lofc', 'nac', 'vta'], labels: ['lofc', 'nac'],
-      tags: { 'scn-vta': 'extrapolation' },
-      hud: { dial: true, grid: true, mood: true, seesaw: true }, fx: { bias: true },
-      caption: 'Good news makes the next news look better. The loop runs away.',
-      beats: [{ at: 6, labels: ['smn', 'sal', 'dmn'], caption: 'Sensorimotor and salience networks brighten; the default mode network dims.' }, { at: 11, caption: 'Good news makes the next news look better. The loop runs away.' }] },
-    { title: 'Psychosis spillover', dur: 10, state: 'mania', set: { m: 0.95 }, cam: { dir: MED, fit: ['vta', 'nac', 'sn', 'cd', 'ctx'] },
-      show: ['vta-nac', 'nac-sn', 'sn-cd', 'ctx-cd'], labels: ['nac', 'cd'], tags: { 'nac-sn': 'untested link' }, hud: { dial: true, grid: true, mood: true, tint: true }, inset: 'evidence',
-      caption: 'Same amplifier, overflowing into the associative striatum.',
-      controls: [{ type: 'button', label: 'See it in the psychosis story', do: () => startStory('psy', 8) }],
-      beats: [{ at: 3, token: { icon: 'car', from: 'ctx', to: 'cd', kind: 'neutral', persist: true, flash: 'sn-cd' } }] },
-    { title: 'The switch to depression', dur: 16, state: 'dep', set: { amy: 0.3, m: 0, ev: 0 }, cam: { dir: MED_UP, fit: ['ifg', 'lofc', 'amy', 'nac', 'vta', 'smn', 'dmn'] },
-      show: ['ifg-amy', 'ofc-nac', 'amy-vp', 'nac-vp', 'vp-vta', 'vta-nac'], focus: ['amy-vp', 'vp-vta', 'amy', 'vp', 'vta'], labels: ['amy', 'vp', 'vta'],
-      tags: { 'amy-vp': 'rodent circuit', 'hab-vta': 'speculative' },
-      hud: { dial: true, grid: true, mood: true, seesaw: true, dat: true }, fx: { bias: true },
-      caption: 'A stressor hits the amygdala.',
-      controls: [{ type: 'toggle', var: 'habl', label: 'Habenula layer (speculative)', after: S => S.labelSet.add('hab') }, { type: 'toggle', var: 'ket', label: 'Ketamine' }],
-      beats: [
-        { at: 0.5, token: { icon: 'bolt', from: 'ctx', to: 'amy', kind: 'stress', dur: 1.4 } },
-        { at: 1.8, tween: { amy: [0.9, 2.5] }, caption: 'The amygdala clamps the brake. Rewards stop landing.' },
-        { at: 4, set: { ev: 3 }, focus: null },
-        { at: 8.5, labels: ['dmn', 'smn'], caption: 'Default mode network up (rumination), sensorimotor down (slowing).' },
-        { at: 13, caption: 'The amygdala clamps the brake. Rewards stop landing.' }] },
-    { title: 'Mixed states', free: true, dur: 0, state: 'eu', set: { ev: 0, ps: 1, af: -1, th: -1 }, cam: { dir: MED_UP, fit: ['ifg', 'nac', 'vta', 'smn', 'sal', 'dmn'] },
-      show: [], labels: ['smn', 'sal', 'dmn'], hud: { mixed: true, dial: false, grid: false }, live: 'mixed',
-      caption: 'Three dimensions, each excited or inhibited: eight combinations — two pure states, six mixed.',
-      controls: [
-        { type: 'range', var: 'ps', label: 'Psychomotor', min: -1, max: 1 }, { type: 'range', var: 'af', label: 'Affect', min: -1, max: 1 }, { type: 'range', var: 'th', label: 'Thought', min: -1, max: 1 },
-        { type: 'presets', items: [{ label: 'Mania', set: { ps: 1, af: 1, th: 1 } }, { label: 'Depression', set: { ps: -1, af: -1, th: -1 } }, { label: 'Excited depression', set: { ps: 1, af: -1, th: -1 } }, { label: 'Inhibited mania', set: { ps: -1, af: 1, th: 1 } }] },
-        { type: 'note', html: 'Warm = excited, cool = inhibited, shown on the network that carries each dimension (Martino &amp; Magioncalda 2022). State names follow Kraepelin’s scheme (recalled).' }] },
-    { title: 'Treatment', dur: 14, state: 'mania', set: { m: 0.8, lith: 0, d2: 0, rth: 0 }, cam: { dir: MED_LOW, fit: ['amy', 'nac', 'vp', 'vta', 'scn'], r: 20 },
-      show: ['ifg-amy', 'ofc-nac', 'amy-vp', 'nac-vp', 'vp-vta', 'vta-nac', 'scn-vta'], labels: ['scn', 'nac', 'vta'],
-      hud: { dial: true, grid: true, mood: true, clock: true, strip: true, shields: true }, fx: { bias: true },
-      caption: 'Mania, running.',
-      controls: [{ type: 'toggle', var: 'lith', label: 'Lithium' }, { type: 'toggle', var: 'd2', label: 'Antipsychotic' }, { type: 'toggle', var: 'rth', label: 'Rhythm' }],
-      beats: [
-        { at: 1.5, tween: { lith: [1, 1.5] }, set: { ev: 1 }, caption: 'Lithium: the clock steadies and the loop gains a damper.' },
-        { at: 6, tween: { d2: [1, 1.2] }, caption: 'Antipsychotic: the gain is capped and the ratchet stalls.' },
-        { at: 9.5, tween: { rth: [1, 1.5] }, caption: 'Rhythm: regular sleep and routine stop the creep.' },
-        { at: 12.5, caption: 'Steady the clock, damp the loop, cap the gain.' }] },
-    { title: 'A shared network', dur: 14, state: 'eu', set: { ev: 0 }, cam: { dir: MED_UP, fit: ['ifg', 'lofc', 'amy', 'nac', 'vta', 'smn', 'dmn', 'sal'] },
-      show: [], labels: ['sal', 'acc', 'amy', 'nac'], hud: { yeo: 4 },
-      inset: EVIDENCE_HTML('Evidence', 'Segal 2023: 1,294 people with attention-deficit/hyperactivity disorder, autism, bipolar disorder, depression, obsessive-compulsive disorder or schizophrenia. The salience–ventral attention system was implicated across diagnoses.'),
-      caption: 'Painted purple: the salience–ventral attention network (Yeo 2011).',
-      controls: [{ type: 'button', label: 'See: different lesions, same circuit', do: () => startStory('psy', 12) }],
-      beats: [{ at: 3.5, caption: 'Across six diagnoses, individual abnormalities most often fell within this one system.' },
-        { at: 8, caption: 'Bipolar disorder and schizophrenia both land here: the network that flags what matters.' }] },
-    { title: 'Side by side', dur: 16, state: 'eu', set: { ev: 0 }, fx: { swing: true }, cam: { dir: MED, fit: ['vta', 'nac', 'sn', 'cd'] },
-      show: ['vta-nac', 'nac-sn', 'sn-cd'], labels: ['nac', 'cd'], hud: { dial: true, grid: true, tint: true }, inset: 'compare',
-      caption: 'Stuck gain, wrong territory. Swinging gain, right territory.' },
-  ] },
 ];
 
-// ---------------------------------------------------------------- affective, one step at a time
-// Sequential version of the mood story. Rules (storyboard: "Mood, one step at a time"):
-// one idea per step; a step adds or changes one thing (two at most); everything introduced earlier stays as dim, still context;
-// instruments follow the same hidden → context → focus rule; the camera holds still; the learner presses Next.
-const AF_EU = { cg: 1, clock: 1, brake: 1, amy: 0.3, ag: 0.3, m: 0, lith: 0, rth: 0, stream: 0 };
-const AF_MANIA = { ...AF_EU, cg: 0.3, clock: 0.3, brake: 0.55 };
-const AF_DEP = { ...AF_EU, amy: 0.9, ag: 0.9, brake: 0.55 };
-const afStep = (title, o) => { const { base, ...rest } = o; return { title, dur: 4.5, ...rest, set: { ...(base || AF_EU), ...(o.set || {}) } }; };
-// An outcome travels orbitofrontal → accumbens. r is the objective outcome (coin = win, cloud = letdown).
-// On arrival: felt value = r + bias × mood; positive surprises are scaled by dopamine gain, letdowns by a weight
-// that grows with amygdala drive (0.6 → 1.2). Mood integrates the felt surprise. Token size = felt surprise; dashed ring = the same outcome at baseline.
-function afOutcome(S, r, o = {}) {
-  S.spawn({ icon: r >= 0 ? 'coin' : 'cloud', from: 'lofc', to: 'nac', via: [[-18, 20, -13]], dur: o.dur || 1.3, life: o.life ?? 1.8, kind: r >= 0 ? 'rewardPos' : 'rewardNeg',
-    onArrive: (S2, tk) => {
-      const mm = S2.def.model(S2.vars, S2), V = S2.vars, felt = r + mm.b * V.m;
-      const d = felt > 0 ? felt * (0.3 + 1.2 * mm.eff) : felt * (0.6 + 0.6 * mm.amyN);
-      if (!o.noMood) { V.m = Math.max(-1, Math.min(1, V.m * 0.93 + 0.55 * d)); S2.kick = performance.now(); }
-      tk.target = 0.6 + Math.min(1.4, 2.4 * Math.abs(d)); tk.kind = felt >= 0 ? 'rewardPos' : 'rewardNeg';
-      if (S2.fx.ghost) tk.ghost = 0.6 + Math.min(1.4, 2.4 * Math.abs(r > 0 ? r * 0.78 : r * 0.6));
-      S2.flashEdge('vta-nac', cl01(Math.abs(d) * 1.8 + 0.25), d < 0);
-    } });
-}
-const afWin = (r, o) => S => afOutcome(S, r, o);
-// Every stream replays the same zero-mean run of outcomes, so euthymia, mania and depression face the same world;
-// only how it is felt differs.
-const AF_SEQ = [0.3, -0.25, 0.15, -0.35, 0.25, -0.1, 0.35, -0.2, 0.05, -0.15, 0.2, -0.3];
+const STORIES = [
+{ ...PSY_BASE, id: 'net', name: 'Network view (advanced)', color: '#b48cff',
+  desc: 'For after the series: frontostriatal coupling across the gradient, which faults come first, different lesions in the same circuit, and spread along the wiring. Five scenes.',
+  scenes: PSY_SCENES.slice(10).map(sc => ({ ...sc, chapter: sc.chapter === 'Free play' ? 'Free play' : 'Network' })) },
+];
 
-STORIES.splice(1, 0, { id: 'affs', name: 'Mood, one step at a time', color: '#9be38a', hemi: 'L', view: MED_LOW, steps: true,
-  desc: 'How a mood episode builds, in 37 short steps you move through yourself: one idea, one change at a time.',
-  cam: { dir: [-0.9, -0.6, 0.15], fit: ['lofc', 'nac', 'vta', 'vp', 'scn', 'amy', 'ifg'], r: 12, pad: 5 },
-  hl: { out: '#ffb877', nac: '#ffe08a', da: '#ffd34d', mood: '#ffffff', bias: '#ffb454', vp: '#8fcbff', clock: '#5fe0d8', ctl: '#c9adff', amy: '#ff8a7a', mania: '#ffb454', dep: '#8fb8ff', lith: '#a8eb98' },
-  nodes: {
-    lofc: { key: 'Lateral_orbital_gyrus', mni: [-24, 28, -17], ghost: true, label: 'Orbitofrontal cortex' },
-    nac:  { key: 'Nucleus_accumbens', label: 'Accumbens' },
-    vta:  { key: 'VTA', label: 'Ventral tegmental area' },
-    vp:   { key: 'Ventral_pallidum', label: 'Ventral pallidum', lo: [0, 12] },
-    scn:  { key: 'Hypothalamus', mni: [-2, 2, -12], label: 'Body clock (suprachiasmatic)', r: 1.2, dot: '#3fd0c9', lo: [0, 12] },
-    ifg:  { key: 'Inferior_frontal_gyrus', mni: [-40, 26, -4], ghost: true, label: 'Ventrolateral prefrontal' },
-    amy:  { key: 'Amygdala', label: 'Amygdala', lo: [0, 12] },
-    src:  { mni: [-44, 6, -30], noDot: true },
-  },
-  edges: [
-    { id: 'ofc-nac', from: 'lofc', to: 'nac', via: [[-18, 20, -13]], sign: '+', ev: 'human', act: () => 0.45 },
-    { id: 'vta-nac', from: 'vta', to: 'nac', via: [[-6, -4, -12]], sign: 'da', ev: 'human', act: m => m.pop },
-    { id: 'vp-vta', from: 'vp', to: 'vta', via: [[-9, -7, -10]], sign: '-', ev: 'rodent', act: m => m.vpB },
-    { id: 'scn-vta', from: 'scn', to: 'vta', via: [[-3, -8, -12]], sign: 'clock', ev: 'rodent', act: m => m.clockEff },
-    { id: 'ifg-nac', from: 'ifg', to: 'nac', via: [[-26, 20, -4]], sign: 'ctl', ev: 'human', act: m => m.brake },
-    { id: 'amy-vp', from: 'amy', to: 'vp', via: [[-17, 0, -14]], sign: '+', ev: 'rodent', act: m => m.amyN },
-  ],
-  vars: { ...AF_EU },
-  states: [],
-  // cg / ag: the clock's and the amygdala's effect on the dopamine neurons. They are tweened a step after the
-  // clock and amygdala themselves (clock, amy), so cause and effect arrive in separate steps.
-  model(v, S) {
-    const anchor = 0.55 * v.rth + 0.45 * v.lith;
-    const grip = Math.min(1, v.cg + (1 - v.cg) * anchor), clockEff = Math.min(1, v.clock + (1 - v.clock) * anchor);
-    const amyN = cl01((v.amy - 0.3) / 0.6), agN = cl01((v.ag - 0.3) / 0.6);
-    const pop = Math.min(0.95, Math.max(0.05, 0.4 + 0.5 * (1 - grip) * (1 - 0.4 * v.lith) - 0.32 * agN));
-    const day = (S && S.sim && S.sim.day) || 0;
-    return { grip, clockEff, amyN, pop, eff: pop, popShow: cl01(pop + 0.09 * Math.sin(day * Math.PI * 2) * grip),
-      vpB: cl01(0.45 + 0.5 * amyN), b: cl01((0.2 + 1.55 * (1 - v.brake)) * (1 - 0.55 * v.lith)), brake: v.brake, m: v.m };
-  },
-  gauge: { gain: m => m.eff, pop: m => m.popShow },
-  gridAt: 'vta', biasTo: 'nac',
-  biasW: m => 0.12 + 0.88 * m.b,
-  salience(kind) { return kind === 'stress' ? 1.35 : 1; },
-  tick(dt, v, m, S) {
-    const sim = S.sim;
-    sim.day = (sim.day || 0) + dt * (0.22 + 0.6 * (1 - m.clockEff));
-    if (S.fx.swing) {
-      const ph = S.t * 0.42, up = Math.max(0, Math.sin(ph)), dn = Math.max(0, -Math.sin(ph));
-      v.m = 0.85 * Math.sin(ph); v.clock = v.cg = 1 - 0.7 * up; v.amy = v.ag = 0.3 + 0.6 * dn; return;
-    }
-    if (!S.fx.hold) v.m -= v.m * dt * (0.22 + 0.4 * v.lith);          // mood relaxes towards baseline; lithium speeds the return
-    if (S.fx.sleepLoop && v.m > 0.5) { const d = dt * 0.07 * (v.m - 0.4); v.clock = Math.max(0.06, v.clock - d); v.cg = Math.max(0.06, v.cg - d); }
-    if (v.stream > 0.5) { sim.next = (sim.next ?? 0.6) - dt; if (sim.next <= 0) { sim.next = 0.85; sim.k = (sim.k || 0) + 1; afOutcome(S, AF_SEQ[(sim.k - 1) % AF_SEQ.length], { dur: 0.9, life: 0.5 }); } }
-  },
-  look(m, S) {
-    const day = S.sim.day || 0;
-    return {
-      Nucleus_accumbens: { glow: 0.2 + 0.55 * cl01((m.pop - 0.1) / 0.8), ec: '#ffd34d' },
-      VTA: { glow: 0.15 + 0.8 * cl01((m.pop - 0.05) / 0.85), ec: '#ffd34d' },
-      Ventral_pallidum: { glow: 0.2 + 0.7 * m.vpB, ec: '#7cc4ff' },
-      Hypothalamus: { glow: 0.2 + 0.4 * (0.5 + 0.5 * Math.sin(day * Math.PI * 2)) * m.clockEff, ec: '#3fd0c9' },
-      Inferior_frontal_gyrus: { glow: 0.12 + 0.5 * m.brake, ec: '#b48cff' },
-      Lateral_orbital_gyrus: { glow: 0.3, ec: '#ff9f43' },
-      Amygdala: { heat: m.amyN, glow: 0.12 + 0.7 * m.amyN, ec: '#ff6b5b' },
-    };
-  },
-  keyExtra: `<div class="t">Outcomes</div><div class="note">Coin = a win, cloud = a letdown: what actually happened. The rim on arrival shows how it was felt (gold = good, blue = bad) and its size shows how hard. The dashed ring is how the same outcome lands at baseline.</div>
-    <div class="t">Mood bar and arrows</div><div class="note">The mood bar is the running total of felt surprises. The arrow from the mood bar is mood bias: how strongly mood colours the next outcome. The dashed teal arrow is mania cutting sleep.</div>
-    <div class="t">Dim versus bright</div><div class="note">Bright and labelled = this step. Dim and still = introduced earlier, kept for context.</div>`,
-  scenes: [
-    afStep('How to use this', { dur: 1, caption: 'How a mood episode builds, one step at a time. Press {Next|out} (or the right arrow key) to move on.' }),
-
-    afStep('1 · Mood keeps score', { add: ['lofc', 'nac', 'ofc-nac'], ev: 'human imaging',
-      caption: 'Something good happens. The {orbitofrontal cortex|out} passes the outcome to the {accumbens|nac}.',
-      beats: [{ at: 1, do: afWin(0.35, { noMood: true }) }] }),
-    afStep('1 · Mood keeps score', { add: ['vta', 'vta-nac'], ev: 'monkey recordings',
-      caption: '{Dopamine neurons|da} in the ventral tegmental area fire a burst: better than expected. That burst is a {prediction error|da}.',
-      beats: [{ at: 1, do: afWin(0.35, { noMood: true }) }] }),
-    afStep('1 · Mood keeps score', { focus: ['vta', 'vta-nac'], ev: 'monkey recordings',
-      caption: 'A letdown. The same neurons {dip|da} below their resting rate: worse than expected.',
-      beats: [{ at: 1, do: afWin(-0.3, { noMood: true }) }] }),
-    afStep('1 · Mood keeps score', { add: ['@mood'], fx: { hold: true }, ev: 'human experiments',
-      caption: '{Mood|mood} keeps a running total of these surprises. A win nudges it up.',
-      beats: [{ at: 1, do: afWin(0.6) }] }),
-    afStep('1 · Mood keeps score', { focus: ['@mood'], set: { m: 0.26 }, dur: 6, ev: 'human experiments',
-      caption: 'Left alone, {mood|mood} drifts back to baseline.' }),
-    afStep('1 · Mood keeps score', { focus: ['@mood', 'ofc-nac'], set: { stream: 1 }, dur: 8, ev: 'model',
-      caption: 'An ordinary run of ups and downs: {mood|mood} wobbles, then settles. This is euthymia.' }),
-    afStep('1 · Mood keeps score', { add: ['@bias'], focus: ['@bias', '@mood'], set: { m: 0.4 }, fx: { hold: true }, ev: 'human experiments',
-      caption: 'Mood also colours the next outcome. In a good mood, a win lands a little bigger. This is {mood bias|bias}.',
-      beats: [{ at: 1.2, do: afWin(0.35) }] }),
-    afStep('1 · Mood keeps score', { focus: ['@bias', 'ofc-nac'], set: { m: 0.4 }, fx: { hold: true, ghost: true }, ev: 'model',
-      caption: 'The dashed ring shows how the same win lands at baseline. Here the {bias|bias} is weak, so the gap is small.',
-      beats: [{ at: 1, do: afWin(0.35) }] }),
-    afStep('1 · Mood keeps score', { recap: true, dur: 2,
-      caption: '{Outcome|out} → {dopamine surprise|da} → {mood|mood} → {bias|bias} on the next outcome. A loop, but a gentle one.' }),
-
-    afStep('2 · What keeps it gentle', { add: ['@grid'], focus: ['@grid', 'vta'], ev: 'rat recordings',
-      caption: 'How hard each surprise lands depends on how many {dopamine neurons|da} are awake. Call that the {gain|da}.' }),
-    afStep('2 · What keeps it gentle', { add: ['vp', 'vp-vta'], ev: 'rat recordings',
-      caption: 'The {ventral pallidum|vp} keeps most of them quiet. It is a {brake|vp} on the gain.' }),
-    afStep('2 · What keeps it gentle', { add: ['scn', 'scn-vta', '@clock'], focus: ['scn', 'scn-vta', '@clock', '@grid'], dur: 7, ev: 'mouse studies',
-      caption: 'The {body clock|clock} sets their daily rhythm: more of them awake by day, fewer by night.' }),
-    afStep('2 · What keeps it gentle', { add: ['ifg', 'ifg-nac'], focus: ['ifg', 'ifg-nac', '@bias'], set: { m: 0.4 }, fx: { hold: true }, ev: 'proposed link',
-      caption: 'The {ventrolateral prefrontal cortex|ctl} keeps {mood bias|bias} weak, so one good day doesn’t inflate the next.' }),
-    afStep('2 · What keeps it gentle', { recap: true, dur: 2,
-      caption: 'The {pallidum|vp} and the {clock|clock} hold the gain steady. The {prefrontal cortex|ctl} keeps the bias weak.' }),
-
-    afStep('3 · Mania: the loop runs up', { focus: ['scn', 'scn-vta', '@clock'], ev: 'mice, plus clinical observation',
-      caption: 'Nights get short. The {body clock|clock} loses its grip on the dopamine neurons.',
-      beats: [{ at: 0.6, tween: { clock: [0.3, 3] } }] }),
-    afStep('3 · Mania: the loop runs up', { focus: ['@grid', 'vta'], set: { clock: 0.3 }, ev: 'mouse studies',
-      caption: 'Freed from the rhythm, more of them wake. The {gain|da} climbs.',
-      beats: [{ at: 0.5, tween: { cg: [0.3, 3] } }] }),
-    afStep('3 · Mania: the loop runs up', { focus: ['ifg', 'ifg-nac', '@bias'], set: { clock: 0.3, cg: 0.3, m: 0.4 }, fx: { hold: true }, ev: 'human sleep-loss imaging',
-      caption: 'Sleep loss also weakens the {prefrontal brake|ctl}, so {mood bias|bias} grows stronger.',
-      beats: [{ at: 0.5, tween: { brake: [0.55, 3] } }] }),
-    afStep('3 · Mania: the loop runs up', { base: AF_MANIA, focus: ['ofc-nac', '@mood'], set: { m: 0 }, fx: { hold: true, ghost: true }, ev: 'model',
-      caption: 'Now a win lands hard: high gain carries it well past its baseline ring.',
-      beats: [{ at: 1, do: afWin(0.3) }] }),
-    afStep('3 · Mania: the loop runs up', { base: AF_MANIA, focus: ['@bias', '@mood'], set: { m: 0.2 }, fx: { hold: true, ghost: true }, ev: 'model',
-      caption: 'And the higher mood makes the next win feel bigger still.',
-      beats: [{ at: 1, do: afWin(0.3) }] }),
-    afStep('3 · Mania: the loop runs up', { base: AF_MANIA, focus: ['ofc-nac', '@mood'], set: { m: 0.5, stream: 1 }, dur: 8, ev: 'model (Eldar 2016)',
-      caption: 'Each win feeds the next. Momentum builds into {mania|mania}.' }),
-    afStep('3 · Mania: the loop runs up', { base: AF_MANIA, focus: ['ofc-nac'], set: { m: 0.85 }, fx: { hold: true, ghost: true }, ev: 'model',
-      caption: 'Now even a letdown lands as a win.',
-      beats: [{ at: 1, do: afWin(-0.2) }] }),
-    afStep('3 · Mania: the loop runs up', { base: AF_MANIA, add: ['@loop'], focus: ['@loop', '@clock'], set: { m: 0.9 }, fx: { hold: true, sleepLoop: true }, dur: 6, ev: 'clinical observation',
-      caption: 'Mania cuts sleep, which loosens the {clock|clock} further. The circle closes.' }),
-    afStep('3 · Mania: the loop runs up', { base: AF_MANIA, recap: true, set: { m: 0.9 }, fx: { hold: true }, dur: 2,
-      caption: '{Short nights|clock} → {gain up|da} and {bias up|bias} → wins compound → less sleep. That is {mania|mania}.' }),
-
-    afStep('4 · Depression: the loop runs down', { add: ['amy'], ease: 1.2, dur: 5, ev: 'rat studies',
-      caption: 'Back to baseline. Now a heavy stressor hits the {amygdala|amy}.',
-      beats: [{ at: 1.4, token: { icon: 'bolt', from: 'src', to: 'amy', kind: 'stress', dur: 1.3 } }, { at: 2.6, tween: { amy: [0.9, 1.8] } }] }),
-    afStep('4 · Depression: the loop runs down', { add: ['amy-vp'], focus: ['amy', 'amy-vp', 'vp', 'vp-vta'], set: { amy: 0.9 }, ev: 'rat studies',
-      caption: 'The amygdala drives the {ventral pallidum|vp}, tightening the brake.' }),
-    afStep('4 · Depression: the loop runs down', { focus: ['@grid', 'vta'], set: { amy: 0.9 }, ev: 'rat studies',
-      caption: 'Fewer dopamine neurons stay awake. The {gain|da} falls.',
-      beats: [{ at: 0.5, tween: { ag: [0.9, 3] } }] }),
-    afStep('4 · Depression: the loop runs down', { focus: ['ofc-nac', '@mood'], set: { amy: 0.9, ag: 0.9 }, fx: { hold: true, ghost: true }, ev: 'patient studies',
-      caption: 'Wins barely register now, falling short of their baseline ring. This is {anhedonia|dep}.',
-      beats: [{ at: 1, do: afWin(0.3) }] }),
-    afStep('4 · Depression: the loop runs down', { focus: ['ofc-nac', '@mood'], set: { amy: 0.9, ag: 0.9, m: 0.06 }, fx: { hold: true, ghost: true }, ev: 'model',
-      caption: 'Letdowns still land in full, so {mood|mood} starts to sink.',
-      beats: [{ at: 1, do: afWin(-0.3) }] }),
-    afStep('4 · Depression: the loop runs down', { focus: ['ifg', 'ifg-nac', '@bias'], set: { amy: 0.9, ag: 0.9, m: -0.12 }, fx: { hold: true }, ev: 'human imaging',
-      caption: 'The {prefrontal brake|ctl} weakens here too, so a low mood darkens the next outcome.',
-      beats: [{ at: 0.5, tween: { brake: [0.55, 3] } }] }),
-    afStep('4 · Depression: the loop runs down', { base: AF_DEP, focus: ['ofc-nac', '@mood'], set: { m: -0.15, stream: 1 }, dur: 9, ev: 'model',
-      caption: 'Each letdown feeds the next. Momentum builds into {depression|dep}.' }),
-    afStep('4 · Depression: the loop runs down', { base: AF_DEP, recap: true, set: { m: -0.85 }, fx: { hold: true }, dur: 2,
-      caption: '{Stress|amy} → {pallidal brake on|vp} → {gain down|da} → wins fade, letdowns compound. That is {depression|dep}.' }),
-
-    afStep('5 · One loop, two directions', { focus: ['@mood', '@grid'], fx: { swing: true }, dur: 15, ev: 'model',
-      caption: 'One loop, pushed either way. A loose {clock|clock} pushes the gain up; {stress|amy} pushes it down.' }),
-    afStep('5 · One loop, two directions', { focus: ['@bias', 'ifg', 'ifg-nac'], set: { m: 0.4, brake: 0.55 }, fx: { hold: true }, ev: 'computational proposal',
-      caption: 'One proposal: in bipolar disorder the {mood bias|bias} runs strong, so either push can snowball.' }),
-
-    afStep('6 · Steadying the loop', { base: AF_MANIA, focus: ['scn', 'scn-vta', '@clock', '@grid'], set: { m: 0.85 }, fx: { hold: true }, dur: 5, ev: 'clinical trial',
-      caption: 'Regular sleep and daily routine re-anchor the {body clock|clock}, and the gain settles.',
-      beats: [{ at: 0.6, tween: { rth: [1, 3] } }] }),
-    afStep('6 · Steadying the loop', { base: AF_MANIA, focus: ['@mood', '@bias'], set: { m: 0.85, rth: 1 }, dur: 6, ev: 'model; lithium–clock link in mice',
-      caption: '{Lithium|lith} steadies the clock and, in this model, damps the loop so {mood|mood} settles faster.',
-      beats: [{ at: 0.6, tween: { lith: [1, 2] } }] }),
-    afStep('6 · Steadying the loop', { base: AF_MANIA, recap: true, set: { m: 0, rth: 1, lith: 1 }, dur: 2,
-      caption: 'Anchor the {clock|clock}, keep the {bias|bias} weak, and the loop is gentle again.' }),
-  ],
-});
-
-// ---------------------------------------------------------------- affective disruption, version 2 (first in the Animated stories list)
+// ---------------------------------------------------------------- Part 5 · How mania builds (affective disruption, version 2)
 // One idea per beat. The story builds a single loop (outcome → surprise → mood → tint → back to outcome) with two brakes
 // (prefrontal check, nightly reset), then walks a manic episode through that loop, then treatment, then the reverse pole.
 // The loop card (inset) and the brain show the same thing: the highlighted station is the spotlighted structure.
@@ -1661,7 +1278,7 @@ const EV = {
   dep: 'In rats, chronic mild stress cut dopamine neuron population activity through a basolateral amygdala → ventral pallidum pathway (Chang &amp; Grace 2014, retrieved earlier). Rodent circuit, low confidence for humans. Bipolar depression shows raised striatal dopamine transporter (Ashok 2017).',
 };
 
-STORIES.unshift({ id: 'aff2', name: 'Affective disruption v2: how mania builds', color: '#ff9f43', hemi: 'L', view: MED_LOW, reveal: true, noStates: true, shell: '#7a8494',
+STORIES.push({ id: 'aff2', name: 'Part 5 · How mania builds', color: '#ff9f43', hemi: 'L', view: MED_LOW, reveal: true, noStates: true, shell: '#7a8494',
   desc: 'A slower, one-idea-at-a-time telling: the mood loop and its two brakes, what bipolar disorder changes, how a lost night tips it into mania, and how treatment turns it down. Twenty short scenes.',
   keyIntro: '<div class="t">The mood loop card</div><div class="note">Outcome → surprise (dopamine burst) → mood → tint, back to the next outcome. Two brakes: prefrontal check and nightly reset. The dot travelling round the ring is the outcome you are watching in the brain. Coin sizes, tank level and the × number are illustrative units.</div>',
   nodes: {
@@ -1852,7 +1469,7 @@ STORIES.unshift({ id: 'aff2', name: 'Affective disruption v2: how mania builds',
     { title: 'At the peak: psychosis', chapter: 'Mania', dur: 19, state: 'mania', set: { m: 1, spill: 0, leak: 0 }, cam: CAM2.spill,
       see: ['nac', 'vta', 'sn', 'cd'], show: ['vta-nac', 'nac-sn', 'sn-cd'], labels: ['nac', 'cd'], tags: { 'nac-sn': 'untested link' }, fx: { spot: 'cd' }, hud: { tint: true },
       kicker: 'Overflow', caption: 'Push the gain high enough and dopamine spills up into the associative striatum.', ev: EV.spill,
-      controls: [{ type: 'button', label: 'See aberrant salience in the psychosis story', do: () => startStory('psy', 8) }],
+      controls: [{ type: 'button', label: 'See the highlighter in Part 3', do: () => startStory('p3', 4) }],
       beats: [
         { at: 1, tween: { spill: [1, 3.5] } },
         { at: 8, show: ['vta-nac', 'nac-sn', 'sn-cd', 'ctx-cd'], kicker: 'Psychosis', caption: 'Neutral things start to feel loaded with meaning. Grandiose or persecutory delusions ride on top.',
@@ -1892,6 +1509,287 @@ STORIES.unshift({ id: 'aff2', name: 'Affective disruption v2: how mania builds',
         { at: 18.5, fx: { hi: null, spot: null }, relabel: [], kicker: null, caption: 'Same loop, opposite pole. That is what makes the illness bipolar.' }] },
   ],
 });
+
+// ================= the linear series: shared parts =================
+// Psychosis and mood, step by step: eight parts, each one mental model carried by one side card, one idea per beat.
+// Storyboard: Claude Doc "Psychosis and mood circuits: checked pathways and animation storyboard", tab "Linear series plan"
+// and one sub-tab per part. Part 5 is the affective v2 story (content_story_aff2.js).
+const doi = d => `<a href="https://doi.org/${d}" target="_blank" rel="noopener">DOI</a>`;
+const SERIES = [
+  { id: 'p1', n: 1, short: 'Where it starts', col: '#ff7a6b' },
+  { id: 'p2', n: 2, short: 'The chain of brakes', col: '#ffb454' },
+  { id: 'p3', n: 3, short: 'When everything matters', col: '#ffd34d' },
+  { id: 'p4', n: 4, short: 'What goes missing', col: '#8fc2ff' },
+  { id: 'aff2', n: 5, short: 'How mania builds', col: '#ff9f43' },
+  { id: 'p6', n: 6, short: 'One trunk, three illnesses', col: '#c49bff' },
+  { id: 'p7', n: 7, short: 'When movement locks', col: '#7fe0d0' },
+  { id: 'p8', n: 8, short: 'Turning it down', col: '#9fd3ff' },
+];
+const SERIES_GLYPH = {
+  p1: '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v4.5M12 17v4.5M2.5 12H7M17 12h4.5M5.3 5.3l3.1 3.1M15.6 15.6l3.1 3.1M18.7 5.3l-3.1 3.1"/>',
+  p2: '<rect x="2" y="8.5" width="11" height="7" rx="3.5"/><rect x="11" y="8.5" width="11" height="7" rx="3.5"/>',
+  p3: '<path d="M5 19l2.6-.8L18.5 7.3l-2-2L5.8 16.4z"/><path d="M14.6 7.2l2.1 2.1M3.5 21.5h9"/>',
+  p4: '<circle cx="12" cy="12" r="7.5" stroke-dasharray="2.6 2.6"/>',
+  aff2: '<path d="M18.5 8.5a7.5 7.5 0 1 0 1 5.5"/><path d="M19.5 3.5v5h-5"/>',
+  p6: '<path d="M12 21.5v-8.5M12 13L5.5 5.5M12 13l6.5-7.5M12 13V3.5"/>',
+  p7: '<circle cx="12" cy="4.8" r="2.5"/><path d="M12 7.8v7.4M12 15.2l-2.6 6.3M12 15.2l2.6 6.3M7 10.5h10"/>',
+  p8: '<g transform="rotate(-40 12 12)"><rect x="3" y="8.5" width="18" height="7" rx="3.5"/><path d="M12 8.5v7"/></g>',
+};
+const seriesItem = id => SERIES.find(p => p.id === id);
+const seriesNext = id => { const i = SERIES.findIndex(p => p.id === id); for (let j = i + 1; j < SERIES.length; j++) if (STORIES.some(s => s.id === SERIES[j].id)) return SERIES[j]; return null; };
+// last-scene button: on to the next built part
+const nextPart = id => { const nx = seriesNext(id); return nx ? [{ type: 'button', label: `Next: Part ${nx.n} · ${nx.short} ›`, do: () => startStory(nx.id) }] : []; };
+
+// opening card of every part: eight icons, the current one lit, parts not yet built drawn dashed
+function seriesInset(S) {
+  const cur = seriesItem(S.def.id) || SERIES[0], x = i => 22 + i * 38.3;
+  const icons = SERIES.map((p, i) => {
+    const built = STORIES.some(s => s.id === p.id), on = p.id === cur.id, past = p.n < cur.n;
+    const col = on ? p.col : built ? '#8d9bad' : '#4a5462';
+    return `<g opacity="${on ? 1 : past ? 0.75 : built ? 0.55 : 0.4}"><circle cx="${x(i).toFixed(1)}" cy="22" r="${on ? 15 : 12.5}" fill="${on ? 'rgba(255,255,255,0.06)' : '#0d141d'}" stroke="${col}" stroke-width="${on ? 2.4 : 1.5}" ${built ? '' : 'stroke-dasharray="3 3"'}/>
+      <g transform="translate(${(x(i) - (on ? 9 : 7.5)).toFixed(1)} ${on ? 13 : 14.5}) scale(${on ? 0.75 : 0.625})" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${SERIES_GLYPH[p.id]}</g>
+      <text x="${x(i).toFixed(1)}" y="48" text-anchor="middle" class="${on ? 'lab' : 'sub'}" ${on ? `fill="${p.col}"` : ''}>${p.n}</text></g>`;
+  }).join('');
+  const html = `<div class="t lt"><span>Psychosis and mood, step by step</span><b>Part ${cur.n} of 8</b></div>
+    <svg viewBox="0 0 312 62" class="cardsvg"><line x1="22" y1="22" x2="290" y2="22" stroke="#3a4452" stroke-width="2"/>${icons}
+      <text x="156" y="60" text-anchor="middle" class="lab" fill="${cur.col}">${cur.short}</text></svg>`;
+  return { html };
+}
+
+// show / dim / hide named groups inside a card: fx.<show> lists what has been introduced, fx.<hi> what is in focus
+function cardGroups(prefix, names, show, hi) {
+  const H = hi ? [].concat(hi) : null;
+  for (const nm of names) {
+    const el = document.getElementById(prefix + nm); if (!el) continue;
+    const on = !show || show.includes(nm);
+    el.classList.toggle('off', !on); el.classList.toggle('dim', on && !!H && !H.includes(nm));
+  }
+}
+const setText = (el, t) => { if (el && el.textContent !== t) el.textContent = t; };
+const setAttrs = (el, o) => { if (el) for (const [k, v] of Object.entries(o)) el.setAttribute(k, typeof v === 'number' ? v.toFixed(2) : v); };
+// deterministic 0–1 hash, for animation that must look random but repeat identically
+const hash01 = (a, b = 0) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
+
+// ---------------------------------------------------------------- Part 1 · Where it starts: the overworked interneuron
+// Mental model: the parvalbumin interneuron is the hippocampus's metronome and brake. It fires fast all day, which is
+// expensive, so it runs near its energy and antioxidant limits. Many roads push it over: it dims rather than dies,
+// the rhythm frays and the brake weakens. The microscope card carries the cell scale; the brain shows the hippocampus.
+// Model, illustrative units: drive = NMDA receptor input; reserve = energy left after the firing bill;
+// smoke = superoxide not mopped up by glutathione; output = drive × (1 − dimming) × energy; rhythm and brake follow output.
+
+const MC_GROUPS = ['cells', 'rhythm', 'energy', 'smoke', 'net', 'nmda'];
+function microInset(S) {
+  const PY = [[34, 70], [82, 74], [130, 70]], PV = [238, 62];
+  const pyr = ([x, y], i) => `<g id="mcP${i}">
+      <path d="M${x} ${y - 14} L${x} ${y - 46} M${x} ${y - 32} l-9 -9 M${x} ${y - 25} l8 -8" stroke="#ff9f43" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+      <polygon class="soma" points="${x - 12},${y + 8} ${x},${y - 14} ${x + 12},${y + 8}" fill="rgba(255,159,67,0.16)" stroke="#ff9f43" stroke-width="1.6" stroke-linejoin="round"/>
+      <path class="cup" d="M${x - 15} ${y + 11} Q ${x} ${y + 23} ${x + 15} ${y + 11} M${x} ${y + 17} L${x} 96" stroke="#4aa8ff" stroke-width="2.6" fill="none" stroke-linecap="round"/></g>`;
+  // perineuronal net: two rings of points joined by short segments, each with its own threshold so the mesh frays unevenly
+  const R1 = 19.5, R2 = 26, N = 12, pt = (r, k) => [PV[0] + r * Math.cos(k / N * 2 * Math.PI), PV[1] + r * Math.sin(k / N * 2 * Math.PI)];
+  let seg = '', si = 0;
+  const line = (a, b) => { const th = hash01(si++, 7.3); seg += `<line data-th="${th.toFixed(3)}" x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}"/>`; };
+  for (let k = 0; k < N; k++) { line(pt(R1, k), pt(R1, k + 1)); line(pt(R2, k + 0.5), pt(R2, k + 1.5)); line(pt(R1, k), pt(R2, k + 0.5)); line(pt(R1, k + 1), pt(R2, k + 0.5)); }
+  const mito = [[232, 57], [244, 57], [232, 67], [244, 67]].map(([x, y], i) => `<ellipse class="mito" cx="${x}" cy="${y}" rx="4.2" ry="2.4" transform="rotate(${i % 2 ? -25 : 25} ${x} ${y})" fill="#c9962a" stroke="#ffd34d" stroke-width="0.8"/>`).join('');
+  const puffs = [...Array(8)].map(() => '<circle class="puff" r="3" fill="#ff7a6b" opacity="0"/>').join('');
+  const bar = (y, lab, id, col) => `<text class="sub" x="208" y="${y + 6}">${lab}</text><rect x="252" y="${y}" width="54" height="7" rx="3.5" fill="rgba(141,155,173,0.22)"/><rect id="${id}" x="252" y="${y}" width="54" height="7" rx="3.5" fill="${col}"/>`;
+  const html = `<div class="t lt"><span>Inside the anterior hippocampus</span><b id="mcTag"></b></div>
+  <svg viewBox="0 0 312 152" class="cardsvg" id="mcsvg">
+    <g id="mc-net" class="grp"><g id="mcNet" stroke="#a9e6a0" stroke-width="1.3" stroke-linecap="round">${seg}</g><text class="sub" x="306" y="100" text-anchor="end" fill="#a9e6a0">perineuronal net</text></g>
+    <g id="mc-cells" class="grp">
+      <text class="lab" x="6" y="12">Pyramidal cells</text><text class="sub" x="6" y="22">carry the message</text>
+      ${PY.map(pyr).join('')}
+      <path id="mcBasket" d="M226 74 Q 212 96 186 96 L 20 96" stroke="#4aa8ff" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <path d="M142 78 C 168 84, 196 72, 221 65" stroke="#ff9f43" stroke-width="1.5" fill="none"/>
+      <circle id="mcPV" cx="${PV[0]}" cy="${PV[1]}" r="14" fill="rgba(108,196,255,0.2)" stroke="#6cc4ff" stroke-width="1.8"/>
+      <text class="lab" x="204" y="30" text-anchor="end" fill="#9fd3ff">Parvalbumin</text><text class="lab" x="204" y="40" text-anchor="end" fill="#9fd3ff">interneuron</text>
+    </g>
+    <g id="mc-nmda" class="grp"><rect x="221.5" y="57" width="2.4" height="5" fill="#ff9f43"/><rect x="221.5" y="65" width="2.4" height="5" fill="#ff9f43"/>
+      <circle id="mcPlug" cx="222.7" cy="63.5" r="3.6" fill="#8d9bad" opacity="0"/><text class="sub" x="210" y="54" text-anchor="end" fill="#ffcf9e">NMDA receptors</text></g>
+    <g id="mc-energy" class="grp">${mito}${bar(115, 'Energy', 'mcEn', '#ffd34d')}</g>
+    <g id="mc-smoke" class="grp"><g id="mcPuffs">${puffs}</g><text class="sub" x="262" y="14" fill="#ff9d90">superoxide</text>${bar(132, 'Glutathione', 'mcGsh', '#7fe0a0')}</g>
+    <g id="mc-rhythm" class="grp"><text class="lab" x="6" y="121">Gamma rhythm <tspan class="sub">slowed down</tspan></text><text id="mcRs" class="sub" x="196" y="121" text-anchor="end"></text>
+      <line x1="6" y1="139" x2="196" y2="139" stroke="#3a4452" stroke-width="1"/><polyline id="mcWave" fill="none" stroke="#6cc4ff" stroke-width="1.8" stroke-linejoin="round" points=""/></g>
+  </svg>`;
+  return { html, tick(m, now) {
+    const q = id => document.getElementById(id), fx = S.fx; if (!q('mcsvg')) return;
+    cardGroups('mc-', MC_GROUPS, fx.mc, fx.mhi);
+    setText(q('mcTag'), fx.tag || '');
+    const t = now / 1000, f = 1.4, ph = t * f, cyc = Math.floor(ph), fr = ph - cyc, R = m.rhythm;
+    // interneuron fires a volley at the top of each cycle; the cups (its synapses) pulse with it
+    const pvFire = fr < 0.14 ? (1 - fr / 0.14) * m.out : 0;
+    setAttrs(q('mcPV'), { fill: `rgba(108,196,255,${(0.12 + 0.7 * pvFire).toFixed(2)})`, 'stroke-width': (1.4 + 1.6 * pvFire).toFixed(2) });
+    const cupOp = (0.2 + 0.8 * m.brake) * (0.55 + 0.45 * pvFire);
+    q('mcBasket').setAttribute('opacity', cupOp.toFixed(2)); q('mcBasket').setAttribute('stroke-width', (0.8 + 2.4 * m.brake).toFixed(2));
+    PY.forEach((_, i) => {
+      // locked: each cell fires just after the inhibition lifts; free: at its own random moments, and more often when loud
+      const lockPh = 0.52 + 0.06 * (hash01(cyc, i) - 0.5), freePh = hash01(cyc, i + 9), fire = hash01(cyc, i + 4) < 0.35 + 0.6 * m.pyr;
+      const p = R * lockPh + (1 - R) * freePh, d = Math.abs(fr - p), flash = fire && d < 0.08 ? 1 - d / 0.08 : 0;
+      const g = q('mcP' + i); if (!g) return;
+      g.querySelector('.soma').setAttribute('fill', `rgba(255,159,67,${(0.14 + 0.25 * m.pyr + 0.6 * flash).toFixed(2)})`);
+      g.querySelector('.cup').setAttribute('opacity', cupOp.toFixed(2)); g.querySelector('.cup').setAttribute('stroke-width', (0.8 + 2.2 * m.brake).toFixed(2));
+    });
+    // gamma trace: a clean sine when the cells are in time, an irregular wobble when they are not
+    let pts = '';
+    for (let x = 6; x <= 196; x += 2) {
+      const tt = t - (196 - x) / 95, s = Math.sin(2 * Math.PI * f * tt), nz = 0.55 * Math.sin(2 * Math.PI * 2.3 * tt + 1) + 0.45 * Math.sin(2 * Math.PI * 3.7 * tt + 2) + 0.35 * Math.sin(2 * Math.PI * 0.9 * tt);
+      pts += `${x},${(139 - 10 * (0.45 + 0.55 * R) * (R * s + (1 - R) * 0.75 * nz)).toFixed(1)} `;
+    }
+    setAttrs(q('mcWave'), { points: pts, stroke: mixHex('#c07a7a', '#6cc4ff', R) });
+    setText(q('mcRs'), R > 0.7 ? 'in time' : R > 0.4 ? 'fraying' : 'lost');
+    // energy, superoxide and glutathione
+    q('mcEn').setAttribute('width', (54 * m.reserve).toFixed(1)); q('mcGsh').setAttribute('width', (54 * m.gsh).toFixed(1));
+    q('mcGsh').setAttribute('fill', m.mop > 0.5 ? '#7fe0a0' : '#5d6878');
+    document.querySelectorAll('#mcsvg .mito').forEach((e, i) => e.setAttribute('fill', mixHex('#3a4452', '#e0a83a', cl01(m.reserve * 1.1 + 0.08 * Math.sin(t * 6 + i)))));
+    const nPuff = m.smoke * 8;
+    document.querySelectorAll('#mcPuffs .puff').forEach((c, i) => {
+      const pp = (t * 0.45 + i / 8) % 1, on = i < nPuff - 0.3 ? 1 : i < nPuff + 0.7 ? cl01(nPuff - i + 0.3) : 0;
+      setAttrs(c, { cx: (PV[0] + (hash01(i, 2) - 0.5) * 14 + Math.sin(t * 1.3 + i) * 6 * pp).toFixed(1), cy: (46 - 40 * pp).toFixed(1), r: (2.4 + 3 * pp).toFixed(1), opacity: (on * (0.85 - 0.75 * pp)).toFixed(2) });
+    });
+    // net segments drop out as integrity falls
+    const net = m.net;
+    document.querySelectorAll('#mcNet line').forEach(l => { const th = +l.dataset.th; l.setAttribute('opacity', th < net - 0.03 ? 0.9 : th < net + 0.05 ? 0.35 : 0.05); });
+    q('mcPlug').setAttribute('opacity', (1 - m.nmda).toFixed(2));
+  } };
+}
+
+const P1_CAM = {
+  hp: { dir: [-1, 0.18, 0.32], fit: ['ahp'], r: 26, pad: 18 },
+  hpIn: { dir: [-0.95, 0.1, 0.42], fit: ['ahp', 'ctx'], r: 26, pad: 16 },
+  pfc: { dir: [-0.75, 0.35, 0.65], fit: ['ahp', 'dl'], r: 26, pad: 14 },
+};
+const P1_EV = {
+  series: 'The series follows one chain: interneurons → hippocampus → dopamine → striatum → experience → treatment. Storyboard and sources: Claude Doc "Psychosis and mood circuits", tab "Linear series plan".',
+  novelty: 'The hippocampus compares incoming information with stored expectation and signals novelty, which drives the dopamine loop in Part 2 (Lisman &amp; Grace 2005, from the project research library; confidence moderate).',
+  cells: 'Parvalbumin basket cells synapse on pyramidal cell bodies and control their output and timing (Lewis 2012, review, ' + doi('10.1016/j.tins.2011.10.004') + '; confidence high).',
+  gamma: 'Driving parvalbumin interneurons with light in mice generates gamma rhythm and sharpens circuit signalling (Sohal 2009, ' + doi('10.1038/nature07991') + '; confidence high, animal). 30–80 Hz is the conventional gamma range.',
+  energy: 'Fast-spiking interneurons have high energy demand and many mitochondria, so they are sensitive to metabolic stress (Kann 2014, from the project research library; confidence moderate to high).',
+  smoke: 'Superoxide from NADPH oxidase 2 and mitochondria damages parvalbumin interneurons; glutathione is the main buffer (Behrens 2007, ' + doi('10.1126/science.1148045') + '; Cabungcal 2013, ' + doi('10.1073/pnas.1300454110') + '; confidence high, mouse).',
+  net: 'Perineuronal nets protect parvalbumin interneurons against oxidative stress; glutathione-deficient mice lose both (Cabungcal 2013, ' + doi('10.1073/pnas.1300454110') + '; confidence high, mouse).',
+  genes: 'Schizophrenia risk is polygenic: 287 loci, with GRIN2A (an NMDA receptor subunit) among the prioritised genes (Trubetskoy 2022, ' + doi('10.1038/s41586-022-04434-5') + '). Glutathione-pathway genes and early insults converge on these interneurons in mice (Steullet 2017, ' + doi('10.1038/mp.2017.47') + '). Obstetric complications raise risk (Cannon 2002 meta-analysis, recalled). Confidence moderate: human genetics, animal mechanism.',
+  teen: 'Perineuronal nets mature into adolescence, and redox stress in that window does lasting damage in rodent models (project storyline, link 4; mechanism animal). Confidence low to moderate.',
+  nmda: 'NMDA receptor antagonists quieten interneurons first, releasing pyramidal cells (Homayoun 2007, rat recordings, from the project research library). Ketamine raises NADPH oxidase superoxide and parvalbumin is lost (Behrens 2007, ' + doi('10.1126/science.1148045') + '). Anti-NMDA receptor encephalitis presents with psychosis (Dalmau 2019, ' + doi('10.1016/S1474-4422(19)30244-3') + '). Confidence high for the mechanism in animals.',
+  loop: 'Oxidative stress activates a matrix metalloproteinase-9 / RAGE loop that degrades perineuronal nets and feeds back into more oxidative stress (Dwir 2021, from the project research library; animal). Rates in this card are illustrative.',
+  dim: 'Post-mortem meta-analysis: fewer parvalbumin-positive interneurons detected in prefrontal cortex in schizophrenia, g −0.27 (Kaar 2019, ' + doi('10.1007/s00702-019-02080-2') + '). Bipolar disorder: fewer in the hippocampus (Konradi 2011, ' + doi('10.1001/archgenpsychiatry.2010.175') + '). Lower parvalbumin signal largely reflects reduced expression rather than cell death. Confidence moderate to high. Human ordering (interneurons first, then hippocampus) is not established.',
+};
+const P1_H = { nmda: 1, demand: 0.6, ox: 0.35, mop: 1, gsh: 1, net: 1, dim: 0, loop: 0, nov: 0 };
+
+STORIES.push({ id: 'p1', name: 'Part 1 · Where it starts', color: '#ff7a6b', hemi: 'L', view: [-1, 0.18, 0.32], reveal: true, noStates: true, shell: '#7a8494',
+  desc: 'The series begins with one cell: the fast, expensive interneuron that keeps the hippocampus in time, and the many roads that wear it down. Thirteen short scenes.',
+  keyIntro: '<div class="t">The microscope card</div><div class="note">Triangles are pyramidal cells; the blue circle is a parvalbumin interneuron, its blue cups the synapses on their cell bodies. Green mesh: its perineuronal net. Gold ovals: mitochondria. Red puffs: superoxide. The wave is the gamma rhythm, slowed right down. Bars and rates are illustrative units. The blue dots round the hippocampus in the brain stand for its interneurons.</div>',
+  nodes: {
+    ahp: { key: 'Hippocampus', mni: [-25, -13, -20], label: 'Anterior hippocampus', hot: true, lo: [0, 12] },
+    ctx: { key: 'Middle_and_inferior_temporal_gyrus', ghost: true, label: 'Temporal cortex', noDot: true, nofit: true },
+    dl:  { key: 'Middle_frontal_gyrus', ghost: true, label: 'Prefrontal cortex', nofit: true },
+  },
+  edges: [],
+  ring: 'ahp',
+  vars: { ...P1_H },
+  discrete: ['loop'],
+  states: [{ id: 'h', label: 'Healthy', vars: P1_H }],
+  model(v) {
+    const drive = 0.25 + 0.75 * v.nmda, reserve = cl01(1.1 - 0.6 * v.demand);
+    const out = drive * (1 - 0.8 * v.dim) * (0.7 + 0.3 * reserve);
+    const rhythm = cl01((out - 0.2) / 0.7), brake = out, pyr = cl01(0.25 + 0.6 * (1 - brake));
+    const smoke = cl01(v.ox * (1 - 0.8 * v.mop * v.gsh) * (1.25 - 0.25 * v.net));
+    return { drive, reserve, out, rhythm, brake, pyr, hp: pyr, smoke, gsh: v.gsh, mop: v.mop, net: v.net, nmda: v.nmda, pvEff: out, nov: v.nov };
+  },
+  gauge: { gain: () => 0.4, raw: () => 0.4, pop: () => 0.4 },
+  salience: () => 1,
+  tick(dt, v, m, S) {
+    v.nov *= Math.exp(-dt * 1.4);
+    if (v.loop > 0.5) {
+      // the vicious circle: superoxide frays the net, a frayed net lets in more superoxide
+      if (!S.tweens.some(tw => tw.k === 'net')) v.net = Math.max(0.12, v.net - dt * 0.03 * (0.3 + m.smoke));
+      if (!S.tweens.some(tw => tw.k === 'ox')) v.ox = Math.min(1, v.ox + dt * 0.04 * (1 - v.net));
+    }
+  },
+  look(m, S) {
+    const L = {}, see = S.see || new Set();
+    if (see.has('ahp')) { const heat = cl01((m.hp - 0.3) / 0.45); L.Hippocampus = { col: '#9aa9bb', heat, glow: 0.12 + 0.55 * heat + 0.55 * m.nov, ec: '#ff8a3d' }; }
+    if (S.hud.pfc) L.Middle_frontal_gyrus = { glow: 0.45, ec: '#9fd3ff', op: 0.3 };
+    return L;
+  },
+  insets: { series: seriesInset, micro: microInset },
+  scenes: [
+    { title: 'Today', chapter: 'The cell', dur: 11, state: 'h', cam: P1_CAM.hp, see: [], show: [], labels: [], inset: 'series', fx: {},
+      kicker: 'Part 1', caption: 'Psychosis starts small: in one kind of cell, deep in the temporal lobe.', ev: P1_EV.series,
+      beats: [{ at: 5.5, see: ['ahp'], relabel: ['ahp'], fx: { spot: 'ahp' }, kicker: null, caption: 'This series follows one chain from that cell to the experience of psychosis, then to treatment.' }] },
+    { title: 'The hippocampus', chapter: 'The cell', dur: 17, state: 'h', cam: P1_CAM.hpIn, see: ['ahp'], show: [], labels: ['ahp'], fx: { spot: 'ahp' },
+      kicker: 'Hippocampus', caption: 'The front of the hippocampus compares what is happening with what you expected.', ev: P1_EV.novelty,
+      beats: [
+        { at: 7, kicker: 'Novelty', caption: 'Something new turns up, and it fires.', token: { icon: 'bird', from: 'ctx', to: 'ahp', dur: 2, life: 1.2, sal: () => 1.2, onArrive: S2 => { S2.vars.nov = 1; } } },
+        { at: 12.5, token: { icon: 'bird', from: 'ctx', to: 'ahp', dur: 2, life: 1.2, sal: () => 1.2, onArrive: S2 => { S2.vars.nov = 1; } } }] },
+    { title: 'Who talks, who brakes', chapter: 'The cell', dur: 21, state: 'h', cam: P1_CAM.hp, see: ['ahp'], show: [], labels: [], inset: 'micro', fx: { mc: ['cells'], mhi: null },
+      kicker: 'Two cells', caption: 'Zoom in. Pyramidal cells, the triangles, carry the hippocampus’s message.', ev: P1_EV.cells,
+      beats: [
+        { at: 7, fx: { mhi: 'cells' }, kicker: 'The brake', caption: 'A parvalbumin interneuron wraps their cell bodies in blue cups and holds them quiet.' },
+        { at: 14, hud: { ring: true }, relabel: ['ahp'], fx: { spot: 'ahp' }, kicker: null, caption: 'Many of these brakes sit throughout the hippocampus: the blue dots.' }] },
+    { title: 'Keeping time', chapter: 'The cell', dur: 25, state: 'h', cam: P1_CAM.hp, see: ['ahp'], show: [], labels: [], inset: 'micro', hud: { ring: true }, fx: { mc: ['cells', 'rhythm'], mhi: 'rhythm' },
+      kicker: 'Rhythm', caption: 'It fires in fast volleys. Each volley hushes the pyramidal cells, then lets them go together.', ev: P1_EV.gamma,
+      beats: [
+        { at: 9, caption: 'That pacing is the gamma rhythm: 30 to 80 beats a second, slowed right down here.' },
+        { at: 17, kicker: 'Why it matters', caption: 'Cells that fire in time can hold a thought together. Part 4 comes back to this.' }] },
+    { title: 'The energy bill', chapter: 'The cell', dur: 23, state: 'h', cam: P1_CAM.hp, see: ['ahp'], show: [], labels: [], inset: 'micro', hud: { ring: true }, fx: { mc: ['cells', 'rhythm', 'energy'], mhi: 'energy' },
+      kicker: 'Energy', caption: 'Firing that fast is expensive.', ev: P1_EV.energy,
+      beats: [
+        { at: 4.5, caption: 'These cells are packed with mitochondria, the gold ovals, and run close to their energy limit.' },
+        { at: 12, tween: { demand: [1.05, 2] }, kicker: 'Push it', caption: 'Ask for more and the reserve runs low.' },
+        { at: 18, tween: { demand: [0.6, 2] }, kicker: null, caption: 'Ease off and it recovers. There is little spare.' }] },
+    { title: 'Exhaust', chapter: 'The cell', dur: 24, state: 'h', set: { mop: 0, ox: 0.4 }, cam: P1_CAM.hp, see: ['ahp'], show: [], labels: [], inset: 'micro', hud: { ring: true }, fx: { mc: ['cells', 'rhythm', 'energy', 'smoke'], mhi: 'smoke' },
+      kicker: 'Exhaust', caption: 'Burning that much fuel leaks superoxide, a reactive by-product: the red puffs.', ev: P1_EV.smoke,
+      beats: [
+        { at: 7, tween: { ox: [0.55, 2] }, caption: 'Mitochondria and an enzyme, NADPH oxidase, are the main sources.' },
+        { at: 13, tween: { mop: [1, 2.5], ox: [0.35, 3] }, kicker: 'Glutathione', caption: 'Glutathione mops it up, and the air clears.' }] },
+    { title: 'The net', chapter: 'The cell', dur: 18, state: 'h', set: { net: 0 }, cam: P1_CAM.hp, see: ['ahp'], show: [], labels: [], inset: 'micro', hud: { ring: true }, fx: { mc: MC_GROUPS.filter(g => g !== 'nmda'), mhi: 'net' },
+      kicker: 'The net', caption: 'A perineuronal net wraps the cell: a mesh of sugars and proteins.', ev: P1_EV.net,
+      beats: [{ at: 0.8, tween: { net: [1, 3] } }, { at: 8, caption: 'It shields the cell from oxidative damage.' }] },
+    { title: 'A healthy brake', chapter: 'The cell', dur: 16, state: 'h', cam: P1_CAM.hp, see: ['ahp'], show: [], labels: ['ahp'], inset: 'micro', hud: { ring: true }, fx: { mc: MC_GROUPS.filter(g => g !== 'nmda'), mhi: null, tag: 'Healthy' },
+      kicker: 'Recap', caption: 'Fast, expensive and protected. It keeps the circuit in time, and quiet between beats.', ev: P1_EV.cells },
+
+    { title: 'Door 1: genes and early life', chapter: 'Many roads', dur: 24, state: 'h', cam: P1_CAM.hp, see: ['ahp'], show: [], labels: [], inset: 'micro', hud: { ring: true }, fx: { mc: MC_GROUPS.filter(g => g !== 'nmda'), mhi: 'smoke', tag: 'Under strain' },
+      kicker: 'Door 1', caption: 'Risk genes number in the hundreds. Some touch glutathione, or the NMDA receptor.', ev: P1_EV.genes,
+      beats: [
+        { at: 2, tween: { gsh: [0.62, 3] } },
+        { at: 9, tween: { gsh: [0.48, 3] }, kicker: 'Early life', caption: 'Complications around birth can thin the reserve too.' },
+        { at: 16, kicker: null, caption: 'A thinner buffer still copes on a good day. It just has less margin.' }] },
+    { title: 'Door 2: adolescence', chapter: 'Many roads', dur: 20, state: 'h', set: { gsh: 0.48 }, cam: P1_CAM.hp, see: ['ahp'], show: [], labels: [], inset: 'micro', hud: { ring: true }, fx: { mc: MC_GROUPS.filter(g => g !== 'nmda'), mhi: 'net', tag: 'Under strain' },
+      kicker: 'Door 2', caption: 'In adolescence the net is still maturing.', ev: P1_EV.teen,
+      beats: [
+        { at: 1.5, tween: { net: [0.72, 2.5] } },
+        { at: 8, tween: { ox: [0.62, 3] }, fx: { mhi: 'smoke' }, kicker: 'Stress', caption: 'Stress in that window adds oxidative load.' }] },
+    { title: 'Door 3: NMDA receptor blockers', chapter: 'Many roads', dur: 27, state: 'h', set: { gsh: 0.48, net: 0.72, ox: 0.5 }, cam: P1_CAM.hp, see: ['ahp'], show: [], labels: ['ahp'], inset: 'micro', hud: { ring: true }, fx: { mc: MC_GROUPS, mhi: 'nmda', tag: 'Under strain' },
+      kicker: 'Door 3', caption: 'The interneuron is driven through NMDA receptors.', ev: P1_EV.nmda,
+      beats: [
+        { at: 5.5, tween: { nmda: [0.15, 2] }, fx: { mhi: ['nmda', 'cells', 'rhythm'] }, kicker: 'Blocked', caption: 'Ketamine, phencyclidine or anti-NMDA receptor encephalitis block them. The interneuron goes quiet first.' },
+        { at: 13.5, fx: { spot: 'ahp' }, kicker: null, caption: 'Released, the pyramidal cells fire out of time and the hippocampus heats up.' },
+        { at: 20, tween: { ox: [0.8, 2.5] }, fx: { mhi: 'smoke', spot: null }, kicker: 'More exhaust', caption: 'In mice, ketamine also drives NADPH oxidase: more superoxide.' }] },
+    { title: 'The vicious circle', chapter: 'Many roads', dur: 22, state: 'h', set: { gsh: 0.48, net: 0.72, ox: 0.62, loop: 1 }, cam: P1_CAM.hp, see: ['ahp'], show: [], labels: [], inset: 'micro', hud: { ring: true }, fx: { mc: MC_GROUPS.filter(g => g !== 'nmda'), mhi: ['net', 'smoke'], tag: 'Under strain' },
+      kicker: 'Vicious circle', caption: 'Oxidative stress frays the net…', ev: P1_EV.loop,
+      beats: [
+        { at: 7, caption: '…and a frayed net lets in more stress.' },
+        { at: 14, kicker: null, caption: 'Each turn makes the next one easier.' }] },
+    { title: 'Dimmed, not dead', chapter: 'Many roads', dur: 32, state: 'h', set: { gsh: 0.48, net: 0.32, ox: 0.75, loop: 0 }, cam: P1_CAM.hp, see: ['ahp'], show: [], labels: ['ahp'], inset: 'micro', hud: { ring: true }, fx: { mc: MC_GROUPS.filter(g => g !== 'nmda'), mhi: ['cells', 'rhythm'], tag: 'Dimmed' },
+      kicker: 'Dimmed', caption: 'The cells survive, but lose their parvalbumin signal.', ev: P1_EV.dim,
+      beats: [
+        { at: 1.5, tween: { dim: [0.85, 4] } },
+        { at: 8, fx: { spot: 'ahp' }, kicker: 'The result', caption: 'The rhythm frays, the brake weakens, and the hippocampus gets louder.' },
+        { at: 16, see: ['dl'], cam: P1_CAM.pfc, hud: { pfc: true }, relabel: ['ahp', 'dl'], fx: { spot: null }, kicker: 'Evidence', caption: 'Post-mortem, parvalbumin is lower in prefrontal cortex in schizophrenia, and in hippocampus in bipolar disorder.' },
+        { at: 24.5, kicker: 'Next', caption: 'This can begin years before psychosis. Part 2: what a loud hippocampus does to dopamine.' }] },
+  ],
+});
+
+// ---------------------------------------------------------------- the series: list order and part-to-part buttons
+// Loaded last. The Stories list shows the eight parts in order, then the network view; each part's last scene
+// gets a button on to the next part that exists.
+{
+  const order = [...SERIES.map(p => p.id), 'net'];
+  STORIES.sort((a, b) => (order.indexOf(a.id) + 1 || 99) - (order.indexOf(b.id) + 1 || 99));
+  for (const p of SERIES) {
+    const def = STORIES.find(s => s.id === p.id); if (!def) continue;
+    const last = def.scenes[def.scenes.length - 1], nx = nextPart(p.id);
+    if (nx.length && !(last.controls || []).some(c => c.next)) last.controls = [...(last.controls || []), ...nx.map(c => ({ ...c, next: true }))];
+  }
+}
 
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -2813,6 +2711,13 @@ const ICONS = {
   dip: '<svg viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6"/></svg>',
   cup: '<svg viewBox="0 0 24 24"><path d="M4.5 9h12v5.5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z"/><path d="M16.5 10.5h1.6a2.4 2.4 0 0 1 0 4.8h-1.9M8 3.5c-.8 1 .8 2 0 3M11.5 3.5c-.8 1 .8 2 0 3"/></svg>',
   trophy: '<svg viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 3 3.4M17 6h2.5a2.5 2.5 0 0 1-3 3.4M12 14v3.5M8.5 20.5h7M9.5 17.5h5v3h-5z"/></svg>',
+  bird: '<svg viewBox="0 0 24 24"><path d="M2.5 13.5c3.5-.5 5.5-4 9.5-4 2.2 0 3.4 1.1 4.3 2.2l5.2-1-3.2 3c0 4.2-3.9 7-8.8 7-3.1 0-5.3-1.3-6.3-3.2l3.6-.9"/><circle cx="15.4" cy="11.6" r="0.5"/></svg>',
+  bubble: '<svg viewBox="0 0 24 24"><path d="M4 4.5h16A1.5 1.5 0 0 1 21.5 6v8.5A1.5 1.5 0 0 1 20 16h-9l-5 4.5V16H4a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 4 4.5z"/><path d="M7 9h10M7 12h6"/></svg>',
+  hand: '<svg viewBox="0 0 24 24"><path d="M7.5 12.5V6.8a1.5 1.5 0 0 1 3 0v4.7M10.5 11.5V4.8a1.5 1.5 0 0 1 3 0v6.7M13.5 11.5V5.8a1.5 1.5 0 0 1 3 0v6.4M16.5 12.2V9a1.5 1.5 0 0 1 3 0v5c0 4-3 7-7 7-2.8 0-4.4-1.4-5.8-3.8l-2.4-4a1.5 1.5 0 0 1 2.5-1.6l1.7 2.2"/></svg>',
+  pill: '<svg viewBox="0 0 24 24"><g transform="rotate(-40 12 12)"><rect x="3" y="8.5" width="18" height="7" rx="3.5"/><path d="M12 8.5v7"/></g></svg>',
+  person: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.8"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>',
+  eye: '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.2 10-6.2S22 12 22 12s-3.6 6.2-10 6.2S2 12 2 12z"/><circle cx="12" cy="12" r="2.9"/></svg>',
+  word: '<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h12M3 17h15"/></svg>',
 };
 const story = { def: null, i: 0, t: 0, playing: true, vars: {}, tweens: [], m: {}, group: new THREE.Group(), edges: new Map(), nodes: new Map(),
   tokens: [], fx: {}, hud: {}, beatIdx: 0, scene: null, focus: null, show: [], labelSet: new Set(), last: 0, snapshot: null, flash: {}, flashNeg: {},
@@ -2881,7 +2786,7 @@ function buildStory(def) {
   if (def.ring) {
     const c = story.nodes.get(def.ring).pos;
     for (let i = 0; i < 8; i++) {
-      const a = i / 8 * Math.PI * 2, s = new THREE.Mesh(new THREE.SphereGeometry(0.9, 10, 8), new THREE.MeshBasicMaterial({ color: '#6cc4ff', transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+      const a = i / 8 * Math.PI * 2, s = new THREE.Mesh(new THREE.SphereGeometry(0.9, 10, 8), new THREE.MeshBasicMaterial({ color: '#6cc4ff', transparent: true, opacity: 0, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending }));
       s.position.set(c.x + Math.cos(a) * 7, c.y + Math.sin(a) * 6, c.z + Math.sin(a * 2) * 2); s.renderOrder = 7; s.visible = false; story.group.add(s); story.ring.push(s);
     }
   }

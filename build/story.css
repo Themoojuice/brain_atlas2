@@ -169,3 +169,14 @@ body.steps .ghostring { border: 2px dashed rgba(255,255,255,0.9); }
 #lpsvg .lab { fill: #e7edf4; font-size: 10px; font-weight: 600; }
 #lpsvg .sub { fill: #8d9bad; font-size: 8.5px; }
 @media (max-width: 760px) { #lpsvg .sub { font-size: 9px; } }
+
+/* ---------- the linear series: shared card styles ---------- */
+#inset[data-kind="micro"], #inset[data-kind="series"], #inset[data-kind="chain"], #inset[data-kind="feed"], #inset[data-kind="sig"], #inset[data-kind="engine"], #inset[data-kind="motor"] { padding: 7px 10px 6px; width: min(420px, calc(100% - 28px)); }
+@media (max-width: 760px) { #inset[data-kind="micro"], #inset[data-kind="series"], #inset[data-kind="chain"], #inset[data-kind="feed"], #inset[data-kind="sig"], #inset[data-kind="engine"], #inset[data-kind="motor"] { width: auto; } }
+.cardsvg text { font-family: var(--font-body); }
+.cardsvg .grp { transition: opacity .45s; }
+.cardsvg .grp.dim { opacity: 0.32; }
+.cardsvg .grp.off { opacity: 0; }
+.cardsvg .lab { fill: #e7edf4; font-size: 10px; font-weight: 600; }
+.cardsvg .sub { fill: #8d9bad; font-size: 8.5px; }
+@media (max-width: 760px) { .cardsvg .sub { font-size: 9px; } }
