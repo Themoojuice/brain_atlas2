@@ -57,3 +57,78 @@ const setText = (el, t) => { if (el && el.textContent !== t) el.textContent = t;
 const setAttrs = (el, o) => { if (el) for (const [k, v] of Object.entries(o)) el.setAttribute(k, typeof v === 'number' ? v.toFixed(2) : v); };
 // deterministic 0–1 hash, for animation that must look random but repeat identically
 const hash01 = (a, b = 0) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
+// reveal-mode stories: only structures already introduced (in `see`) take their look; L._keep lists keys always allowed
+const seeLook = fn => (m, S) => {
+  const L = fn(m, S); if (!S.def.reveal || !S.see) return L;
+  const ok = new Set(L._keep || []); for (const id of S.see) { const n = S.def.nodes[id]; if (n && n.key) ok.add(n.key); }
+  return Object.fromEntries(Object.entries(L).filter(([k]) => k !== '_keep' && ok.has(k)));
+};
+
+// ---------------------------------------------------------------- the chain card (Parts 2 and 8)
+// Interneuron ⊣ hippocampus → accumbens ⊣ pallidum ⊣ dopamine cells → striatum, each with a level meter, read live from
+// the cascade model (PSY_BASE). fx.ch = stations introduced, fx.chi = in focus, fx.ledger = 0–4 sign steps,
+// fx.doors = causes entering at a station, fx.human = dash the links unproven in people, fx.clips / fx.dial for Part 8.
+const CH_ST = ['IN', 'HP', 'NA', 'VP', 'DA', 'ST'];
+const CH_X = { IN: 14, HP: 62, NA: 118, VP: 174, DA: 232, ST: 288 };
+const CH_DOORS = {
+  nmda: { st: 'IN', row: 0, label: '▲ NMDA blockers', anchor: 'start', x: 2 },
+  epi: { st: 'HP', row: 1, label: '▲ epilepsy, stress', anchor: 'middle' },
+  can: { st: 'NA', row: 0, label: '? cannabis', anchor: 'middle', x: 151, unknown: true },
+  stim: { st: 'ST', row: 1, label: 'methamphetamine, levodopa ▲', anchor: 'end', x: 310 },
+};
+function chainInset(S) {
+  const Y = 38, lab = (x, a, b, id) => `<text class="lab" x="${x}" y="${Y + 28}" text-anchor="middle" style="font-size:8.8px">${a}</text>${b ? `<text class="sub" x="${x}" y="${Y + 38}" text-anchor="middle">${b}</text>` : ''}`;
+  const meter = x => `<rect x="${x - 18}" y="${Y + 44}" width="36" height="5" rx="2.5" fill="rgba(141,155,173,0.22)"/><rect class="mt" x="${x - 18}" y="${Y + 44}" width="0" height="5" rx="2.5"/>`;
+  const st = (id, inner, a, b, col) => `<g id="ch-${id}" class="grp">${inner}${lab(CH_X[id], a, b)}${meter(CH_X[id])}</g>`;
+  const circ = (id, r, col) => `<circle class="body" cx="${CH_X[id]}" cy="${Y}" r="${r}" fill="#0d141d" stroke="${col}" stroke-width="2"/>`;
+  const dots = [...Array(16)].map((_, i) => `<circle class="dad" cx="${220 + (i % 4) * 8}" cy="${Y - 12 + Math.floor(i / 4) * 8}" r="2.6" fill="#3a4452"/>`).join('');
+  const link = (id, x0, x1, col, cap) => `<g id="chl-${id}" class="grp"><line class="ln" x1="${x0}" y1="${Y}" x2="${x1}" y2="${Y}" stroke="${col}" stroke-width="2.4"/>${cap === 'bar'
+    ? `<line class="cap" x1="${x1}" y1="${Y - 7}" x2="${x1}" y2="${Y + 7}" stroke="${col}" stroke-width="3.4" stroke-linecap="round"/>`
+    : `<path class="cap" d="M${x1 - 6} ${Y - 4.5} L${x1} ${Y} L${x1 - 6} ${Y + 4.5}" fill="none" stroke="${col}" stroke-width="2.2"/>`}</g>`;
+  const doors = Object.entries(CH_DOORS).map(([k, d]) => `<text id="chd-${k}" class="sub" x="${d.x ?? CH_X[d.st]}" y="${Y + 62 + d.row * 11}" text-anchor="${d.anchor}" fill="${d.unknown ? '#c9d4e2' : '#ffcf9e'}" opacity="0">${d.label}</text>`).join('');
+  const LED = ['excite', '× brake', '× brake', '= more dopamine'];
+  const html = `<div class="t lt"><span>The chain of brakes</span><b id="chTag"></b></div>
+  <svg viewBox="0 0 312 118" class="cardsvg" id="chsvg">
+    ${link('IN', 22, 47, '#4aa8ff', 'bar')}${link('HP', 76, 103, '#ff9f43', 'arrow')}${link('NA', 132, 159, '#4aa8ff', 'bar')}${link('VP', 188, 211, '#4aa8ff', 'bar')}${link('DA', 252, 274, '#ffd34d', 'arrow')}
+    <g id="chPk">${[0, 1, 2].map(() => '<circle r="2.3" fill="#ffd34d" opacity="0"/>').join('')}</g>
+    ${st('IN', circ('IN', 7, '#6cc4ff'), 'Inter-', 'neuron', '#6cc4ff')}
+    ${st('HP', circ('HP', 13, '#ff8a3d'), 'Hippocampus', 'subiculum')}
+    ${st('NA', circ('NA', 13, '#ff9f43'), 'Accumbens', '')}
+    ${st('VP', circ('VP', 13, '#7cc4ff'), 'Pallidum', 'the brake')}
+    ${st('DA', `<rect class="body" x="213" y="${Y - 19}" width="38" height="38" rx="7" fill="#0d141d" stroke="#ffd34d" stroke-width="2"/>${dots}`, 'Dopamine', 'cells awake')}
+    ${st('ST', circ('ST', 12, '#a98bff'), 'Striatum', 'associative')}
+    <g id="chDoors">${doors}</g>
+    <text id="chLed" class="lab" x="156" y="${Y + 66}" text-anchor="middle">${LED.map((w, i) => `<tspan class="ld" opacity="0" fill="${i === 0 ? '#ffb36b' : i === 3 ? '#ffd34d' : '#8fc2ff'}">${w} </tspan>`).join('')}</text>
+  </svg>`;
+  return { html, tick(m, now) {
+    const q = id => document.getElementById(id), fx = S.fx; if (!q('chsvg')) return;
+    const shown = fx.ch || CH_ST, hi = fx.chi;
+    cardGroups('ch-', CH_ST, shown, hi);
+    // a link shows once both its ends are on the card; it is in focus if either end is
+    const nxt = { IN: 'HP', HP: 'NA', NA: 'VP', VP: 'DA', DA: 'ST' };
+    for (const [a, b] of Object.entries(nxt)) {
+      const el = q('chl-' + a); if (!el) continue; const on = shown.includes(a) && shown.includes(b), H = hi ? [].concat(hi) : null;
+      el.classList.toggle('off', !on); el.classList.toggle('dim', on && !!H && !(H.includes(a) && H.includes(b)));
+    }
+    setText(q('chTag'), fx.tag || '');
+    const lv = { IN: m.pvEff, HP: m.hpOut, NA: m.nac, VP: m.vp, DA: m.pop, ST: m.assocDA };
+    const col = { IN: '#6cc4ff', HP: '#ff8a3d', NA: '#ff9f43', VP: '#7cc4ff', DA: '#ffd34d', ST: '#ffc21a' };
+    for (const id of CH_ST) { const g = q('ch-' + id); if (!g) continue; const mt = g.querySelector('.mt'); mt.setAttribute('width', (36 * cl01(lv[id])).toFixed(1)); mt.setAttribute('fill', col[id]); }
+    q('ch-HP').querySelector('.body').setAttribute('fill', mixHex('#0d141d', '#7a3a18', cl01((m.hpOut - 0.3) / 0.5)));
+    q('ch-ST').querySelector('.body').setAttribute('fill', mixHex('#0d141d', '#8a6a10', cl01((m.assocDA - 0.45) / 0.35)));
+    const lit = Math.round(cl01(m.pop) * 16); document.querySelectorAll('#chsvg .dad').forEach((d, i) => d.setAttribute('fill', i < lit ? '#ffd34d' : '#3a4452'));
+    // the brakes: bar thickness follows the braking station's output; the pallidal brake lifts as it weakens
+    const brake = (id, v) => { const el = q('chl-' + id); if (!el) return; const c = el.querySelector('.cap'), ln = el.querySelector('.ln');
+      c.setAttribute('stroke-width', (1 + 3.6 * v).toFixed(2)); c.setAttribute('transform', `translate(0 ${(-7 * (1 - v)).toFixed(1)})`); c.setAttribute('opacity', (0.35 + 0.65 * v).toFixed(2));
+      ln.setAttribute('stroke-width', (1 + 2.6 * v).toFixed(2)); };
+    brake('IN', m.pvEff); brake('NA', cl01((m.nacOut - 0.3) / 0.6)); brake('VP', cl01(m.stream / 0.85));
+    q('chl-HP').querySelector('.ln').setAttribute('stroke-width', (1 + 3 * cl01(m.hpOut)).toFixed(2));
+    // dashed where human evidence is inconsistent
+    for (const id of ['HP', 'NA', 'VP']) q('chl-' + id).querySelector('.ln').setAttribute('stroke-dasharray', fx.human ? '4 4' : 'none');
+    // dopamine packets towards the striatum, more when more neurons are awake
+    const n = 1 + Math.round(2 * cl01(m.assocDA)), on = shown.includes('DA') && shown.includes('ST');
+    document.querySelectorAll('#chPk circle').forEach((c, i) => { const p = ((now / 1000) * (0.5 + m.assocDA) + i / 3) % 1; setAttrs(c, { cx: (254 + 19 * p).toFixed(1), cy: 38, opacity: on && i < n ? (1 - p * 0.5).toFixed(2) : 0 }); });
+    const led = fx.ledger || 0; document.querySelectorAll('#chLed .ld').forEach((t, i) => t.setAttribute('opacity', i < led ? 1 : 0));
+    const ds = fx.doors || []; for (const k of Object.keys(CH_DOORS)) q('chd-' + k)?.setAttribute('opacity', ds.includes(k) ? 1 : 0);
+  } };
+}
