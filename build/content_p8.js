@@ -74,10 +74,10 @@ STORIES.push({ ...PSY_BASE, id: 'p8', name: 'Part 8 · Turning it down', color: 
         { at: 12.5, tween: { occ: [0.75, 2] }, kicker: 'Prolactin', caption: 'Above about 72%, prolactin rises.' },
         { at: 18.5, tween: { occ: [0.82, 2] }, kicker: 'Stiffness', caption: 'Above about 78%, stiffness and tremor appear.' },
         { at: 23, tween: { occ: [0.68, 2] }, kicker: null, caption: 'The aim is the narrow band in between.' }] },
-    { title: 'Same block, other roads', chapter: 'The speaker', dur: 24, state: 'psychosis', set: { ...P8_PSY, occ: 0.8 }, cam: P8_CAM.roads, see: [...P2_SEE_ALL, 'put'], show: ['sn-put'], labels: ['put'], hud: { shields: true }, tags: { 'sn-put': 'movement' }, inset: 'chain', fx: { ch: CH_ST, chi: 'ST', clips: ['d2'], dial: true, spot: 'put' },
+    { title: 'Same block, other roads', chapter: 'The speaker', dur: 24, state: 'psychosis', set: { ...P8_PSY, occ: 0.8 }, cam: P8_CAM.roads, see: [...P2_SEE_ALL, 'put'], show: ['sn-put'], labels: ['put'], hud: { shields: true }, tags: {}, inset: 'chain', fx: { ch: CH_ST, chi: 'ST', clips: ['d2'], dial: true, spot: 'put' },
       kicker: 'Side effects', caption: 'The block lands wherever dopamine goes. In the putamen: stiffness, tremor, restlessness.', ev: P8_EV.roads,
       beats: [
-        { at: 8, see: ['hyp', 'pit'], show: ['sn-put', 'hyp-pit'], tags: { 'hyp-pit': 'prolactin' }, relabel: ['hyp', 'pit'], fx: { spot: 'hyp' }, kicker: 'Prolactin', caption: 'Dopamine normally holds prolactin down. Block it, and prolactin rises.' },
+        { at: 8, see: ['hyp', 'pit'], show: ['sn-put', 'hyp-pit'], tags: {}, relabel: ['hyp', 'pit'], fx: { spot: 'hyp' }, kicker: 'Prolactin', caption: 'Dopamine normally holds prolactin down. Block it, and prolactin rises.' },
         { at: 16, show: ['sn-put', 'hyp-pit', 'vta-nac'], tags: { 'vta-nac': 'drive and mood' }, relabel: ['nac'], fx: { spot: 'nac' }, kicker: 'Drive', caption: 'In the accumbens: flatness and low drive, the look-alikes from Part 4.' }] },
     { title: 'Turning down the source', chapter: 'The source', dur: 24, state: 'psychosis', set: P8_PSY, cam: P8_CAM.st, see: P2_SEE_ALL, show: P2_ALL, labels: ['cd'], hud: { shields: true }, inset: 'chain', fx: { ch: CH_ST, chi: ['DA', 'ST'], clips: [], spot: 'cd' },
       kicker: 'Muscarinic', caption: 'Xanomeline stimulates M1 and M4 receptors, which turn down dopamine release upstream.', ev: P8_EV.musc,

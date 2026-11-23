@@ -65,10 +65,10 @@ function terminalInset(S) {
 const FORNIX = [[-27.5, -24.3, -10.6], [-26.6, -31.7, -5.4], [-23.0, -37.1, 3.2], [-15.9, -36.4, 9.1], [-6.3, -30.3, 13.6], [-2.2, -21.6, 16.4], [-0.5, -10.1, 16.0], [-1.0, -2.9, 11.5], [-0.9, 2.9, 1.1], [-4, 7, -5]];
 // Four illustrative patients: each loses a different node, all end with a high gain (Segal 2023 is the principle, not these four)
 const PATIENTS = [
-  { label: 'interneurons fail', node: 'ahp', k: 'pv', v: 0 },
-  { label: 'prefrontal control fails', node: 'ilc', k: 'ctl', v: 0 },
-  { label: 'pallidal output falls', node: 'vp', k: 'vpx', v: 0.55 },
-  { label: 'dopamine neurons over-excitable', node: 'vta', k: 'vtax', v: 0.38 },
+  { label: 'the interneuron brakes fail', node: 'ahp', k: 'pv', v: 0, labels: ['ahp', 'nac'] },
+  { label: 'prefrontal control fails', node: 'ilc', k: 'ctl', v: 0, labels: ['ilc', 're', 'ahp'] },
+  { label: 'the pallidal brake weakens', node: 'vp', k: 'vpx', v: 0.55, labels: ['vp', 'vta'] },
+  { label: 'dopamine neurons over-excitable', node: 'vta', k: 'vtax', v: 0.38, labels: ['vta', 'nac'] },
 ];
 const NORMAL = { pv: 1, ctl: 1, nmda: 1, vpx: 1, vtax: 0 };
 function patient(S, i) {
@@ -76,6 +76,7 @@ function patient(S, i) {
   for (const [k, v] of Object.entries(NORMAL)) if (k !== p.k) S.tween(k, v, 0.6);
   S.tween(p.k, p.v, 1.6, 0.9, NORMAL[p.k]);
   S.fx.pn = (i % PATIENTS.length) + 1; S.fx.hit = p.node; S.fx.hitLabel = `Patient ${S.fx.pn}: ${p.label}`;
+  if (S.labelSet) S.labelSet = new Set(p.labels);
   S.setCaption ? S.setCaption(`Patient ${S.fx.pn}: ${p.label}.`) : null;
 }
 // Network spread, illustrative: hop count from the hippocampus along major connections (not a fitted model)
@@ -274,14 +275,14 @@ const PSY_SCENES = [
         { at: 7, tween: { fcx: [1, 1.5] }, caption: 'Established schizophrenia: the cortex joins in.' },
         { at: 11, caption: 'So in humans, “frontal control fails first” may run in the wrong order. Hold that link loosely.' }] },
     { title: 'Different lesions, same circuit', chapter: 'Network view', dur: 21, state: 'healthy', cam: { dir: MED, fit: ['ilc', 'ahp', 'nac', 'vp', 'vta', 'fxb'] },
-      show: ['ilc-re', 're-hp', 'hp-nac', 'nac-vp', 'vp-vta', 'vta-nac'], labels: ['ilc', 'ahp', 'vp', 'vta'], hud: { dial: true, grid: true, ring: true }, badge: 'patients',
+      show: ['ilc-re', 're-hp', 'hp-nac', 'nac-vp', 'vp-vta', 'vta-nac'], labels: ['ahp'], hud: { dial: true, grid: true, ring: true }, badge: 'patients',
       inset: EVIDENCE_HTML('Evidence', 'Segal 2023: across 1,294 people with six diagnoses, a given region was abnormal in fewer than 7% of people with the same diagnosis, yet the abnormalities fell within shared circuits in up to 56%. The four patients here illustrate the principle.'),
       caption: 'Four patients, four different broken parts.',
       controls: [{ type: 'button', label: 'Next patient', do: S => patient(S, S.fx.pn || 0) }],
       beats: [{ at: 0.5, do: S => patient(S, 0) }, { at: 5.1, do: S => patient(S, 1) }, { at: 9.7, do: S => patient(S, 2) }, { at: 14.3, do: S => patient(S, 3) },
-        { at: 18.6, caption: 'Different lesions, same circuit: the gain still rises.' }] },
+        { at: 18.6, relabel: ['ahp', 'vta'], fx: { hit: null, hitLabel: '' }, caption: 'Different lesions, same circuit: the gain still rises.' }] },
     { title: 'Spread along the wiring', chapter: 'Network view', dur: 16, state: 'psychosis', set: { yrs: 0 }, cam: { dir: LAT, fit: ['ahp', 'ilc', 'dl', 'ctx', 'md'] },
-      levels: SPREAD_LEVELS, show: ['hp-nac'], labels: ['ahp', 'ilc', 'dl', 'ctx'], tags: { 'hp-nac': 'fornix' }, hud: { spread: true }, badge: 'years',
+      levels: SPREAD_LEVELS, show: ['hp-nac'], labels: ['ahp', 'ilc', 'dl', 'ctx'], tags: { 'hp-nac': 'along the fornix' }, hud: { spread: true }, badge: 'years',
       inset: EVIDENCE_HTML('Illustration', 'The principle: disease spreads along axonal pathways, shaped by network wiring (Fornito, Zalesky &amp; Breakspear 2015). The order here is hops from the hippocampus, not a fitted model.'),
       caption: 'Prodrome: the hippocampus first.',
       controls: [{ type: 'range', var: 'yrs', label: 'Years', min: 0, max: 1 }],

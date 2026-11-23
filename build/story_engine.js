@@ -10,14 +10,14 @@ function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let
 // Colour and end cap come from the sign; the line pattern comes from the evidence (ev): solid = shown in patients,
 // dashed = animal models, dotted = proposed. 'fc' is undirected functional coupling (flows both ways, no cap).
 const SIGN = {
-  '+':    { col: '#ff9f43', cap: 'arrow', label: 'Excitatory (glutamate)' },
-  '-':    { col: '#4aa8ff', cap: 'bar', label: 'Inhibitory (GABA)' },
-  da:     { col: '#ffd34d', cap: 'arrow', packets: true, label: 'Dopamine' },
-  ctl:    { col: '#b48cff', cap: 'arrow', label: 'Top-down regulation (net effect)' },
-  spiral: { col: '#c9b27a', cap: 'arrow', label: 'Striatonigral relay (spiral)' },
-  clock:  { col: '#3fd0c9', cap: 'arrow', label: 'Circadian input (schematic)' },
-  '5ht':  { col: '#ff8fb1', cap: 'arrow', packets: true, label: 'Serotonin' },
-  fc:     { col: '#7fe7ff', cap: 'none', bi: true, label: 'Functional coupling (no direction)' },
+  '+':    { col: '#ff9f43', cap: 'arrow', label: '<b>Excites</b>: switches the next area on (glutamate)' },
+  '-':    { col: '#4aa8ff', cap: 'bar', label: '<b>Brakes</b>: quietens the next area (GABA); flat end, not an arrowhead' },
+  da:     { col: '#ffd34d', cap: 'arrow', packets: true, label: '<b>Dopamine</b>: tags events as important; gold packets' },
+  ctl:    { col: '#b48cff', cap: 'arrow', label: '<b>Top-down check</b>: a higher area reins in a lower one (net effect, may pass through relays)' },
+  spiral: { col: '#c9b27a', cap: 'arrow', label: '<b>Passes it on</b>: striatum to the next dopamine group (the striatonigral spiral)' },
+  clock:  { col: '#3fd0c9', cap: 'arrow', label: '<b>Daily rhythm</b>: input from the body clock (schematic)' },
+  '5ht':  { col: '#ff8fb1', cap: 'arrow', packets: true, label: '<b>Serotonin</b>' },
+  fc:     { col: '#7fe7ff', cap: 'none', bi: true, label: '<b>In sync</b>: activity rises and falls together (functional coupling, no direction)' },
 };
 const EV_PAT = { human: 0, rodent: 1, proposed: 2 };
 const ICONS = {
@@ -52,7 +52,16 @@ const pv3 = new THREE.Vector3();
 
 // ---------- building the 3D layer ----------
 function nodePos(n) { return mni2three(n.mni || centroid(n.key, story.def.hemi || 'L')); }
-function makeLabel(text, cls = '') { const el = document.createElement('div'); el.className = 'slab ' + cls; el.textContent = text; $('#labels').append(el); return el; }
+function makeLabel(text, cls = '', job = '') {
+  const el = document.createElement('div'); el.className = 'slab ' + cls;
+  if (job) { el.classList.add('two'); el.innerHTML = `<span class="nm">${escHtml(text)}</span><span class="jb">${escHtml(job)}</span>`; } else el.textContent = text;
+  $('#labels').append(el); return el;
+}
+// plain-language decoder (content_jobs.js): a job line under every region label, a verb on every arrow, jargon decoded under the caption
+const HAS_JOBS = typeof JOBS !== 'undefined';
+const jobOf = n => n.job === false ? null : (n.job ? { job: n.job, say: n.say || '' } : HAS_JOBS ? (JOBS[n.label] || JOBS_KEY[n.key] || null) : null);
+const arrowOf = e => (HAS_JOBS && ARROWS[e.id]) || null;
+const arrowTag = e => e.tagText ?? arrowOf(e)?.tag ?? (HAS_JOBS ? ARROW_SIGN[e.sign] : '') ?? '';
 function edgeMat(sign, len, ev) {
   const S = SIGN[sign];
   return new THREE.ShaderMaterial({
@@ -82,7 +91,7 @@ function buildStory(def) {
     const p = nodePos(n);
     const dot = new THREE.Mesh(new THREE.SphereGeometry(n.r || 1.5, 16, 12), new THREE.MeshBasicMaterial({ color: n.dot || '#e7edf4', transparent: true, opacity: 0, depthWrite: false }));
     dot.position.copy(p); dot.renderOrder = 6; dot.visible = false; story.group.add(dot);
-    story.nodes.set(id, { id, def: n, pos: p, dot, label: n.label ? makeLabel(n.label, n.hot ? 'hot' : '') : null, vis: 0, sv: 0 });
+    story.nodes.set(id, { id, def: n, pos: p, dot, label: n.label ? makeLabel(n.label, n.hot ? 'hot' : '', jobOf(n)?.job || '') : null, vis: 0, sv: 0 });
   }
   story.keyNodes = new Map();
   for (const [id, n] of Object.entries(def.nodes)) if (n.key) story.keyNodes.set(n.key, [...(story.keyNodes.get(n.key) || []), id]);
@@ -218,7 +227,7 @@ function gotoScene(i, opts = {}) {
   paintYeo(story.hud.yeo || 0);
   story.see = sc.see ? new Set(sc.see) : null; applySee();
   story.kicker = sc.kicker || null;
-  clearTokens(); setCaption(sc.caption); renderExtra(sc); renderInset(sc.inset || null); syncBar();
+  clearTokens(); $('#sbgloss').innerHTML = ''; $('#sbgloss').hidden = true; setCaption(sc.caption); renderExtra(sc); renderInset(sc.inset || null); syncBar();
   if (!$('#keycard').hidden) $('#keycard').innerHTML = keyHtml(def);
   story.camNow = sc.cam || (def.steps && def.cam) || { dir: def.view }; story.framePending = true;
   const anim = !opts.instant;
@@ -244,6 +253,7 @@ function applyBeat(b) {
   if (b.token) spawnToken(b.token);
   if (b.inset !== undefined) renderInset(b.inset);
   if (b.do) b.do(story);
+  if ((b.labels || b.relabel || b.show || b.see) && !$('#keycard').hidden) $('#keycard').innerHTML = keyHtml(story.def);
 }
 // reveal mode: a story with reveal:true shows a deep structure only once a scene (or beat) puts its node in `see`;
 // cortical ghosts stay as the context shell
@@ -487,7 +497,7 @@ function declutter(items, fb, W) {
     if (!moved) break;
   }
 }
-function measure(el) { if (el._t !== el.textContent) { el._t = el.textContent; el._w = el.offsetWidth; el._h = el.offsetHeight; } return [el._w || 60, el._h || 20]; }
+function measure(el) { const key = el.className.includes('nojob') + el.textContent; if (el._t !== key) { el._t = key; el._w = el.offsetWidth; el._h = el.offsetHeight; } return [el._w || 60, el._h || 20]; }
 function updateHud(dt, now) {
   const r = canvas.getBoundingClientRect(), W = r.width, H = r.height, m = story.m, def = story.def, small = isSmall();
   let H2 = story.hud;
@@ -534,17 +544,26 @@ function updateHud(dt, now) {
     hud.gridlead.setAttribute('opacity', s.ok ? 0.55 : 0);
   } else hud.gridlead.setAttribute('opacity', 0);
   // labels: nodes, edge tags and the transporter note, decluttered together
-  const items = [];
+  const items = [], labOrder = [...story.labelSet].filter(id => story.nodes.get(id)?.label), jobCut = small && labOrder.length >= 4 ? labOrder.length - 2 : 0;
   for (const N of story.nodes.values()) {
     if (!N.label) continue;
     const s = proj(N.pos), on = story.labelSet.has(N.id) && s.ok && !(N.def.gate && !N.def.gate(m, story)); N.label.classList.toggle('on', on);
+    N.label.classList.toggle('nojob', labOrder.indexOf(N.id) < jobCut);
     if (on) { const [w, h] = measure(N.label); items.push({ el: N.label, ax: s.x, ay: s.y, w, h, below: (N.def.lo || [0, 0])[1] > 0 }); }
   }
+  const tagged = [];
   for (const E of story.edges.values()) {
-    const txt = story.tags[E.id], on = !!txt && E.vis > 0.5;
-    E.tag.classList.toggle('on', on);
-    if (on) { if (E.tag.textContent !== txt) E.tag.textContent = txt; const s = proj(E.curve.getPointAt(0.5)), [w, h] = measure(E.tag); items.push({ el: E.tag, ax: s.x, ay: s.y + h / 2 + 9, w, h, tag: true }); }
+    const st = story.tags[E.id], plain = def.noArrowTags ? '' : arrowTag(E.def), e = E.def;
+    const near = story.labelSet.has(e.from) || story.labelSet.has(e.to) || (story.focus && story.focus.includes(e.id));
+    if (E.vis > 0.5 && (st || (plain && near))) tagged.push({ E, txt: st ? (plain ? `${plain} · ${st}` : st) : plain, pri: st ? 3 : story.focus?.includes(e.id) ? 2 : 1 });
+    else E.tag.classList.remove('on');
   }
+  tagged.sort((a, b) => b.pri - a.pri).forEach(({ E, txt }, i) => {
+    const on = i < (small ? 3 : 6); E.tag.classList.toggle('on', on); if (!on) return;
+    if (E.tag.textContent !== txt) { E.tag.textContent = txt; E.tag.style.borderColor = SIGN[E.def.sign].col; }
+    const s = proj(E.curve.getPointAt(0.5)), [w, h] = measure(E.tag); items.push({ el: E.tag, ax: s.x, ay: s.y + h / 2 + 9, w, h, tag: true });
+  });
+  if (story.glossPending) renderGloss();
   const nac = story.nodes.get('nac'), datOn = !!H2.dat && nac && def.gauge.pop(m) < 0.3;
   hud.datLabel.classList.toggle('on', !!datOn);
   if (datOn) { const s = proj(nac.pos), [w, h] = measure(hud.datLabel); items.push({ el: hud.datLabel, ax: s.x, ay: s.y, w, h, below: true }); }
@@ -635,10 +654,42 @@ function sc_progress() { const sc = story.scene; return sc.free ? '100%' : `${cl
 const HL_RE = /\{([^}|]+)\|(\w+)\}/g;
 const escHtml = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const plainCap = s => (s || '').replace(HL_RE, '$1');
+// wrap glossary words in the caption (text between tags only), and remember which entries this caption used
+function glossMark(html) {
+  const found = [];
+  if (!HAS_JOBS) return [html, found];
+  const out = html.split(/(<[^>]+>)/).map(part => part.startsWith('<') ? part : part.replace(GLOSS_RE, (m, pre, w) => {
+    const gi = GLOSS_IDX.get(w.toLowerCase()); if (gi === undefined) return m;
+    if (!found.includes(gi)) found.push(gi);
+    return `${pre}<span class="gl" data-g="${gi}" role="button" tabindex="0">${w}</span>`;
+  })).join('');
+  return [out, found];
+}
+// the strip: definitions for words this story hasn't decoded yet (a region whose label is on screen is already explained by its job line)
+function renderGloss(force) {
+  story.glossPending = false;
+  const box = $('#sbgloss'); if (!box || !HAS_JOBS) return;
+  const onLabels = new Set([...story.labelSet].map(id => story.nodes.get(id)?.def.label).filter(Boolean));
+  const fresh = [];
+  for (const gi of force !== undefined ? [force] : (story.glossNow || [])) {
+    const g = GLOSS[gi];
+    if (force === undefined && story.glossSeen.has(gi)) continue;
+    story.glossSeen.add(gi);
+    if (force === undefined && g.node && g.node.some(l => onLabels.has(l))) continue;
+    fresh.push(gi);
+  }
+  if (!fresh.length) return;
+  const max = isSmall() ? 2 : 3;
+  for (const gi of fresh.slice(max)) story.glossSeen.delete(gi);     // not shown yet: decode at the next mention
+  box.innerHTML = fresh.slice(0, max).map(gi => `<span class="gi${force !== undefined ? ' tap' : ''}"><b>${escHtml(GLOSS[gi].t[0].replace(/^./, c => c.toUpperCase()))}</b> ${escHtml(GLOSS[gi].d)}</span>`).join('');
+  box.hidden = false;
+}
 function setCaption(text) {
   story.capNow = text;
   const hl = story.def?.hl || {}, ev = story.def?.steps && story.scene?.ev, kick = text ? story.kicker : null;
-  $('#sbcap').innerHTML = (kick ? `<span class="st">${escHtml(kick)}</span>` : '') + escHtml(text || '').replace(HL_RE, (_, w, k) => `<b class="hl" style="color:${hl[k] || 'inherit'}">${w}</b>`) + (ev ? ` <span class="ev">${escHtml(ev)}</span>` : '');
+  const [body, found] = glossMark(escHtml(text || '').replace(HL_RE, (_, w, k) => `<b class="hl" style="color:${hl[k] || 'inherit'}">${w}</b>`));
+  story.glossNow = found; story.glossPending = true;
+  $('#sbcap').innerHTML = (kick ? `<span class="st">${escHtml(kick)}</span>` : '') + body + (ev ? ` <span class="ev">${escHtml(ev)}</span>` : '');
   story.capText = (kick ? kick + '. ' : '') + plainCap(text); story.gateT = 0;
   if (story.narrate && text && !story.instant) speak(story.capText);
 }
@@ -652,6 +703,8 @@ function speak(text) {
   }
 }
 if (!window.speechSynthesis) $('#sbvoice').hidden = true;
+const glossTap = ev => { const g = ev.target.closest?.('.gl'); if (!g || (ev.type === 'keydown' && ev.key !== 'Enter' && ev.key !== ' ')) return; ev.preventDefault(); renderGloss(+g.dataset.g); };
+$('#sbcap').addEventListener('click', glossTap); $('#sbcap').addEventListener('keydown', glossTap);
 $('#sbvoice').addEventListener('click', () => {
   story.narrate = !story.narrate; $('#sbvoice').setAttribute('aria-pressed', story.narrate);
   if (story.narrate) speak(story.capText || plainCap(story.capNow ?? $('#sbcap').textContent)); else speechSynthesis.cancel();
@@ -661,13 +714,32 @@ function keyHtml(def) {
   const usesDial = def.steps || def.scenes.some(x => x.hud && (x.hud.dial || x.hud.grid));
   const head = (sc.ev && !def.steps ? `<div class="t">This scene: evidence</div><div class="note ev">${sc.ev}</div>` : '') + (def.keyIntro || '');
   const line = (pat, col = '#c9d4e2') => `<svg viewBox="0 0 34 10"><line x1="1" y1="5" x2="33" y2="5" stroke="${col}" stroke-width="3" ${pat === 1 ? 'stroke-dasharray="6 4"' : pat === 2 ? 'stroke-dasharray="2 4" stroke-linecap="round"' : ''}/></svg>`;
-  return `${head}<div class="t">Edge colour = what the connection carries</div>${used.map(k => `<div class="kr">${line(0, SIGN[k].col)}${SIGN[k].label}</div>`).join('')}
+  return `${head}${whoHtml(def)}<div class="t">Arrow colour = what the connection does</div>${used.map(k => `<div class="kr">${line(0, SIGN[k].col)}<span>${SIGN[k].label}</span></div>`).join('')}
     <div class="t">Line style = evidence for this link's role in illness</div>
     <div class="kr">${line(0)}Shown in patients (imaging, PET)</div><div class="kr">${line(1)}Animal models</div><div class="kr">${line(2)}Proposed, untested</div>
     ${def.scenes.some(s => s.hud && s.hud.tint) ? `<div class="t">Striatal territories</div>
     <div class="kr"><span class="sw" style="background:#3fd0a6"></span>Limbic</div><div class="kr"><span class="sw" style="background:#a98bff"></span>Associative</div><div class="kr"><span class="sw" style="background:#5b7cff"></span>Sensorimotor</div><div class="kr"><span class="sw" style="background:#ffc21a"></span>Gold = dopamine excess</div>
     <div class="note">Parcels: Melbourne Subcortex Atlas (Tian 2020, scale III). Which parcel counts as which territory is my judgment.</div>` : ''}${def.keyExtra || ''}
-    ${usesDial ? `<div class="t">Dials and grids</div><div class="note">Illustrative units, not measurements. Dopamine neuron population activity (the dot grid) has only been measured in rodents.</div>` : ''}`;
+    ${usesDial ? `<div class="t">Dials and grids</div><div class="note">Illustrative units, not measurements. Dopamine neuron population activity (the dot grid) has only been measured in rodents.</div>` : ''}${wordsHtml(def)}`;
+}
+function whoHtml(def) {
+  if (!HAS_JOBS) return '';
+  const vis = new Set([...story.labelSet, ...(story.see || []), ...story.show.flatMap(id => { const e = story.edges.get(id)?.def; return e ? [e.from, e.to] : []; })]);
+  const seen = new Set(), rows = [];
+  for (const id of [...story.labelSet, ...vis]) {
+    const n = story.nodes.get(id)?.def, j = n && jobOf(n); if (!j || seen.has(n.label)) continue; seen.add(n.label);
+    rows.push(`<div class="who"><b>${escHtml(n.label)}</b> <i>${escHtml(j.job)}</i><div>${escHtml(j.say)}</div></div>`);
+  }
+  const arrows = story.show.map(id => story.edges.get(id)?.def).filter(e => e && arrowOf(e)).map(e =>
+    `<div class="kr arw"><svg viewBox="0 0 34 10"><line x1="1" y1="5" x2="33" y2="5" stroke="${SIGN[e.sign].col}" stroke-width="3"/></svg><span><b>${escHtml(arrowOf(e).tag)}</b>: ${escHtml(arrowOf(e).say)}</span></div>`);
+  return (rows.length ? `<div class="t">Who’s who on screen</div>${rows.join('')}` : '') + (arrows.length ? `<div class="t">What each arrow on screen does</div>${arrows.join('')}` : '');
+}
+function wordsHtml(def) {
+  if (!HAS_JOBS) return '';
+  const caps = def.scenes.flatMap(sc => [sc.caption, ...(sc.beats || []).map(b => b.caption)]).filter(Boolean).map(plainCap).join(' ');
+  const order = []; for (const m of caps.matchAll(GLOSS_RE)) { const gi = GLOSS_IDX.get(m[2].toLowerCase()); if (!order.includes(gi)) order.push(gi); }
+  if (!order.length) return '';
+  return `<div class="t">Words in this part</div><div class="note">Underlined words in the captions: tap one to see its meaning again.</div>${order.map(gi => `<div class="wd"><b>${escHtml(GLOSS[gi].t[0])}</b> ${escHtml(GLOSS[gi].d)}</div>`).join('')}`;
 }
 $('#sbkey').addEventListener('click', () => {
   const kc = $('#keycard'), open = kc.hidden;
@@ -764,7 +836,7 @@ function startStory(id, i = 0, opts = {}) {
   story.snapshot = { level: new Map(state.level), hemi: state.hemi, preset: state.preset };
   state.netMode = 'off'; state.rec = null; state.drug = null; syncDrugs(); if (slice) slice.material.uniforms.petOn.value = 0;
   state.sel = null; state.cut = 'off'; applyCut();
-  story.def = def; story.vars = { ...def.vars }; story.tweens = []; story.flash = {}; story.flashNeg = {};
+  story.def = def; story.vars = { ...def.vars }; story.tweens = []; story.flash = {}; story.flashNeg = {}; story.glossSeen = new Set(); story.glossNow = [];
   const solid = new Set([...Object.values(def.nodes).filter(n => n.key && !n.ghost).map(n => n.key), ...(def.cast || [])]);
   const ghostK = new Set([...Object.values(def.nodes).filter(n => n.key && n.ghost).map(n => n.key), ...(def.ghostCast || [])]);
   setLevels(all, 0); setLevels(cortex, 1); setLevels([...ghostK], 1); setLevels([...solid], def.steps ? 1 : 2);
@@ -794,7 +866,7 @@ function endStory(restore = true) {
   if (story.neutral) { for (const mesh of story.neutral) mesh.material.color.set(mesh.userData.st.color); story.neutral = null; state.ghost = story.savedGhost; }
   paintYeo(0); story.sceneLevelKeys = null;
   if (window.speechSynthesis) speechSynthesis.cancel();
-  $('#keycard').hidden = true; $('#sbkey').setAttribute('aria-pressed', 'false');
+  $('#keycard').hidden = true; $('#sbkey').setAttribute('aria-pressed', 'false'); $('#sbgloss').hidden = true;
   clearTokens(); clearStory3D(); clearHud(); renderInset(null);
   story.def = null; story.scene = null; storyMeshes = []; story.auto = false; story.intro = null;
   $('#sbnext').classList.remove('ready'); document.body.classList.remove('steps');

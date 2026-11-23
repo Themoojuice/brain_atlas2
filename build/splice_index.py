@@ -9,7 +9,7 @@ import os, subprocess, sys
 REF = sys.argv[1] if len(sys.argv) > 1 else 'HEAD'
 OUT = sys.argv[2] if len(sys.argv) > 2 else 'index.html'
 EXTRA = ['content_story_aff2.js', 'content_series.js', 'content_p1.js', 'content_p2.js', 'content_p3.js', 'content_p4.js',
-         'content_p6.js', 'content_p7.js', 'content_p8.js', 'content_series_order.js']
+         'content_p6.js', 'content_p7.js', 'content_p8.js', 'content_series_order.js', 'content_jobs.js']
 page = open('index.html').read()
 old = lambda f: subprocess.run(['git', 'show', f'{REF}:build/{f}'], capture_output=True, text=True, check=True).stdout
 def old_or_none(f):

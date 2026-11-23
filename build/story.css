@@ -200,3 +200,32 @@ body.steps .ghostring { border: 2px dashed rgba(255,255,255,0.9); }
 #inset .cog .scale { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
 #inset .cog .track { position: relative; height: 10px; border-radius: 5px; background: rgba(141,155,173,0.2); margin: 3px 0 6px; }
 #inset .cog .track i { position: absolute; top: 0; bottom: 0; border-radius: 5px; background: #8fc2ff; }
+
+/* plain-language decoder: job line under region labels, verbs on arrows, glossary strip under the caption */
+.slab.two { white-space: normal; padding: 3px 8px 3px; line-height: 1.2; text-align: center; }
+.slab.two .nm { display: block; white-space: nowrap; }
+.slab.two .jb { display: block; white-space: nowrap; font-size: 10px; color: #b8c4d3; font-weight: 400; margin-top: 1px; }
+.slab.hot.two .jb { color: #e9cfa8; }
+.slab.tag { border-left-width: 3px; }
+#sbcap .gl { text-decoration: underline dotted rgba(231,237,244,0.55); text-underline-offset: 3px; text-decoration-thickness: 1px; cursor: help; }
+#sbcap .gl:hover, #sbcap .gl:focus-visible { text-decoration-color: var(--accent); outline: none; }
+#sbgloss { margin-top: 5px; padding: 5px 8px; border-radius: 8px; background: rgba(255,255,255,0.045); border: 1px solid var(--line); font-size: 12px; line-height: 1.38; color: #c4cfdc; display: flex; flex-direction: column; gap: 2px; }
+#sbgloss[hidden] { display: none; }
+#sbgloss .gi b { color: var(--ink); font-weight: 600; margin-right: 4px; }
+#sbgloss .gi b::after { content: ':'; }
+#sbgloss .gi.tap { animation: glossIn .5s ease; }
+@keyframes glossIn { from { background: rgba(255,180,84,0.18); } to { background: transparent; } }
+@media (max-width: 760px) {
+  .slab.two .jb { font-size: 9.5px; }
+  #sbgloss { font-size: 11.5px; padding: 4px 7px; margin-top: 4px; }
+}
+#keycard .who { margin: 5px 0 7px; line-height: 1.35; }
+#keycard .who i { color: var(--accent); font-style: normal; font-size: 11px; }
+#keycard .who div { color: var(--muted); font-size: 11px; }
+#keycard .kr.arw { align-items: flex-start; }
+#keycard .kr.arw svg { margin-top: 4px; }
+#keycard .kr span b { color: var(--ink); }
+#keycard .wd { font-size: 11.5px; line-height: 1.35; margin: 3px 0; color: var(--muted); }
+#keycard .wd b { color: var(--ink); font-weight: 600; margin-right: 3px; }
+#keycard .wd b::after { content: ':'; }
+.slab.two.nojob .jb { display: none; }

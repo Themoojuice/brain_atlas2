@@ -100,11 +100,11 @@ function chainInset(S) {
     ${link('IN', 22, 47, '#4aa8ff', 'bar')}${link('HP', 76, 103, '#ff9f43', 'arrow')}${link('NA', 132, 159, '#4aa8ff', 'bar')}${link('VP', 188, 211, '#4aa8ff', 'bar')}${link('DA', 252, 274, '#ffd34d', 'arrow')}
     <g id="chPk">${[0, 1, 2].map(() => '<circle r="2.3" fill="#ffd34d" opacity="0"/>').join('')}</g>
     ${st('IN', circ('IN', 7, '#6cc4ff'), 'Inter-', 'neuron', '#6cc4ff')}
-    ${st('HP', circ('HP', 13, '#ff8a3d'), 'Hippocampus', 'subiculum')}
-    ${st('NA', circ('NA', 13, '#ff9f43'), 'Accumbens', '')}
+    ${st('HP', circ('HP', 13, '#ff8a3d'), 'Hippocampus', 'novelty')}
+    ${st('NA', circ('NA', 13, '#ff9f43'), 'Accumbens', 'reward hub')}
     ${st('VP', circ('VP', 13, '#7cc4ff'), 'Pallidum', 'the brake')}
     ${st('DA', `<rect class="body" x="213" y="${Y - 19}" width="38" height="38" rx="7" fill="#0d141d" stroke="#ffd34d" stroke-width="2"/>${dots}`, 'Dopamine', 'cells awake')}
-    ${st('ST', circ('ST', 12, '#a98bff'), 'Striatum', 'associative')}
+    ${st('ST', circ('ST', 12, '#a98bff'), 'Striatum', 'steers belief')}
     <g id="chDoors">${doors}</g><g id="chClips"></g>
     <g id="chDial" opacity="0"><text class="sub" x="6" y="${Y + 66}">D2 occupancy</text><text id="chOcc" class="lab" x="6" y="${Y + 77}">0%</text>
       <rect x="66" y="${Y + 60}" width="${232 * 0.65}" height="9" fill="#3a4452"/><rect x="${66 + 232 * 0.65}" y="${Y + 60}" width="${232 * 0.07}" height="9" fill="#3f9e63"/>
