@@ -110,7 +110,7 @@ STORIES.push({ ...PSY_BASE, id: 'p4', name: 'Part 4 · What goes missing', color
       kicker: 'First episode', caption: 'Cognitive deficits are already there at the first episode, across all ten domains tested.', ev: P4_EV.cog,
       beats: [{ at: 9, kicker: null, caption: 'They are about as large as in long illness. Part 1’s dimming starts early.' }] },
     { title: 'Look-alikes', chapter: 'Look-alikes', dur: 25, state: 'psychosis', set: { occ: 0 }, cam: P4_CAM.st, see: P4_SEE, show: ['vta-nac', 'nac-sn', 'sn-cd'], labels: ['nac'], hud: { shields: true }, inset: 'feed', fx: { reward: true, pull: true, tag: 'Psychosis' },
-      kicker: 'Look-alikes', caption: 'Some negative symptoms are added on top. Depression affects about a third of stable outpatients.', ev: P4_EV.look,
+      kicker: 'Look-alikes', caption: 'Some negative symptoms are look-alikes with other causes. Depression affects about a third of stable outpatients.', ev: P4_EV.look,
       beats: [
         { at: 10, tween: { occ: [0.85, 3] }, fx: { tag: 'High D2 block' }, kicker: 'Too much block', caption: 'Too much D2 block dulls the reward signal along with the noise.' },
         { at: 18, kicker: null, caption: 'People feel worst at high occupancy, and best around 60 to 70%.' }] },

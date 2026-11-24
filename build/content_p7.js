@@ -9,7 +9,7 @@ function motorInset(S) {
   const C = [100, 52], RX = 58, RY = 30, at = a => [C[0] + RX * Math.cos(a), C[1] + RY * Math.sin(a)];
   const ST = { ctx: -Math.PI / 2, str: 0, gp: Math.PI / 2, th: Math.PI };
   const node = (id, lab, col) => { const [x, y] = at(ST[id]); return `<g id="mo-${id}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="10" fill="#0d141d" stroke="${col}" stroke-width="1.8"/>
-    <text class="sub" x="${(x + (id === 'str' || id === 'gp' ? 14 : 0)).toFixed(1)}" y="${(y + (id === 'ctx' ? -16 : id === 'th' ? 22 : id === 'gp' ? 4 : 3)).toFixed(1)}" text-anchor="${id === 'str' || id === 'gp' ? 'start' : 'middle'}" fill="#e7edf4">${lab}</text></g>`; };
+    <text class="sub" x="${(x + (id === 'str' || id === 'gp' ? 14 : 0)).toFixed(1)}" y="${(y + (id === 'ctx' ? -19 : id === 'th' ? 25 : id === 'gp' ? 4 : 3)).toFixed(1)}" text-anchor="${id === 'str' || id === 'gp' ? 'start' : 'middle'}" fill="#e7edf4">${lab}</text></g>`; };
   const arc = (a0, a1, col, cap, id) => { let d = ''; for (let i = 0; i <= 20; i++) { const [x, y] = at(a0 + (a1 - a0) * i / 20); d += `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`; }
     const [ex, ey] = at(a1); return `<path id="${id}" d="${d}" fill="none" stroke="${col}" stroke-width="2"/>${cap === 'bar' ? `<circle id="${id}c" cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="2.5" fill="${col}"/>` : ''}`; };
   const html = `<div class="t lt"><span>The motor loop</span><b id="moTag"></b></div>
@@ -27,6 +27,8 @@ function motorInset(S) {
   return { html, tick(m) {
     const q = id => document.getElementById(id), fx = S.fx; if (!q('mosvg')) return;
     setText(q('moTag'), fx.tag || '');
+    const lit = fx.mostep || [];
+    for (const id of ['ctx', 'str', 'gp', 'th']) { const c = document.querySelector(`#mo-${id} circle`); if (c) c.setAttribute('stroke-width', lit.includes(id) ? '3.4' : '1.8'); if (c) c.setAttribute('fill', lit.includes(id) ? '#24364a' : '#0d141d'); }
     const b = m.brake, h = 70 * cl01(b);
     setAttrs(q('moB'), { y: (86 - h).toFixed(1), height: h.toFixed(1), fill: b > 0.72 ? '#ff8f86' : '#4aa8ff' });
     // the pallidal brake on the thalamus thickens as it jams
@@ -67,13 +69,13 @@ const P7_EV = {
 };
 const P7_H = { gd: 0, lz: 0, d2: 0, exc: 0, ect: 0 };
 
-STORIES.push({ id: 'p7', name: 'Part 7 · When movement locks', color: '#7fe0d0', hemi: 'L', view: [-1, 0.35, 0.25], reveal: true, noStates: true, shell: '#7a8494',
+STORIES.push({ id: 'p7', glossInline: ['posturing', 'amantadine'], name: 'Part 7 · When movement locks', color: '#7fe0d0', hemi: 'L', view: [-1, 0.35, 0.25], reveal: true, noStates: true, shell: '#7a8494',
   desc: 'Catatonia as a jam in the motor loop’s brake: stupor and excitement, a weak cortical GABA-A signal, the lorazepam test, and the dopamine and NMDA doors. Nine short scenes.',
   keyIntro: '<div class="t">The motor loop card</div><div class="note">Cortex plans a movement; the basal ganglia gate it; the pallidum brakes the thalamus, which sends it back to cortex. The bar is the brake; above the dashed line, movement locks. The green dashed ring is cortical GABA-A signalling, red when weak. Illustrative units.</div>',
   nodes: {
     m1: { key: 'Precentral_gyrus', ghost: true, label: 'Motor cortex' },
     pmc: { key: 'Superior_frontal_gyrus', ghost: true, mni: [-8, 2, 62], label: 'Premotor cortex', nofit: true },
-    ofc: { key: 'Medial_orbital_gyrus', ghost: true, label: 'Orbitofrontal cortex', nofit: true },
+    ofc: { key: 'Medial_orbital_gyrus', ghost: true, label: 'Orbitofrontal cortex', nofit: true, job: 'emotion, and calming it', say: 'The underside of the frontal lobe, just above the eyes. Besides weighing outcomes, it helps damp fear and anxiety; in catatonia it runs low.' },
     put: { key: 'Putamen', mni: [-25, 2, 2], label: 'Striatum (putamen)', lo: [0, 12] },
     gp: { key: 'Pallidum', label: 'Pallidum', lo: [0, 12] },
     thal: { key: 'Thal_VL', label: 'Motor thalamus', lo: [0, 12] },
@@ -109,17 +111,19 @@ STORIES.push({ id: 'p7', name: 'Part 7 · When movement locks', color: '#7fe0d0'
     { title: 'Previously / today', chapter: 'The brake', dur: 13, state: 'h', cam: P7_CAM.loop, see: [], show: [], labels: [], inset: 'series', fx: {},
       kicker: 'Part 7', caption: 'Catatonia crosses all three illnesses, and is most common in mood disorders.', ev: P7_EV.series,
       beats: [{ at: 6.5, see: ['m1', 'put', 'gp', 'thal'], kicker: 'Today', caption: 'Today: why movement locks, and why lorazepam can unlock it.' }] },
-    { title: 'The motor loop', chapter: 'The brake', dur: 22, state: 'h', cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['m1', 'put', 'gp', 'thal'], inset: 'motor', fx: { tag: 'Healthy' },
-      kicker: 'Motor loop', caption: 'Cortex proposes a movement, the basal ganglia gate it, the thalamus sends it back.', ev: P7_EV.loop,
-      beats: [{ at: 10, relabel: ['gp'], fx: { spot: 'gp' }, kicker: 'The brake', caption: 'The pallidum is the brake on that gate. Just enough, and movement flows.' }] },
-    { title: 'Stuck on: stupor', chapter: 'The brake', dur: 22, state: 'h', cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['gp'], inset: 'motor', fx: { tag: 'Catatonia', spot: 'gp' },
+    { title: 'The motor loop', chapter: 'The brake', dur: 22, state: 'h', cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['m1', 'put'], inset: 'motor', fx: { tag: 'Healthy', spot: 'm1', mostep: ['ctx', 'str'] },
+      kicker: 'Motor loop', caption: 'Motor cortex proposes a movement.', ev: P7_EV.loop,
+      beats: [{ at: 3.5, relabel: ['put', 'gp'], fx: { spot: 'put', mostep: ['str', 'gp'] }, kicker: null, caption: 'The basal ganglia gate it: go, or not yet.' },
+        { at: 7, relabel: ['thal', 'm1'], fx: { spot: 'thal', mostep: ['th', 'ctx'] }, caption: 'The thalamus sends the go-ahead back up to cortex.' },
+        { at: 10, relabel: ['gp', 'thal'], fx: { spot: 'gp', mostep: [] }, kicker: 'The brake', caption: 'The pallidum is the brake on that gate. Just enough, and movement flows.' }] },
+    { title: 'Stuck on: stupor', chapter: 'The brake', dur: 22, state: 'h', cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['gp', 'thal'], inset: 'motor', fx: { tag: 'Catatonia', spot: 'gp' },
       kicker: 'Stupor', caption: 'Jam the brake on, and nothing starts.', ev: P7_EV.stupor,
       beats: [{ at: 2, tween: { gd: [0.85, 3] } }, { at: 9, kicker: null, caption: 'Immobility, mutism, posturing: holding a position for hours.' }] },
-    { title: 'Slipping: excitement', chapter: 'The brake', dur: 20, state: 'h', set: { gd: 0.5, exc: 1 }, cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['gp'], inset: 'motor', fx: { tag: 'Catatonia', spot: 'gp' },
+    { title: 'Slipping: excitement', chapter: 'The brake', dur: 20, state: 'h', set: { gd: 0.5, exc: 1 }, cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['gp', 'thal'], inset: 'motor', fx: { tag: 'Catatonia', spot: 'gp' },
       kicker: 'Excitement', caption: 'Let the brake slip back and forth, and movement runs without purpose.', ev: P7_EV.exc,
       beats: [{ at: 9, kicker: null, caption: 'The same illness, the other face.' }] },
     { title: 'Where the jam is', chapter: 'Cortex', dur: 22, state: 'h', set: { gd: 0.85 }, cam: P7_CAM.ctx, see: ['m1', 'pmc', 'ofc', 'put', 'gp', 'thal'], show: ['m1-put', 'gp-thal', 'thal-m1'], labels: ['m1', 'ofc'], hud: { ctx: true }, inset: 'motor', fx: { tag: 'Stupor' },
-      kicker: 'Cortex', caption: 'The jam seems to sit in cortex. GABA-A binding is lower in sensorimotor cortex in stupor.', ev: P7_EV.where,
+      kicker: 'Cortex', caption: 'What jams the brake seems to start in cortex: GABA-A binding is lower in sensorimotor cortex in stupor.', ev: P7_EV.where,
       beats: [{ at: 10, relabel: ['pmc', 'ofc'], kicker: null, caption: 'Orbitofrontal cortex runs low, premotor runs high, and frontal links to motor areas are weak.' }] },
     { title: 'The lorazepam test', chapter: 'Cortex', dur: 24, state: 'h', set: { gd: 0.85, lz: 0 }, cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['m1'], inset: 'motor', fx: { tag: 'Stupor', clips: [] },
       kicker: 'Lorazepam', caption: 'Boost GABA-A with lorazepam, and the brake often releases within hours.', ev: P7_EV.lz,

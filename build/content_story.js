@@ -297,7 +297,7 @@ const PSY_SCENES = [
 ];
 
 const STORIES = [
-{ ...PSY_BASE, id: 'net', name: 'Network view (advanced)', color: '#b48cff',
+{ ...PSY_BASE, id: 'net', glossInline: ['effective connectivity'], name: 'Network view (advanced)', color: '#b48cff',
   desc: 'For after the series: frontostriatal coupling across the gradient, which faults come first, different lesions in the same circuit, and spread along the wiring. Five scenes.',
   scenes: PSY_SCENES.slice(10).map(sc => ({ ...sc, chapter: sc.chapter === 'Free play' ? 'Free play' : 'Network' })) },
 ];

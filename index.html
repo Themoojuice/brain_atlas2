@@ -433,6 +433,8 @@ body.steps .ghostring { border: 2px dashed rgba(255,255,255,0.9); }
 #keycard .wd b { color: var(--ink); font-weight: 600; margin-right: 3px; }
 #keycard .wd b::after { content: ':'; }
 .slab.two.nojob .jb { display: none; }
+#sbgloss .gi { transition: opacity .4s; }
+#sbgloss .gi.old { opacity: 0.4; }
 
 </style>
 <script type="importmap">
@@ -1193,7 +1195,7 @@ const PSY_SCENES = [
 ];
 
 const STORIES = [
-{ ...PSY_BASE, id: 'net', name: 'Network view (advanced)', color: '#b48cff',
+{ ...PSY_BASE, id: 'net', glossInline: ['effective connectivity'], name: 'Network view (advanced)', color: '#b48cff',
   desc: 'For after the series: frontostriatal coupling across the gradient, which faults come first, different lesions in the same circuit, and spread along the wiring. Five scenes.',
   scenes: PSY_SCENES.slice(10).map(sc => ({ ...sc, chapter: sc.chapter === 'Free play' ? 'Free play' : 'Network' })) },
 ];
@@ -1853,7 +1855,7 @@ const P1_EV = {
 };
 const P1_H = { nmda: 1, demand: 0.6, ox: 0.35, mop: 1, gsh: 1, net: 1, dim: 0, loop: 0, nov: 0 };
 
-STORIES.push({ id: 'p1', name: 'Part 1 · Where it starts', color: '#ff7a6b', hemi: 'L', view: [-1, 0.18, 0.32], reveal: true, noStates: true, shell: '#7a8494',
+STORIES.push({ id: 'p1', glossInline: ['pyramidal cells', 'gamma rhythm', 'superoxide', 'NADPH oxidase', 'glutathione', 'perineuronal net'], name: 'Part 1 · Where it starts', color: '#ff7a6b', hemi: 'L', view: [-1, 0.18, 0.32], reveal: true, noStates: true, shell: '#7a8494',
   desc: 'The series begins with one cell: the fast, expensive interneuron that keeps the hippocampus in time, and the many roads that wear it down. Thirteen short scenes.',
   keyIntro: '<div class="t">The microscope card</div><div class="note">Triangles are pyramidal cells; the blue circle is a parvalbumin interneuron, its blue cups the synapses on their cell bodies. Green mesh: its perineuronal net. Gold ovals: mitochondria. Red puffs: superoxide. The wave is the gamma rhythm, slowed right down. Bars and rates are illustrative units. The blue dots round the hippocampus in the brain stand for its interneurons.</div>',
   nodes: {
@@ -1913,7 +1915,7 @@ STORIES.push({ id: 'p1', name: 'Part 1 · Where it starts', color: '#ff7a6b', he
       kicker: 'Energy', caption: 'Firing that fast is expensive.', ev: P1_EV.energy,
       beats: [
         { at: 4.5, caption: 'These cells are packed with mitochondria, the gold ovals, and run close to their energy limit.' },
-        { at: 12, tween: { demand: [1.05, 2] }, kicker: 'Push it', caption: 'Ask for more and the reserve runs low.' },
+        { at: 12, tween: { demand: [1.05, 2] }, kicker: 'Push it', caption: 'Ask for more and the energy runs low.' },
         { at: 18, tween: { demand: [0.6, 2] }, kicker: null, caption: 'Ease off and it recovers. There is little spare.' }] },
     { title: 'Exhaust', chapter: 'The cell', dur: 24, state: 'h', set: { mop: 0, ox: 0.4 }, cam: P1_CAM.hp, see: ['ahp'], show: [], labels: [], inset: 'micro', hud: { ring: true }, fx: { mc: ['cells', 'rhythm', 'energy', 'smoke'], mhi: 'smoke' },
       kicker: 'Exhaust', caption: 'Burning that much fuel leaks superoxide, a reactive by-product: the red puffs.', ev: P1_EV.smoke,
@@ -1930,7 +1932,7 @@ STORIES.push({ id: 'p1', name: 'Part 1 · Where it starts', color: '#ff7a6b', he
       kicker: 'Door 1', caption: 'Risk genes number in the hundreds. Some touch glutathione, or the NMDA receptor.', ev: P1_EV.genes,
       beats: [
         { at: 2, tween: { gsh: [0.62, 3] } },
-        { at: 9, tween: { gsh: [0.48, 3] }, kicker: 'Early life', caption: 'Complications around birth can thin the reserve too.' },
+        { at: 9, tween: { gsh: [0.48, 3] }, kicker: 'Early life', caption: 'Complications around birth can thin the glutathione buffer too.' },
         { at: 16, kicker: null, caption: 'A thinner buffer still copes on a good day. It just has less margin.' }] },
     { title: 'Door 2: adolescence', chapter: 'Many roads', dur: 20, state: 'h', set: { gsh: 0.48 }, cam: P1_CAM.hp, see: ['ahp'], show: [], labels: [], inset: 'micro', hud: { ring: true }, fx: { mc: MC_GROUPS.filter(g => g !== 'nmda'), mhi: 'net', tag: 'Under strain' },
       kicker: 'Door 2', caption: 'In adolescence the net is still maturing.', ev: P1_EV.teen,
@@ -1941,7 +1943,7 @@ STORIES.push({ id: 'p1', name: 'Part 1 · Where it starts', color: '#ff7a6b', he
       kicker: 'Door 3', caption: 'The interneuron is driven through NMDA receptors.', ev: P1_EV.nmda,
       beats: [
         { at: 5.5, tween: { nmda: [0.15, 2] }, fx: { mhi: ['nmda', 'cells', 'rhythm'] }, kicker: 'Blocked', caption: 'Ketamine, phencyclidine or anti-NMDA receptor encephalitis block them. The interneuron goes quiet first.' },
-        { at: 13.5, fx: { spot: 'ahp' }, kicker: null, caption: 'Released, the pyramidal cells fire out of time and the hippocampus heats up.' },
+        { at: 13.5, fx: { spot: 'ahp' }, kicker: null, caption: 'Released, the pyramidal cells fire out of time and the hippocampus gets louder.' },
         { at: 20, tween: { ox: [0.8, 2.5] }, fx: { mhi: 'smoke', spot: null }, kicker: 'More exhaust', caption: 'In mice, ketamine also drives NADPH oxidase: more superoxide.' }] },
     { title: 'The vicious circle', chapter: 'Many roads', dur: 22, state: 'h', set: { gsh: 0.48, net: 0.72, ox: 0.62, loop: 1 }, cam: P1_CAM.hp, see: ['ahp'], show: [], labels: [], inset: 'micro', hud: { ring: true }, fx: { mc: MC_GROUPS.filter(g => g !== 'nmda'), mhi: ['net', 'smoke'], tag: 'Under strain' },
       kicker: 'Vicious circle', caption: 'Oxidative stress frays the net…', ev: P1_EV.loop,
@@ -2018,13 +2020,13 @@ STORIES.push({ ...PSY_BASE, id: 'p2', name: 'Part 2 · The chain of brakes', col
     { title: 'Station 1: a loud hippocampus', chapter: 'Chain', dur: 19, state: 'psychosis', set: { cs: 0 }, cam: P2_CAM.hp, see: ['ahp', 'vp', 'vta'], show: [], labels: ['ahp'], inset: 'chain', hud: { ring: true }, fx: { ch: ['IN', 'HP', 'VP', 'DA'], chi: ['IN', 'HP'], spot: 'ahp' },
       kicker: 'Station 1', caption: 'Back to the hippocampus, loud since its interneuron brakes dimmed.', ev: P2_EV.hp,
       beats: [{ at: 8, kicker: 'In patients', caption: 'Scans show the front of it overactive before, and at, the first episode.' }] },
-    { title: 'Station 2: down the fornix', chapter: 'Chain', dur: 18, state: 'psychosis', set: { cs: 0 }, cam: P2_CAM.hp, see: ['ahp', 'fxb', 'vp', 'vta', 'nac'], show: ['hp-nac'], labels: ['fxb', 'nac'], levels: { Fornix: 1 }, inset: 'chain', hud: { ring: true }, fx: { ch: ['IN', 'HP', 'NA', 'VP', 'DA'], chi: ['HP', 'NA'], spot: 'nac' },
+    { title: 'Station 2: down the fornix', chapter: 'Chain', dur: 18, state: 'psychosis', set: { cs: 0 }, cam: P2_CAM.hp, see: ['ahp', 'fxb', 'vp', 'vta', 'nac'], show: ['hp-nac'], labels: ['ahp', 'fxb', 'nac'], levels: { Fornix: 1 }, inset: 'chain', hud: { ring: true }, fx: { ch: ['IN', 'HP', 'NA', 'VP', 'DA'], chi: ['HP', 'NA'], spot: 'nac' },
       kicker: 'Station 2', caption: 'The subiculum sends its excitement down the fornix to the accumbens.', ev: P2_EV.fornix,
       beats: [{ at: 2.5, tween: { cs: [1, 3] } }, { at: 10, kicker: null, caption: 'The accumbens fires harder.' }] },
-    { title: 'Station 3: a brake on the brake', chapter: 'Chain', dur: 20, state: 'psychosis', set: { cs: 1 }, cam: P2_CAM.nv, see: P2_SEE, show: ['hp-nac', 'nac-vp'], labels: ['vp'], inset: 'chain', fx: { ch: ['IN', 'HP', 'NA', 'VP', 'DA'], chi: ['NA', 'VP'], spot: 'vp' },
+    { title: 'Station 3: a brake on the brake', chapter: 'Chain', dur: 20, state: 'psychosis', set: { cs: 1 }, cam: P2_CAM.nv, see: P2_SEE, show: ['hp-nac', 'nac-vp'], labels: ['nac', 'vp'], inset: 'chain', fx: { ch: ['IN', 'HP', 'NA', 'VP', 'DA'], chi: ['NA', 'VP'], spot: 'vp' },
       kicker: 'Station 3', caption: 'The accumbens inhibits the ventral pallidum.', ev: P2_EV.brake,
       beats: [{ at: 3, tween: { cs: [2, 3] } }, { at: 9, kicker: null, caption: 'The pallidum is a brake. The accumbens is now braking the brake.' }] },
-    { title: 'Station 4: the brake lifts', chapter: 'Chain', dur: 21, state: 'psychosis', set: { cs: 2 }, cam: P2_CAM.nv, see: P2_SEE, show: P2_EDGES, labels: ['vta'], inset: 'chain', fx: { ch: ['IN', 'HP', 'NA', 'VP', 'DA'], chi: ['VP', 'DA'], spot: 'vta' },
+    { title: 'Station 4: the brake lifts', chapter: 'Chain', dur: 21, state: 'psychosis', set: { cs: 2 }, cam: P2_CAM.nv, see: P2_SEE, show: P2_EDGES, labels: ['vp', 'vta'], inset: 'chain', fx: { ch: ['IN', 'HP', 'NA', 'VP', 'DA'], chi: ['VP', 'DA'], spot: 'vta' },
       kicker: 'Station 4', caption: 'A quieter pallidum lets go of the dopamine neurons.', ev: P2_EV.lift,
       beats: [{ at: 2.5, tween: { cs: [4, 4] } }, { at: 10, kicker: null, caption: 'More of them wake. The gain goes up, on every event.' }, { at: 15, do: S => burstTok(S) }] },
     { title: 'Recap: the double negative', chapter: 'Chain', dur: 22, state: 'psychosis', set: { cs: 0 }, cam: P2_CAM.chain, see: P2_SEE, show: P2_EDGES, labels: [], inset: 'chain', fx: { ch: ['IN', 'HP', 'NA', 'VP', 'DA'], chi: null, ledger: 0, tag: 'Slowly, once more' },
@@ -2058,7 +2060,7 @@ STORIES.push({ ...PSY_BASE, id: 'p2', name: 'Part 2 · The chain of brakes', col
         { at: 13, fx: { doors: ['nmda', 'epi', 'stim'], chi: 'ST' }, caption: 'Methamphetamine and levodopa, straight at the dopamine terminal.' },
         { at: 18.5, fx: { doors: ['nmda', 'epi', 'stim', 'can'], chi: null }, kicker: 'Unknown', caption: 'Cannabis raises the risk yet lowers dopamine synthesis. Its door is still a question mark.' }] },
     { title: 'What we know in people', chapter: 'Doors', dur: 26, state: 'psychosis', cam: P2_CAM.chain, see: P2_SEE_ALL, show: P2_ALL, labels: [], inset: 'chain', fx: { ch: CH_ST, chi: null, human: true, tag: 'Evidence' },
-      kicker: 'Evidence', caption: 'In rats the whole chain is proven. In people, both ends are; the middle links are inconsistent.', ev: P2_EV.human,
+      kicker: 'Evidence', caption: 'In rats, every link is shown. In people, the loud hippocampus and the striatal excess are seen; the links between are inconsistent.', ev: P2_EV.human,
       beats: [
         { at: 9, fx: { human: false, tag: 'Recap' }, kicker: 'Recap', caption: 'A loud hippocampus, a brake on a brake, more neurons awake, excess in the associative striatum.' },
         { at: 18, kicker: 'Next', caption: 'Part 3: what that excess feels like from the inside.' }] },
@@ -2225,7 +2227,7 @@ STORIES.push({ ...PSY_BASE, id: 'p3', name: 'Part 3 · When everything matters',
       kicker: 'Part 3', caption: 'Part 2: too much dopamine lands in the associative striatum.', ev: P3_EV.series,
       beats: [{ at: 6, see: ['cd'], hud: { tint: true }, relabel: ['cd'], fx: { spot: 'cd' }, kicker: 'Today', caption: 'Today: what that does to experience.' }] },
     { title: 'Dopamine teaches', chapter: 'Highlighter', dur: 22, state: 'healthy', cam: P3_CAM.terr, see: ['vta', 'nac'], show: ['vta-nac'], labels: ['vta', 'nac'], fx: { spot: 'nac' },
-      kicker: 'Teaching signal', caption: 'A dopamine burst tags an event as worth learning, the same signal as in the mood loop (Part 5).', ev: P3_EV.teach,
+      kicker: 'Teaching signal', caption: 'A dopamine burst tags an event as worth learning.', ev: P3_EV.teach,
       beats: [
         { at: 3, token: { icon: 'spark', from: 'vta', to: 'nac', via: [[-6, -4, -12]], dur: 1.1, life: 0.9, cls: 'tkspark', size0: 0.3, grow: true, sal: () => 1.2 } },
         { at: 10, see: ['sn', 'cd'], show: ['vta-nac', 'nac-sn', 'sn-cd'], relabel: ['sn', 'cd'], tags: { 'nac-sn': 'untested link' }, fx: { spot: 'cd' }, kicker: 'This matters', caption: 'Some dopamine neurons fire for anything important, good or bad. That is salience.' },
@@ -2233,7 +2235,7 @@ STORIES.push({ ...PSY_BASE, id: 'p3', name: 'Part 3 · When everything matters',
     { title: 'Two territories', chapter: 'Highlighter', dur: 18, state: 'healthy', cam: P3_CAM.terr, see: ['vta', 'nac', 'sn', 'cd'], show: ['vta-nac', 'nac-sn', 'sn-cd'], labels: ['nac', 'cd'], hud: { tint: true }, fx: { spot: 'nac' },
       kicker: 'Two territories', caption: 'The accumbens, in green, weighs value and mood.', ev: P3_EV.terr,
       beats: [{ at: 7, fx: { spot: 'cd' }, caption: 'The associative striatum, in lavender, shapes what you attend to and believe.' }] },
-    { title: 'A healthy highlighter', chapter: 'Highlighter', dur: 20, state: 'healthy', cam: P3_CAM.feed, see: P3_A_SEE, show: P3_A_SHOW, labels: ['cd'], hud: { tint: true }, inset: 'feed', fx: { tag: 'Healthy' },
+    { title: 'A healthy highlighter', chapter: 'Highlighter', dur: 20, state: 'healthy', cam: P3_CAM.feed, see: P3_A_SEE, show: P3_A_SHOW, labels: ['sn', 'cd'], hud: { tint: true }, inset: 'feed', fx: { tag: 'Healthy' },
       kicker: 'The highlighter', caption: 'Every day brings a stream of events. Dopamine in the associative striatum marks the few that matter.', ev: P3_EV.salience,
       beats: [{ at: 9, kicker: null, caption: 'Your name across a crowded room gets marked. The passing car does not.' }] },
     { title: 'The highlighter sticks', chapter: 'Highlighter', dur: 26, state: 'healthy', cam: P3_CAM.feed, see: P3_A_SEE, show: P3_A_SHOW, labels: ['cd'], hud: { tint: true }, inset: 'feed', fx: { tag: 'Healthy' },
@@ -2402,7 +2404,7 @@ STORIES.push({ ...PSY_BASE, id: 'p4', name: 'Part 4 · What goes missing', color
       kicker: 'First episode', caption: 'Cognitive deficits are already there at the first episode, across all ten domains tested.', ev: P4_EV.cog,
       beats: [{ at: 9, kicker: null, caption: 'They are about as large as in long illness. Part 1’s dimming starts early.' }] },
     { title: 'Look-alikes', chapter: 'Look-alikes', dur: 25, state: 'psychosis', set: { occ: 0 }, cam: P4_CAM.st, see: P4_SEE, show: ['vta-nac', 'nac-sn', 'sn-cd'], labels: ['nac'], hud: { shields: true }, inset: 'feed', fx: { reward: true, pull: true, tag: 'Psychosis' },
-      kicker: 'Look-alikes', caption: 'Some negative symptoms are added on top. Depression affects about a third of stable outpatients.', ev: P4_EV.look,
+      kicker: 'Look-alikes', caption: 'Some negative symptoms are look-alikes with other causes. Depression affects about a third of stable outpatients.', ev: P4_EV.look,
       beats: [
         { at: 10, tween: { occ: [0.85, 3] }, fx: { tag: 'High D2 block' }, kicker: 'Too much block', caption: 'Too much D2 block dulls the reward signal along with the noise.' },
         { at: 18, kicker: null, caption: 'People feel worst at high occupancy, and best around 60 to 70%.' }] },
@@ -2469,7 +2471,7 @@ const P6_EV = {
 const P6_SEE = ['ahp', 'nac', 'vta', 'sn', 'cd'];
 const P6_SHOW = ['hp-nac', 'vta-nac', 'nac-sn', 'sn-cd'];
 
-STORIES.push({ id: 'p6', name: 'Part 6 · One trunk, three illnesses', color: '#c49bff', hemi: 'L', view: MED, reveal: true, noStates: true, shell: '#7a8494',
+STORIES.push({ id: 'p6', glossInline: ['schizoaffective disorder', 'mifepristone'], name: 'Part 6 · One trunk, three illnesses', color: '#c49bff', hemi: 'L', view: MED, reveal: true, noStates: true, shell: '#7a8494',
   desc: 'How the chain and the mood loop make three illnesses: one shared psychosis trunk, two engines, a stress-hormone route in psychotic depression, and the mood pole picking the plot. Ten short scenes.',
   keyIntro: '<div class="t">The engine card</div><div class="note">Engines on the left feed the trunk on the right; pipe thickness is how hard each drives it. Above the dashed line, the trunk means psychosis. The label on the right is the diagnosis this combination gives; the gold line is the content the mood pole supplies. Illustrative.</div>',
   nodes: {
@@ -2514,10 +2516,10 @@ STORIES.push({ id: 'p6', name: 'Part 6 · One trunk, three illnesses', color: '#
       kicker: 'Part 6', caption: 'Parts 1 to 4 built the chain. Part 5 built the mood loop.', ev: P6_EV.series,
       beats: [{ at: 6.5, see: P6_SEE, show: P6_SHOW, kicker: 'Today', caption: 'Today: how they make three different illnesses.' }] },
     { title: 'One trunk', chapter: 'Trunk', dur: 20, state: 'x', set: { chain: 0.9, loop: 0, osc: 0, cort: 0 }, cam: P6_CAM.st, see: P6_SEE, show: P6_SHOW, labels: ['cd'], hud: { tint: true }, inset: 'engine', fx: { en: ['chain', 'loop'], spot: 'cd' },
-      kicker: 'One trunk', caption: 'In schizophrenia and in bipolar psychosis alike, dopamine synthesis in the associative striatum tracks the positive symptoms.', ev: P6_EV.trunk,
-      beats: [{ at: 10, tween: { chain: [0, 2], loop: [0.9, 2] }, kicker: null, caption: 'Whichever engine drives it, psychosis rides on the same trunk.' }] },
+      kicker: 'One trunk', caption: 'In schizophrenia and in bipolar psychosis alike, dopamine synthesis in the associative striatum rises with the positive symptoms.', ev: P6_EV.trunk,
+      beats: [{ at: 10, tween: { chain: [0, 2], loop: [0.9, 2] }, kicker: null, caption: 'Whichever engine drives it, psychosis rides on the same trunk: extra dopamine in the associative striatum.' }] },
     { title: 'Territory doesn’t split them', chapter: 'Trunk', dur: 18, state: 'x', set: { chain: 0, loop: 0.9, osc: 0, cort: 0 }, cam: P6_CAM.st, see: P6_SEE, show: P6_SHOW, labels: ['nac', 'cd'], hud: { tint: true }, inset: 'engine', fx: { en: ['chain', 'loop'] },
-      kicker: 'Territory', caption: 'The limbic striatum isn’t raised in mania. Both illnesses load the associative part.', ev: P6_EV.terr,
+      kicker: 'Territory', caption: 'The limbic striatum isn’t raised in mania. Both illnesses raise dopamine in the associative part.', ev: P6_EV.terr,
       beats: [{ at: 8.5, kicker: null, caption: 'So the difference isn’t where dopamine lands. It is what drives it.' }] },
     { title: 'Engine 1: the chain', chapter: 'Engines', dur: 20, state: 'x', set: { chain: 0, loop: 0, osc: 0, cort: 0 }, cam: P6_CAM.hp, see: P6_SEE, show: P6_SHOW, labels: ['ahp'], inset: 'engine', fx: { en: ['chain', 'loop'], enhi: 'chain', dx: '', spot: 'ahp' },
       kicker: 'Engine 1', caption: 'The chain: a steadily loud hippocampus keeps the trunk running.', ev: P6_EV.chain,
@@ -2564,7 +2566,7 @@ function motorInset(S) {
   const C = [100, 52], RX = 58, RY = 30, at = a => [C[0] + RX * Math.cos(a), C[1] + RY * Math.sin(a)];
   const ST = { ctx: -Math.PI / 2, str: 0, gp: Math.PI / 2, th: Math.PI };
   const node = (id, lab, col) => { const [x, y] = at(ST[id]); return `<g id="mo-${id}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="10" fill="#0d141d" stroke="${col}" stroke-width="1.8"/>
-    <text class="sub" x="${(x + (id === 'str' || id === 'gp' ? 14 : 0)).toFixed(1)}" y="${(y + (id === 'ctx' ? -16 : id === 'th' ? 22 : id === 'gp' ? 4 : 3)).toFixed(1)}" text-anchor="${id === 'str' || id === 'gp' ? 'start' : 'middle'}" fill="#e7edf4">${lab}</text></g>`; };
+    <text class="sub" x="${(x + (id === 'str' || id === 'gp' ? 14 : 0)).toFixed(1)}" y="${(y + (id === 'ctx' ? -19 : id === 'th' ? 25 : id === 'gp' ? 4 : 3)).toFixed(1)}" text-anchor="${id === 'str' || id === 'gp' ? 'start' : 'middle'}" fill="#e7edf4">${lab}</text></g>`; };
   const arc = (a0, a1, col, cap, id) => { let d = ''; for (let i = 0; i <= 20; i++) { const [x, y] = at(a0 + (a1 - a0) * i / 20); d += `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`; }
     const [ex, ey] = at(a1); return `<path id="${id}" d="${d}" fill="none" stroke="${col}" stroke-width="2"/>${cap === 'bar' ? `<circle id="${id}c" cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="2.5" fill="${col}"/>` : ''}`; };
   const html = `<div class="t lt"><span>The motor loop</span><b id="moTag"></b></div>
@@ -2582,6 +2584,8 @@ function motorInset(S) {
   return { html, tick(m) {
     const q = id => document.getElementById(id), fx = S.fx; if (!q('mosvg')) return;
     setText(q('moTag'), fx.tag || '');
+    const lit = fx.mostep || [];
+    for (const id of ['ctx', 'str', 'gp', 'th']) { const c = document.querySelector(`#mo-${id} circle`); if (c) c.setAttribute('stroke-width', lit.includes(id) ? '3.4' : '1.8'); if (c) c.setAttribute('fill', lit.includes(id) ? '#24364a' : '#0d141d'); }
     const b = m.brake, h = 70 * cl01(b);
     setAttrs(q('moB'), { y: (86 - h).toFixed(1), height: h.toFixed(1), fill: b > 0.72 ? '#ff8f86' : '#4aa8ff' });
     // the pallidal brake on the thalamus thickens as it jams
@@ -2622,13 +2626,13 @@ const P7_EV = {
 };
 const P7_H = { gd: 0, lz: 0, d2: 0, exc: 0, ect: 0 };
 
-STORIES.push({ id: 'p7', name: 'Part 7 · When movement locks', color: '#7fe0d0', hemi: 'L', view: [-1, 0.35, 0.25], reveal: true, noStates: true, shell: '#7a8494',
+STORIES.push({ id: 'p7', glossInline: ['posturing', 'amantadine'], name: 'Part 7 · When movement locks', color: '#7fe0d0', hemi: 'L', view: [-1, 0.35, 0.25], reveal: true, noStates: true, shell: '#7a8494',
   desc: 'Catatonia as a jam in the motor loop’s brake: stupor and excitement, a weak cortical GABA-A signal, the lorazepam test, and the dopamine and NMDA doors. Nine short scenes.',
   keyIntro: '<div class="t">The motor loop card</div><div class="note">Cortex plans a movement; the basal ganglia gate it; the pallidum brakes the thalamus, which sends it back to cortex. The bar is the brake; above the dashed line, movement locks. The green dashed ring is cortical GABA-A signalling, red when weak. Illustrative units.</div>',
   nodes: {
     m1: { key: 'Precentral_gyrus', ghost: true, label: 'Motor cortex' },
     pmc: { key: 'Superior_frontal_gyrus', ghost: true, mni: [-8, 2, 62], label: 'Premotor cortex', nofit: true },
-    ofc: { key: 'Medial_orbital_gyrus', ghost: true, label: 'Orbitofrontal cortex', nofit: true },
+    ofc: { key: 'Medial_orbital_gyrus', ghost: true, label: 'Orbitofrontal cortex', nofit: true, job: 'emotion, and calming it', say: 'The underside of the frontal lobe, just above the eyes. Besides weighing outcomes, it helps damp fear and anxiety; in catatonia it runs low.' },
     put: { key: 'Putamen', mni: [-25, 2, 2], label: 'Striatum (putamen)', lo: [0, 12] },
     gp: { key: 'Pallidum', label: 'Pallidum', lo: [0, 12] },
     thal: { key: 'Thal_VL', label: 'Motor thalamus', lo: [0, 12] },
@@ -2664,17 +2668,19 @@ STORIES.push({ id: 'p7', name: 'Part 7 · When movement locks', color: '#7fe0d0'
     { title: 'Previously / today', chapter: 'The brake', dur: 13, state: 'h', cam: P7_CAM.loop, see: [], show: [], labels: [], inset: 'series', fx: {},
       kicker: 'Part 7', caption: 'Catatonia crosses all three illnesses, and is most common in mood disorders.', ev: P7_EV.series,
       beats: [{ at: 6.5, see: ['m1', 'put', 'gp', 'thal'], kicker: 'Today', caption: 'Today: why movement locks, and why lorazepam can unlock it.' }] },
-    { title: 'The motor loop', chapter: 'The brake', dur: 22, state: 'h', cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['m1', 'put', 'gp', 'thal'], inset: 'motor', fx: { tag: 'Healthy' },
-      kicker: 'Motor loop', caption: 'Cortex proposes a movement, the basal ganglia gate it, the thalamus sends it back.', ev: P7_EV.loop,
-      beats: [{ at: 10, relabel: ['gp'], fx: { spot: 'gp' }, kicker: 'The brake', caption: 'The pallidum is the brake on that gate. Just enough, and movement flows.' }] },
-    { title: 'Stuck on: stupor', chapter: 'The brake', dur: 22, state: 'h', cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['gp'], inset: 'motor', fx: { tag: 'Catatonia', spot: 'gp' },
+    { title: 'The motor loop', chapter: 'The brake', dur: 22, state: 'h', cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['m1', 'put'], inset: 'motor', fx: { tag: 'Healthy', spot: 'm1', mostep: ['ctx', 'str'] },
+      kicker: 'Motor loop', caption: 'Motor cortex proposes a movement.', ev: P7_EV.loop,
+      beats: [{ at: 3.5, relabel: ['put', 'gp'], fx: { spot: 'put', mostep: ['str', 'gp'] }, kicker: null, caption: 'The basal ganglia gate it: go, or not yet.' },
+        { at: 7, relabel: ['thal', 'm1'], fx: { spot: 'thal', mostep: ['th', 'ctx'] }, caption: 'The thalamus sends the go-ahead back up to cortex.' },
+        { at: 10, relabel: ['gp', 'thal'], fx: { spot: 'gp', mostep: [] }, kicker: 'The brake', caption: 'The pallidum is the brake on that gate. Just enough, and movement flows.' }] },
+    { title: 'Stuck on: stupor', chapter: 'The brake', dur: 22, state: 'h', cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['gp', 'thal'], inset: 'motor', fx: { tag: 'Catatonia', spot: 'gp' },
       kicker: 'Stupor', caption: 'Jam the brake on, and nothing starts.', ev: P7_EV.stupor,
       beats: [{ at: 2, tween: { gd: [0.85, 3] } }, { at: 9, kicker: null, caption: 'Immobility, mutism, posturing: holding a position for hours.' }] },
-    { title: 'Slipping: excitement', chapter: 'The brake', dur: 20, state: 'h', set: { gd: 0.5, exc: 1 }, cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['gp'], inset: 'motor', fx: { tag: 'Catatonia', spot: 'gp' },
+    { title: 'Slipping: excitement', chapter: 'The brake', dur: 20, state: 'h', set: { gd: 0.5, exc: 1 }, cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['gp', 'thal'], inset: 'motor', fx: { tag: 'Catatonia', spot: 'gp' },
       kicker: 'Excitement', caption: 'Let the brake slip back and forth, and movement runs without purpose.', ev: P7_EV.exc,
       beats: [{ at: 9, kicker: null, caption: 'The same illness, the other face.' }] },
     { title: 'Where the jam is', chapter: 'Cortex', dur: 22, state: 'h', set: { gd: 0.85 }, cam: P7_CAM.ctx, see: ['m1', 'pmc', 'ofc', 'put', 'gp', 'thal'], show: ['m1-put', 'gp-thal', 'thal-m1'], labels: ['m1', 'ofc'], hud: { ctx: true }, inset: 'motor', fx: { tag: 'Stupor' },
-      kicker: 'Cortex', caption: 'The jam seems to sit in cortex. GABA-A binding is lower in sensorimotor cortex in stupor.', ev: P7_EV.where,
+      kicker: 'Cortex', caption: 'What jams the brake seems to start in cortex: GABA-A binding is lower in sensorimotor cortex in stupor.', ev: P7_EV.where,
       beats: [{ at: 10, relabel: ['pmc', 'ofc'], kicker: null, caption: 'Orbitofrontal cortex runs low, premotor runs high, and frontal links to motor areas are weak.' }] },
     { title: 'The lorazepam test', chapter: 'Cortex', dur: 24, state: 'h', set: { gd: 0.85, lz: 0 }, cam: P7_CAM.loop, see: ['m1', 'put', 'gp', 'thal'], show: ['m1-put', 'put-gp', 'gp-thal', 'thal-m1'], labels: ['m1'], inset: 'motor', fx: { tag: 'Stupor', clips: [] },
       kicker: 'Lorazepam', caption: 'Boost GABA-A with lorazepam, and the brake often releases within hours.', ev: P7_EV.lz,
@@ -2728,7 +2734,7 @@ const OTHER_HTML = `<div class="t">Treatment elsewhere in the series</div><div c
   <div><b>Catatonia</b><span>Lorazepam first; electroconvulsive therapy if not</span><i>Part 7</i></div>
   <div><b>Psychotic depression</b><span>Antidepressant plus antipsychotic, or electroconvulsive therapy</span><i>Part 6</i></div></div>`;
 
-STORIES.push({ ...PSY_BASE, id: 'p8', name: 'Part 8 · Turning it down', color: '#9fd3ff', reveal: true, noStates: true, shell: '#7a8494',
+STORIES.push({ ...PSY_BASE, glossInline: ['xanomeline', 'trospium'], id: 'p8', name: 'Part 8 · Turning it down', color: '#9fd3ff', reveal: true, noStates: true, shell: '#7a8494',
   desc: 'Where each treatment acts on the chain: the D2 speaker and its occupancy window, side effects, a muscarinic drug at the source, negative symptoms, rebound, the dopamine-normal third and clozapine. Thirteen short scenes.',
   keyIntro: '<div class="t">The chain card, with drugs</div><div class="note">Clips show where a drug acts. The bar is striatal D2 occupancy, with the 65% (response), 72% (prolactin) and 78% (stiffness and tremor) thresholds from first-episode PET. Hexagons on the striatum in the brain are D2 blockade; green rounds are the muscarinic drug. Drive and receptor numbers are illustrative.</div>',
   nodes: { ...PSY_BASE.nodes,
@@ -2886,7 +2892,7 @@ const ARROWS = {
   're-hp':   { tag: 'keeps it in check', say: 'The reuniens passes that prefrontal check on to the hippocampus (shown in rats).' },
   'hp-nac':  { tag: 'excites', say: 'The hippocampus excites the accumbens, through the fornix.' },
   'nac-vp':  { tag: 'brakes', say: 'The accumbens brakes the ventral pallidum.' },
-  'vp-vta':  { tag: 'holds them quiet', say: 'The ventral pallidum holds most dopamine cells silent.' },
+  'vp-vta':  { tag: 'brakes them', say: 'The ventral pallidum holds most dopamine cells silent.' },
   'vta-nac': { tag: 'dopamine', say: 'Dopamine cells in the ventral tegmental area send dopamine to the accumbens.' },
   'nac-sn':  { tag: 'passes it on', say: 'The accumbens feeds back onto the next group of dopamine cells, in the substantia nigra. Shown in animals; untested in people.' },
   'sn-cd':   { tag: 'dopamine', say: 'Dopamine cells in the substantia nigra send dopamine up into the caudate.' },
@@ -2941,7 +2947,7 @@ const GLOSS = [
   { t: ['prefrontal cortex', 'prefrontal'], d: 'the front of the brain: planning, judgement, self-control', node: ['Prefrontal cortex', 'Dorsolateral prefrontal', 'Medial prefrontal', 'Ventromedial prefrontal', 'Ventrolateral prefrontal'] },
   { t: ['ventrolateral prefrontal cortex', 'ventrolateral prefrontal'], d: 'the lower outer front of the brain: reins impulses in', node: ['Ventrolateral prefrontal'] },
   { t: ['medial prefrontal'], d: 'the inner face of the front of the brain: emotion, and reining in the hippocampus', node: ['Medial prefrontal'] },
-  { t: ['right inferior frontal'], d: 'the lower right frontal lobe: stopping and reining in' },
+  { t: ['right inferior frontal'], d: 'the right ventrolateral prefrontal cortex: the brake labelled here' },
   { t: ['orbitofrontal cortex', 'orbitofrontal'], d: 'the underside of the frontal lobe, over the eyes: weighs how good things are', node: ['Orbitofrontal cortex'] },
   { t: ['sensorimotor cortex'], d: 'the strips that send movement commands and feel the body', node: ['Sensorimotor cortex'] },
   { t: ['motor cortex', 'motor areas'], d: 'the strip that sends movement commands to the muscles', node: ['Motor cortex'] },
@@ -2963,7 +2969,6 @@ const GLOSS = [
   { t: ['interneuron', 'interneurons'], d: 'a local cell that quietens its neighbours' },
   { t: ['parvalbumin'], d: 'a protein that marks the fastest-firing interneurons' },
   { t: ['gamma rhythm'], d: 'a fast brain rhythm (30 to 80 a second) that keeps cells firing in step' },
-  { t: ['mitochondria'], d: 'the cell’s power stations' },
   { t: ['superoxide'], d: 'a reactive form of oxygen, made as a by-product, that damages cells' },
   { t: ['NADPH oxidase'], d: 'an enzyme whose job is to make superoxide' },
   { t: ['glutathione'], d: 'the brain’s main antioxidant: it mops up superoxide' },
@@ -2999,14 +3004,15 @@ const GLOSS = [
   { t: ['electroconvulsive therapy'], d: 'a brief, controlled seizure under anaesthetic, for severe illness' },
   { t: ['PBS-listed'], d: 'subsidised on the Pharmaceutical Benefits Scheme (Australia)' },
   { t: ['Australian register'], d: 'the Australian Register of Therapeutic Goods: the Therapeutic Goods Administration’s list of approved medicines' },
-  { t: ['phase 3'], d: 'the large, final trials before a drug can be approved' },
   // symptoms and syndromes
   { t: ['salience'], d: 'how strongly something grabs you as important' },
   { t: ['delusional mood'], d: 'an uncanny sense that something important is going on, before any explanation' },
   { t: ['passivity'], d: 'feeling that your movements or thoughts are being done to you' },
   { t: ['thought disorder'], d: 'speech whose ideas no longer link up logically' },
+  { t: ['positive symptoms'], d: 'experiences added: delusions, hallucinations, disordered thinking' },
   { t: ['negative symptoms'], d: 'things taken away: drive, looking forward, expression, social contact' },
   { t: ['working memory'], d: 'holding a few things in mind for seconds while you use them' },
+  { t: ['euthymia'], d: 'a steady, ordinary mood, neither high nor low' },
   { t: ['catatonia'], d: 'movement and speech lock up, or run without purpose' },
   { t: ['stupor'], d: 'awake, but not moving or speaking' },
   { t: ['mutism'], d: 'not speaking, though able to' },
@@ -3022,10 +3028,7 @@ const GLOSS = [
   { t: ['effective connectivity'], d: 'which region drives which, estimated by modelling brain scans' },
   { t: ['coupling', 'coupled'], d: 'two regions whose activity rises and falls together' },
   { t: ['dorsal'], d: 'upper' }, { t: ['ventral'], d: 'lower' },
-  { t: ['first-degree relatives'], d: 'parents, brothers and sisters, and children' },
   { t: ['antipsychotic-naive'], d: 'never treated with an antipsychotic' },
-  { t: ['lesions', 'lesion'], d: 'damaged or failing parts' },
-  { t: ['post-mortem'], d: 'measured in brain tissue after death' },
 ];
 // one matcher, longest phrase first, so “ventral tegmental area” wins over “ventral”
 const GLOSS_IDX = new Map();
@@ -4148,7 +4151,7 @@ function gotoScene(i, opts = {}) {
   paintYeo(story.hud.yeo || 0);
   story.see = sc.see ? new Set(sc.see) : null; applySee();
   story.kicker = sc.kicker || null;
-  clearTokens(); $('#sbgloss').innerHTML = ''; $('#sbgloss').hidden = true; setCaption(sc.caption); renderExtra(sc); renderInset(sc.inset || null); syncBar();
+  clearTokens(); $('#sbgloss').innerHTML = ''; $('#sbgloss').hidden = true; story.glossQueue = []; story.readUntil = 0; setCaption(sc.caption); renderExtra(sc); renderInset(sc.inset || null); syncBar();
   if (!$('#keycard').hidden) $('#keycard').innerHTML = keyHtml(def);
   story.camNow = sc.cam || (def.steps && def.cam) || { dir: def.view }; story.framePending = true;
   const anim = !opts.instant;
@@ -4187,7 +4190,7 @@ function applySee() {
   applyMaterials();
 }
 function fastForward(t) {
-  story.instant = true;
+  story.instant = true; story.ffwd = true;
   for (let x = 0; x < t; x += 0.1) {
     story.t += 0.1;
     const beats = story.scene.beats || [];
@@ -4197,7 +4200,7 @@ function fastForward(t) {
     if (story.def.tick) story.def.tick(0.1, story.vars, story.m, story);
     for (const tk of story.tokens) if (story.t - tk.t0 >= tk.dur && !tk.arrived) arrive(tk);
   }
-  story.instant = false;
+  story.instant = false; story.ffwd = false; story.readUntil = 0;
 }
 function arrive(tk) {
   tk.arrived = true;
@@ -4217,6 +4220,8 @@ function storyFrame(now) {
     let nt = story.t + dt;
     const nb = (sc.beats || [])[story.beatIdx], lim = nb ? (nb.caption ? nb.at : Infinity) : (sc.free || def.steps ? Infinity : sc.dur + (sc.hold ?? 1.5));
     if (story.narrate && window.speechSynthesis && speechSynthesis.speaking && nt >= lim && story.gateT < 12) { story.gateT += dt; nt = Math.max(story.t, lim - 0.001); } else if (nt < lim) story.gateT = 0;
+    // reading gate: the same hold until the caption and any new definitions have had reading time (about 150 words a minute)
+    if (nt >= lim && now < story.readUntil) nt = Math.max(story.t, lim - 0.001);
     story.t = nt;
     const beats = sc.beats || [];
     while (story.beatIdx < beats.length && beats[story.beatIdx].at <= story.t) applyBeat(beats[story.beatIdx++]);
@@ -4465,18 +4470,24 @@ function updateHud(dt, now) {
     hud.gridlead.setAttribute('opacity', s.ok ? 0.55 : 0);
   } else hud.gridlead.setAttribute('opacity', 0);
   // labels: nodes, edge tags and the transporter note, decluttered together
-  const items = [], labOrder = [...story.labelSet].filter(id => story.nodes.get(id)?.label), jobCut = small && labOrder.length >= 4 ? labOrder.length - 2 : 0;
+  const eff = new Set(story.labelSet);
+  for (const E of story.edges.values()) {
+    const e = E.def;
+    if (E.vis > 0.5 && (story.tags[e.id] || story.focus?.includes(e.id)) && !def.noArrowTags) [e.from, e.to].forEach(id => story.nodes.get(id)?.label && eff.add(id));
+  }
+  story.effLabels = eff;
+  const items = [], labOrder = [...eff].filter(id => story.nodes.get(id)?.label), jobCut = small && labOrder.length >= 4 ? labOrder.length - 2 : 0;
   for (const N of story.nodes.values()) {
     if (!N.label) continue;
-    const s = proj(N.pos), on = story.labelSet.has(N.id) && s.ok && !(N.def.gate && !N.def.gate(m, story)); N.label.classList.toggle('on', on);
+    const s = proj(N.pos), on = eff.has(N.id) && s.ok && !(N.def.gate && !N.def.gate(m, story)); N.label.classList.toggle('on', on);
     N.label.classList.toggle('nojob', labOrder.indexOf(N.id) < jobCut);
     if (on) { const [w, h] = measure(N.label); items.push({ el: N.label, ax: s.x, ay: s.y, w, h, below: (N.def.lo || [0, 0])[1] > 0 }); }
   }
   const tagged = [];
   for (const E of story.edges.values()) {
     const st = story.tags[E.id], plain = def.noArrowTags ? '' : arrowTag(E.def), e = E.def;
-    const near = story.labelSet.has(e.from) || story.labelSet.has(e.to) || (story.focus && story.focus.includes(e.id));
-    if (E.vis > 0.5 && (st || (plain && near))) tagged.push({ E, txt: st ? (plain ? `${plain} · ${st}` : st) : plain, pri: st ? 3 : story.focus?.includes(e.id) ? 2 : 1 });
+    const named = eff.has(e.from) && eff.has(e.to);
+    if (E.vis > 0.5 && named && (st || plain)) tagged.push({ E, txt: st ? (plain ? `${plain} · ${st}` : st) : plain, pri: st ? 3 : story.focus?.includes(e.id) ? 2 : 1 });
     else E.tag.classList.remove('on');
   }
   tagged.sort((a, b) => b.pri - a.pri).forEach(({ E, txt }, i) => {
@@ -4485,6 +4496,7 @@ function updateHud(dt, now) {
     const s = proj(E.curve.getPointAt(0.5)), [w, h] = measure(E.tag); items.push({ el: E.tag, ax: s.x, ay: s.y + h / 2 + 9, w, h, tag: true });
   });
   if (story.glossPending) renderGloss();
+  else if (story.glossQueue?.length && performance.now() >= story.glossPageAt) { const max = small ? 2 : 3, next = story.glossQueue.slice(0, max); story.glossQueue = story.glossQueue.slice(max); showGloss(next, false, true); story.glossPageAt = performance.now() + 1000 * (0.6 + glossText(next).split(/\s+/).length / READ_WPS); }
   const nac = story.nodes.get('nac'), datOn = !!H2.dat && nac && def.gauge.pop(m) < 0.3;
   hud.datLabel.classList.toggle('on', !!datOn);
   if (datOn) { const s = proj(nac.pos), [w, h] = measure(hud.datLabel); items.push({ el: hud.datLabel, ax: s.x, ay: s.y, w, h, below: true }); }
@@ -4586,11 +4598,17 @@ function glossMark(html) {
   })).join('');
   return [out, found];
 }
+const READ_WPS = 2.5;
+function readFor(text) {   // extend the reading budget by this text's reading time
+  const w = (text || '').split(/\s+/).filter(Boolean).length; if (!w) return;
+  const now = performance.now();
+  story.readUntil = Math.min(Math.max(story.readUntil || 0, now) + (0.6 + w / READ_WPS) * 1000, now + 16000);
+}
 // the strip: definitions for words this story hasn't decoded yet (a region whose label is on screen is already explained by its job line)
 function renderGloss(force) {
   story.glossPending = false;
   const box = $('#sbgloss'); if (!box || !HAS_JOBS) return;
-  const onLabels = new Set([...story.labelSet].map(id => story.nodes.get(id)?.def.label).filter(Boolean));
+  const onLabels = new Set([...(story.effLabels || story.labelSet)].map(id => story.nodes.get(id)?.def.label).filter(Boolean));
   const fresh = [];
   for (const gi of force !== undefined ? [force] : (story.glossNow || [])) {
     const g = GLOSS[gi];
@@ -4599,19 +4617,31 @@ function renderGloss(force) {
     if (force === undefined && g.node && g.node.some(l => onLabels.has(l))) continue;
     fresh.push(gi);
   }
-  if (!fresh.length) return;
+  if (!fresh.length) {   // nothing new: definitions this caption doesn't use fade back, so the strip never reads as current when it isn't
+    box.querySelectorAll('.gi').forEach(el => el.classList.toggle('old', !(story.glossNow || []).includes(+el.dataset.g)));
+    return;
+  }
   const max = isSmall() ? 2 : 3;
-  for (const gi of fresh.slice(max)) story.glossSeen.delete(gi);     // not shown yet: decode at the next mention
-  box.innerHTML = fresh.slice(0, max).map(gi => `<span class="gi${force !== undefined ? ' tap' : ''}"><b>${escHtml(GLOSS[gi].t[0].replace(/^./, c => c.toUpperCase()))}</b> ${escHtml(GLOSS[gi].d)}</span>`).join('');
+  showGloss(fresh.slice(0, max), force !== undefined);
+  story.glossQueue = fresh.slice(max);   // more than fit: page through them rather than drop them, and budget their reading time now
+  if (story.glossQueue.length) { story.glossPageAt = story.readUntil; if (!story.ffwd) readFor(glossText(story.glossQueue)); }
+}
+const glossText = list => list.map(gi => GLOSS[gi].t[0] + ' ' + GLOSS[gi].d).join(' ');
+function showGloss(list, tapped, paged) {
+  const box = $('#sbgloss');
+  box.innerHTML = list.map(gi => `<span class="gi${tapped ? ' tap' : ''}" data-g="${gi}"><b>${escHtml(GLOSS[gi].t[0].replace(/^./, c => c.toUpperCase()))}</b> ${escHtml(GLOSS[gi].d)}</span>`).join('');
   box.hidden = false;
+  if (!story.ffwd && !tapped && !paged) readFor(glossText(list));
 }
 function setCaption(text) {
   story.capNow = text;
   const hl = story.def?.hl || {}, ev = story.def?.steps && story.scene?.ev, kick = text ? story.kicker : null;
   const [body, found] = glossMark(escHtml(text || '').replace(HL_RE, (_, w, k) => `<b class="hl" style="color:${hl[k] || 'inherit'}">${w}</b>`));
-  story.glossNow = found; story.glossPending = true;
+  const kickFound = kick ? glossMark(escHtml(kick))[1] : [];
+  story.glossNow = [...kickFound.filter(gi => !found.includes(gi)), ...found]; story.glossPending = true;
   $('#sbcap').innerHTML = (kick ? `<span class="st">${escHtml(kick)}</span>` : '') + body + (ev ? ` <span class="ev">${escHtml(ev)}</span>` : '');
   story.capText = (kick ? kick + '. ' : '') + plainCap(text); story.gateT = 0;
+  if (!story.ffwd) readFor(story.capText);   // a scene entered instantly still needs reading time; skipped beats don't
   if (story.narrate && text && !story.instant) speak(story.capText);
 }
 function speak(text) {
@@ -4645,9 +4675,9 @@ function keyHtml(def) {
 }
 function whoHtml(def) {
   if (!HAS_JOBS) return '';
-  const vis = new Set([...story.labelSet, ...(story.see || []), ...story.show.flatMap(id => { const e = story.edges.get(id)?.def; return e ? [e.from, e.to] : []; })]);
+  const vis = new Set([...(story.effLabels || story.labelSet), ...(story.see || []), ...story.show.flatMap(id => { const e = story.edges.get(id)?.def; return e ? [e.from, e.to] : []; })]);
   const seen = new Set(), rows = [];
-  for (const id of [...story.labelSet, ...vis]) {
+  for (const id of [...(story.effLabels || story.labelSet), ...vis]) {
     const n = story.nodes.get(id)?.def, j = n && jobOf(n); if (!j || seen.has(n.label)) continue; seen.add(n.label);
     rows.push(`<div class="who"><b>${escHtml(n.label)}</b> <i>${escHtml(j.job)}</i><div>${escHtml(j.say)}</div></div>`);
   }
@@ -4757,7 +4787,7 @@ function startStory(id, i = 0, opts = {}) {
   story.snapshot = { level: new Map(state.level), hemi: state.hemi, preset: state.preset };
   state.netMode = 'off'; state.rec = null; state.drug = null; syncDrugs(); if (slice) slice.material.uniforms.petOn.value = 0;
   state.sel = null; state.cut = 'off'; applyCut();
-  story.def = def; story.vars = { ...def.vars }; story.tweens = []; story.flash = {}; story.flashNeg = {}; story.glossSeen = new Set(); story.glossNow = [];
+  story.def = def; story.vars = { ...def.vars }; story.tweens = []; story.flash = {}; story.flashNeg = {}; story.glossSeen = new Set(HAS_JOBS ? (def.glossInline || []).map(w => GLOSS_IDX.get(w.toLowerCase())).filter(gi => gi !== undefined) : []); story.glossNow = []; story.glossQueue = []; story.readUntil = 0;
   const solid = new Set([...Object.values(def.nodes).filter(n => n.key && !n.ghost).map(n => n.key), ...(def.cast || [])]);
   const ghostK = new Set([...Object.values(def.nodes).filter(n => n.key && n.ghost).map(n => n.key), ...(def.ghostCast || [])]);
   setLevels(all, 0); setLevels(cortex, 1); setLevels([...ghostK], 1); setLevels([...solid], def.steps ? 1 : 2);

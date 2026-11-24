@@ -227,7 +227,7 @@ function gotoScene(i, opts = {}) {
   paintYeo(story.hud.yeo || 0);
   story.see = sc.see ? new Set(sc.see) : null; applySee();
   story.kicker = sc.kicker || null;
-  clearTokens(); $('#sbgloss').innerHTML = ''; $('#sbgloss').hidden = true; setCaption(sc.caption); renderExtra(sc); renderInset(sc.inset || null); syncBar();
+  clearTokens(); $('#sbgloss').innerHTML = ''; $('#sbgloss').hidden = true; story.glossQueue = []; story.readUntil = 0; setCaption(sc.caption); renderExtra(sc); renderInset(sc.inset || null); syncBar();
   if (!$('#keycard').hidden) $('#keycard').innerHTML = keyHtml(def);
   story.camNow = sc.cam || (def.steps && def.cam) || { dir: def.view }; story.framePending = true;
   const anim = !opts.instant;
@@ -266,7 +266,7 @@ function applySee() {
   applyMaterials();
 }
 function fastForward(t) {
-  story.instant = true;
+  story.instant = true; story.ffwd = true;
   for (let x = 0; x < t; x += 0.1) {
     story.t += 0.1;
     const beats = story.scene.beats || [];
@@ -276,7 +276,7 @@ function fastForward(t) {
     if (story.def.tick) story.def.tick(0.1, story.vars, story.m, story);
     for (const tk of story.tokens) if (story.t - tk.t0 >= tk.dur && !tk.arrived) arrive(tk);
   }
-  story.instant = false;
+  story.instant = false; story.ffwd = false; story.readUntil = 0;
 }
 function arrive(tk) {
   tk.arrived = true;
@@ -296,6 +296,8 @@ function storyFrame(now) {
     let nt = story.t + dt;
     const nb = (sc.beats || [])[story.beatIdx], lim = nb ? (nb.caption ? nb.at : Infinity) : (sc.free || def.steps ? Infinity : sc.dur + (sc.hold ?? 1.5));
     if (story.narrate && window.speechSynthesis && speechSynthesis.speaking && nt >= lim && story.gateT < 12) { story.gateT += dt; nt = Math.max(story.t, lim - 0.001); } else if (nt < lim) story.gateT = 0;
+    // reading gate: the same hold until the caption and any new definitions have had reading time (about 150 words a minute)
+    if (nt >= lim && now < story.readUntil) nt = Math.max(story.t, lim - 0.001);
     story.t = nt;
     const beats = sc.beats || [];
     while (story.beatIdx < beats.length && beats[story.beatIdx].at <= story.t) applyBeat(beats[story.beatIdx++]);
@@ -544,18 +546,24 @@ function updateHud(dt, now) {
     hud.gridlead.setAttribute('opacity', s.ok ? 0.55 : 0);
   } else hud.gridlead.setAttribute('opacity', 0);
   // labels: nodes, edge tags and the transporter note, decluttered together
-  const items = [], labOrder = [...story.labelSet].filter(id => story.nodes.get(id)?.label), jobCut = small && labOrder.length >= 4 ? labOrder.length - 2 : 0;
+  const eff = new Set(story.labelSet);
+  for (const E of story.edges.values()) {
+    const e = E.def;
+    if (E.vis > 0.5 && (story.tags[e.id] || story.focus?.includes(e.id)) && !def.noArrowTags) [e.from, e.to].forEach(id => story.nodes.get(id)?.label && eff.add(id));
+  }
+  story.effLabels = eff;
+  const items = [], labOrder = [...eff].filter(id => story.nodes.get(id)?.label), jobCut = small && labOrder.length >= 4 ? labOrder.length - 2 : 0;
   for (const N of story.nodes.values()) {
     if (!N.label) continue;
-    const s = proj(N.pos), on = story.labelSet.has(N.id) && s.ok && !(N.def.gate && !N.def.gate(m, story)); N.label.classList.toggle('on', on);
+    const s = proj(N.pos), on = eff.has(N.id) && s.ok && !(N.def.gate && !N.def.gate(m, story)); N.label.classList.toggle('on', on);
     N.label.classList.toggle('nojob', labOrder.indexOf(N.id) < jobCut);
     if (on) { const [w, h] = measure(N.label); items.push({ el: N.label, ax: s.x, ay: s.y, w, h, below: (N.def.lo || [0, 0])[1] > 0 }); }
   }
   const tagged = [];
   for (const E of story.edges.values()) {
     const st = story.tags[E.id], plain = def.noArrowTags ? '' : arrowTag(E.def), e = E.def;
-    const near = story.labelSet.has(e.from) || story.labelSet.has(e.to) || (story.focus && story.focus.includes(e.id));
-    if (E.vis > 0.5 && (st || (plain && near))) tagged.push({ E, txt: st ? (plain ? `${plain} · ${st}` : st) : plain, pri: st ? 3 : story.focus?.includes(e.id) ? 2 : 1 });
+    const named = eff.has(e.from) && eff.has(e.to);
+    if (E.vis > 0.5 && named && (st || plain)) tagged.push({ E, txt: st ? (plain ? `${plain} · ${st}` : st) : plain, pri: st ? 3 : story.focus?.includes(e.id) ? 2 : 1 });
     else E.tag.classList.remove('on');
   }
   tagged.sort((a, b) => b.pri - a.pri).forEach(({ E, txt }, i) => {
@@ -564,6 +572,7 @@ function updateHud(dt, now) {
     const s = proj(E.curve.getPointAt(0.5)), [w, h] = measure(E.tag); items.push({ el: E.tag, ax: s.x, ay: s.y + h / 2 + 9, w, h, tag: true });
   });
   if (story.glossPending) renderGloss();
+  else if (story.glossQueue?.length && performance.now() >= story.glossPageAt) { const max = small ? 2 : 3, next = story.glossQueue.slice(0, max); story.glossQueue = story.glossQueue.slice(max); showGloss(next, false, true); story.glossPageAt = performance.now() + 1000 * (0.6 + glossText(next).split(/\s+/).length / READ_WPS); }
   const nac = story.nodes.get('nac'), datOn = !!H2.dat && nac && def.gauge.pop(m) < 0.3;
   hud.datLabel.classList.toggle('on', !!datOn);
   if (datOn) { const s = proj(nac.pos), [w, h] = measure(hud.datLabel); items.push({ el: hud.datLabel, ax: s.x, ay: s.y, w, h, below: true }); }
@@ -665,11 +674,17 @@ function glossMark(html) {
   })).join('');
   return [out, found];
 }
+const READ_WPS = 2.5;
+function readFor(text) {   // extend the reading budget by this text's reading time
+  const w = (text || '').split(/\s+/).filter(Boolean).length; if (!w) return;
+  const now = performance.now();
+  story.readUntil = Math.min(Math.max(story.readUntil || 0, now) + (0.6 + w / READ_WPS) * 1000, now + 16000);
+}
 // the strip: definitions for words this story hasn't decoded yet (a region whose label is on screen is already explained by its job line)
 function renderGloss(force) {
   story.glossPending = false;
   const box = $('#sbgloss'); if (!box || !HAS_JOBS) return;
-  const onLabels = new Set([...story.labelSet].map(id => story.nodes.get(id)?.def.label).filter(Boolean));
+  const onLabels = new Set([...(story.effLabels || story.labelSet)].map(id => story.nodes.get(id)?.def.label).filter(Boolean));
   const fresh = [];
   for (const gi of force !== undefined ? [force] : (story.glossNow || [])) {
     const g = GLOSS[gi];
@@ -678,19 +693,31 @@ function renderGloss(force) {
     if (force === undefined && g.node && g.node.some(l => onLabels.has(l))) continue;
     fresh.push(gi);
   }
-  if (!fresh.length) return;
+  if (!fresh.length) {   // nothing new: definitions this caption doesn't use fade back, so the strip never reads as current when it isn't
+    box.querySelectorAll('.gi').forEach(el => el.classList.toggle('old', !(story.glossNow || []).includes(+el.dataset.g)));
+    return;
+  }
   const max = isSmall() ? 2 : 3;
-  for (const gi of fresh.slice(max)) story.glossSeen.delete(gi);     // not shown yet: decode at the next mention
-  box.innerHTML = fresh.slice(0, max).map(gi => `<span class="gi${force !== undefined ? ' tap' : ''}"><b>${escHtml(GLOSS[gi].t[0].replace(/^./, c => c.toUpperCase()))}</b> ${escHtml(GLOSS[gi].d)}</span>`).join('');
+  showGloss(fresh.slice(0, max), force !== undefined);
+  story.glossQueue = fresh.slice(max);   // more than fit: page through them rather than drop them, and budget their reading time now
+  if (story.glossQueue.length) { story.glossPageAt = story.readUntil; if (!story.ffwd) readFor(glossText(story.glossQueue)); }
+}
+const glossText = list => list.map(gi => GLOSS[gi].t[0] + ' ' + GLOSS[gi].d).join(' ');
+function showGloss(list, tapped, paged) {
+  const box = $('#sbgloss');
+  box.innerHTML = list.map(gi => `<span class="gi${tapped ? ' tap' : ''}" data-g="${gi}"><b>${escHtml(GLOSS[gi].t[0].replace(/^./, c => c.toUpperCase()))}</b> ${escHtml(GLOSS[gi].d)}</span>`).join('');
   box.hidden = false;
+  if (!story.ffwd && !tapped && !paged) readFor(glossText(list));
 }
 function setCaption(text) {
   story.capNow = text;
   const hl = story.def?.hl || {}, ev = story.def?.steps && story.scene?.ev, kick = text ? story.kicker : null;
   const [body, found] = glossMark(escHtml(text || '').replace(HL_RE, (_, w, k) => `<b class="hl" style="color:${hl[k] || 'inherit'}">${w}</b>`));
-  story.glossNow = found; story.glossPending = true;
+  const kickFound = kick ? glossMark(escHtml(kick))[1] : [];
+  story.glossNow = [...kickFound.filter(gi => !found.includes(gi)), ...found]; story.glossPending = true;
   $('#sbcap').innerHTML = (kick ? `<span class="st">${escHtml(kick)}</span>` : '') + body + (ev ? ` <span class="ev">${escHtml(ev)}</span>` : '');
   story.capText = (kick ? kick + '. ' : '') + plainCap(text); story.gateT = 0;
+  if (!story.ffwd) readFor(story.capText);   // a scene entered instantly still needs reading time; skipped beats don't
   if (story.narrate && text && !story.instant) speak(story.capText);
 }
 function speak(text) {
@@ -724,9 +751,9 @@ function keyHtml(def) {
 }
 function whoHtml(def) {
   if (!HAS_JOBS) return '';
-  const vis = new Set([...story.labelSet, ...(story.see || []), ...story.show.flatMap(id => { const e = story.edges.get(id)?.def; return e ? [e.from, e.to] : []; })]);
+  const vis = new Set([...(story.effLabels || story.labelSet), ...(story.see || []), ...story.show.flatMap(id => { const e = story.edges.get(id)?.def; return e ? [e.from, e.to] : []; })]);
   const seen = new Set(), rows = [];
-  for (const id of [...story.labelSet, ...vis]) {
+  for (const id of [...(story.effLabels || story.labelSet), ...vis]) {
     const n = story.nodes.get(id)?.def, j = n && jobOf(n); if (!j || seen.has(n.label)) continue; seen.add(n.label);
     rows.push(`<div class="who"><b>${escHtml(n.label)}</b> <i>${escHtml(j.job)}</i><div>${escHtml(j.say)}</div></div>`);
   }
@@ -836,7 +863,7 @@ function startStory(id, i = 0, opts = {}) {
   story.snapshot = { level: new Map(state.level), hemi: state.hemi, preset: state.preset };
   state.netMode = 'off'; state.rec = null; state.drug = null; syncDrugs(); if (slice) slice.material.uniforms.petOn.value = 0;
   state.sel = null; state.cut = 'off'; applyCut();
-  story.def = def; story.vars = { ...def.vars }; story.tweens = []; story.flash = {}; story.flashNeg = {}; story.glossSeen = new Set(); story.glossNow = [];
+  story.def = def; story.vars = { ...def.vars }; story.tweens = []; story.flash = {}; story.flashNeg = {}; story.glossSeen = new Set(HAS_JOBS ? (def.glossInline || []).map(w => GLOSS_IDX.get(w.toLowerCase())).filter(gi => gi !== undefined) : []); story.glossNow = []; story.glossQueue = []; story.readUntil = 0;
   const solid = new Set([...Object.values(def.nodes).filter(n => n.key && !n.ghost).map(n => n.key), ...(def.cast || [])]);
   const ghostK = new Set([...Object.values(def.nodes).filter(n => n.key && n.ghost).map(n => n.key), ...(def.ghostCast || [])]);
   setLevels(all, 0); setLevels(cortex, 1); setLevels([...ghostK], 1); setLevels([...solid], def.steps ? 1 : 2);

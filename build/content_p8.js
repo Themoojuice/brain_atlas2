@@ -29,7 +29,7 @@ const OTHER_HTML = `<div class="t">Treatment elsewhere in the series</div><div c
   <div><b>Catatonia</b><span>Lorazepam first; electroconvulsive therapy if not</span><i>Part 7</i></div>
   <div><b>Psychotic depression</b><span>Antidepressant plus antipsychotic, or electroconvulsive therapy</span><i>Part 6</i></div></div>`;
 
-STORIES.push({ ...PSY_BASE, id: 'p8', name: 'Part 8 · Turning it down', color: '#9fd3ff', reveal: true, noStates: true, shell: '#7a8494',
+STORIES.push({ ...PSY_BASE, glossInline: ['xanomeline', 'trospium'], id: 'p8', name: 'Part 8 · Turning it down', color: '#9fd3ff', reveal: true, noStates: true, shell: '#7a8494',
   desc: 'Where each treatment acts on the chain: the D2 speaker and its occupancy window, side effects, a muscarinic drug at the source, negative symptoms, rebound, the dopamine-normal third and clozapine. Thirteen short scenes.',
   keyIntro: '<div class="t">The chain card, with drugs</div><div class="note">Clips show where a drug acts. The bar is striatal D2 occupancy, with the 65% (response), 72% (prolactin) and 78% (stiffness and tremor) thresholds from first-episode PET. Hexagons on the striatum in the brain are D2 blockade; green rounds are the muscarinic drug. Drive and receptor numbers are illustrative.</div>',
   nodes: { ...PSY_BASE.nodes,

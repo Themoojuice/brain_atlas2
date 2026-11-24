@@ -101,7 +101,7 @@ const P1_EV = {
 };
 const P1_H = { nmda: 1, demand: 0.6, ox: 0.35, mop: 1, gsh: 1, net: 1, dim: 0, loop: 0, nov: 0 };
 
-STORIES.push({ id: 'p1', name: 'Part 1 · Where it starts', color: '#ff7a6b', hemi: 'L', view: [-1, 0.18, 0.32], reveal: true, noStates: true, shell: '#7a8494',
+STORIES.push({ id: 'p1', glossInline: ['pyramidal cells', 'gamma rhythm', 'superoxide', 'NADPH oxidase', 'glutathione', 'perineuronal net'], name: 'Part 1 · Where it starts', color: '#ff7a6b', hemi: 'L', view: [-1, 0.18, 0.32], reveal: true, noStates: true, shell: '#7a8494',
   desc: 'The series begins with one cell: the fast, expensive interneuron that keeps the hippocampus in time, and the many roads that wear it down. Thirteen short scenes.',
   keyIntro: '<div class="t">The microscope card</div><div class="note">Triangles are pyramidal cells; the blue circle is a parvalbumin interneuron, its blue cups the synapses on their cell bodies. Green mesh: its perineuronal net. Gold ovals: mitochondria. Red puffs: superoxide. The wave is the gamma rhythm, slowed right down. Bars and rates are illustrative units. The blue dots round the hippocampus in the brain stand for its interneurons.</div>',
   nodes: {
@@ -161,7 +161,7 @@ STORIES.push({ id: 'p1', name: 'Part 1 · Where it starts', color: '#ff7a6b', he
       kicker: 'Energy', caption: 'Firing that fast is expensive.', ev: P1_EV.energy,
       beats: [
         { at: 4.5, caption: 'These cells are packed with mitochondria, the gold ovals, and run close to their energy limit.' },
-        { at: 12, tween: { demand: [1.05, 2] }, kicker: 'Push it', caption: 'Ask for more and the reserve runs low.' },
+        { at: 12, tween: { demand: [1.05, 2] }, kicker: 'Push it', caption: 'Ask for more and the energy runs low.' },
         { at: 18, tween: { demand: [0.6, 2] }, kicker: null, caption: 'Ease off and it recovers. There is little spare.' }] },
     { title: 'Exhaust', chapter: 'The cell', dur: 24, state: 'h', set: { mop: 0, ox: 0.4 }, cam: P1_CAM.hp, see: ['ahp'], show: [], labels: [], inset: 'micro', hud: { ring: true }, fx: { mc: ['cells', 'rhythm', 'energy', 'smoke'], mhi: 'smoke' },
       kicker: 'Exhaust', caption: 'Burning that much fuel leaks superoxide, a reactive by-product: the red puffs.', ev: P1_EV.smoke,
@@ -178,7 +178,7 @@ STORIES.push({ id: 'p1', name: 'Part 1 · Where it starts', color: '#ff7a6b', he
       kicker: 'Door 1', caption: 'Risk genes number in the hundreds. Some touch glutathione, or the NMDA receptor.', ev: P1_EV.genes,
       beats: [
         { at: 2, tween: { gsh: [0.62, 3] } },
-        { at: 9, tween: { gsh: [0.48, 3] }, kicker: 'Early life', caption: 'Complications around birth can thin the reserve too.' },
+        { at: 9, tween: { gsh: [0.48, 3] }, kicker: 'Early life', caption: 'Complications around birth can thin the glutathione buffer too.' },
         { at: 16, kicker: null, caption: 'A thinner buffer still copes on a good day. It just has less margin.' }] },
     { title: 'Door 2: adolescence', chapter: 'Many roads', dur: 20, state: 'h', set: { gsh: 0.48 }, cam: P1_CAM.hp, see: ['ahp'], show: [], labels: [], inset: 'micro', hud: { ring: true }, fx: { mc: MC_GROUPS.filter(g => g !== 'nmda'), mhi: 'net', tag: 'Under strain' },
       kicker: 'Door 2', caption: 'In adolescence the net is still maturing.', ev: P1_EV.teen,
@@ -189,7 +189,7 @@ STORIES.push({ id: 'p1', name: 'Part 1 · Where it starts', color: '#ff7a6b', he
       kicker: 'Door 3', caption: 'The interneuron is driven through NMDA receptors.', ev: P1_EV.nmda,
       beats: [
         { at: 5.5, tween: { nmda: [0.15, 2] }, fx: { mhi: ['nmda', 'cells', 'rhythm'] }, kicker: 'Blocked', caption: 'Ketamine, phencyclidine or anti-NMDA receptor encephalitis block them. The interneuron goes quiet first.' },
-        { at: 13.5, fx: { spot: 'ahp' }, kicker: null, caption: 'Released, the pyramidal cells fire out of time and the hippocampus heats up.' },
+        { at: 13.5, fx: { spot: 'ahp' }, kicker: null, caption: 'Released, the pyramidal cells fire out of time and the hippocampus gets louder.' },
         { at: 20, tween: { ox: [0.8, 2.5] }, fx: { mhi: 'smoke', spot: null }, kicker: 'More exhaust', caption: 'In mice, ketamine also drives NADPH oxidase: more superoxide.' }] },
     { title: 'The vicious circle', chapter: 'Many roads', dur: 22, state: 'h', set: { gsh: 0.48, net: 0.72, ox: 0.62, loop: 1 }, cam: P1_CAM.hp, see: ['ahp'], show: [], labels: [], inset: 'micro', hud: { ring: true }, fx: { mc: MC_GROUPS.filter(g => g !== 'nmda'), mhi: ['net', 'smoke'], tag: 'Under strain' },
       kicker: 'Vicious circle', caption: 'Oxidative stress frays the net…', ev: P1_EV.loop,

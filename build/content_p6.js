@@ -55,7 +55,7 @@ const P6_EV = {
 const P6_SEE = ['ahp', 'nac', 'vta', 'sn', 'cd'];
 const P6_SHOW = ['hp-nac', 'vta-nac', 'nac-sn', 'sn-cd'];
 
-STORIES.push({ id: 'p6', name: 'Part 6 · One trunk, three illnesses', color: '#c49bff', hemi: 'L', view: MED, reveal: true, noStates: true, shell: '#7a8494',
+STORIES.push({ id: 'p6', glossInline: ['schizoaffective disorder', 'mifepristone'], name: 'Part 6 · One trunk, three illnesses', color: '#c49bff', hemi: 'L', view: MED, reveal: true, noStates: true, shell: '#7a8494',
   desc: 'How the chain and the mood loop make three illnesses: one shared psychosis trunk, two engines, a stress-hormone route in psychotic depression, and the mood pole picking the plot. Ten short scenes.',
   keyIntro: '<div class="t">The engine card</div><div class="note">Engines on the left feed the trunk on the right; pipe thickness is how hard each drives it. Above the dashed line, the trunk means psychosis. The label on the right is the diagnosis this combination gives; the gold line is the content the mood pole supplies. Illustrative.</div>',
   nodes: {
@@ -100,10 +100,10 @@ STORIES.push({ id: 'p6', name: 'Part 6 · One trunk, three illnesses', color: '#
       kicker: 'Part 6', caption: 'Parts 1 to 4 built the chain. Part 5 built the mood loop.', ev: P6_EV.series,
       beats: [{ at: 6.5, see: P6_SEE, show: P6_SHOW, kicker: 'Today', caption: 'Today: how they make three different illnesses.' }] },
     { title: 'One trunk', chapter: 'Trunk', dur: 20, state: 'x', set: { chain: 0.9, loop: 0, osc: 0, cort: 0 }, cam: P6_CAM.st, see: P6_SEE, show: P6_SHOW, labels: ['cd'], hud: { tint: true }, inset: 'engine', fx: { en: ['chain', 'loop'], spot: 'cd' },
-      kicker: 'One trunk', caption: 'In schizophrenia and in bipolar psychosis alike, dopamine synthesis in the associative striatum tracks the positive symptoms.', ev: P6_EV.trunk,
-      beats: [{ at: 10, tween: { chain: [0, 2], loop: [0.9, 2] }, kicker: null, caption: 'Whichever engine drives it, psychosis rides on the same trunk.' }] },
+      kicker: 'One trunk', caption: 'In schizophrenia and in bipolar psychosis alike, dopamine synthesis in the associative striatum rises with the positive symptoms.', ev: P6_EV.trunk,
+      beats: [{ at: 10, tween: { chain: [0, 2], loop: [0.9, 2] }, kicker: null, caption: 'Whichever engine drives it, psychosis rides on the same trunk: extra dopamine in the associative striatum.' }] },
     { title: 'Territory doesn’t split them', chapter: 'Trunk', dur: 18, state: 'x', set: { chain: 0, loop: 0.9, osc: 0, cort: 0 }, cam: P6_CAM.st, see: P6_SEE, show: P6_SHOW, labels: ['nac', 'cd'], hud: { tint: true }, inset: 'engine', fx: { en: ['chain', 'loop'] },
-      kicker: 'Territory', caption: 'The limbic striatum isn’t raised in mania. Both illnesses load the associative part.', ev: P6_EV.terr,
+      kicker: 'Territory', caption: 'The limbic striatum isn’t raised in mania. Both illnesses raise dopamine in the associative part.', ev: P6_EV.terr,
       beats: [{ at: 8.5, kicker: null, caption: 'So the difference isn’t where dopamine lands. It is what drives it.' }] },
     { title: 'Engine 1: the chain', chapter: 'Engines', dur: 20, state: 'x', set: { chain: 0, loop: 0, osc: 0, cort: 0 }, cam: P6_CAM.hp, see: P6_SEE, show: P6_SHOW, labels: ['ahp'], inset: 'engine', fx: { en: ['chain', 'loop'], enhi: 'chain', dx: '', spot: 'ahp' },
       kicker: 'Engine 1', caption: 'The chain: a steadily loud hippocampus keeps the trunk running.', ev: P6_EV.chain,

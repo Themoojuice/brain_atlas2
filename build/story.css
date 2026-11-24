@@ -229,3 +229,5 @@ body.steps .ghostring { border: 2px dashed rgba(255,255,255,0.9); }
 #keycard .wd b { color: var(--ink); font-weight: 600; margin-right: 3px; }
 #keycard .wd b::after { content: ':'; }
 .slab.two.nojob .jb { display: none; }
+#sbgloss .gi { transition: opacity .4s; }
+#sbgloss .gi.old { opacity: 0.4; }
